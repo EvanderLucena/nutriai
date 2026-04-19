@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+/*
+ * NutriAI Design Tokens
+ * Source of truth for all colors, typography, spacing, and theme values.
+ * Matches prototype styles.css :root and [data-theme] selectors.
+ */
+
+/* ── Core Palette ──────────────────────────────────────────── */
+
+:root {
+  /* Ink (dark foregrounds) */
+  --ink: #0B0C0A;
+  --ink-2: #1A1D17;
+  --ink-3: #2A2E26;
+
+  /* Paper (light backgrounds) */
+  --paper: #FEFCF6;
+  --paper-2: #F4F1EA;
+  --paper-3: #E8E4D8;
+
+  /* Accent colors */
+  --lime: #D4FF4F;
+  --lime-dim: #9CBF2B;
+  --coral: #FF6B4A;
+  --coral-dim: #CC553B;
+  --sage: #7FB77E;
+  --sage-dim: #5A8A5A;
+  --amber: #E8B84A;
+  --sky: #7AB7D9;
+
+  /* Typography */
+  --font-ui: 'Inter Tight', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+  --font-serif: 'Instrument Serif', Georgia, serif;
+
+  /* Radii */
+  --radius-sm: 3px;
+  --radius: 6px;
+  --radius-lg: 10px;
+}
+
+/* ── Light Theme (default) ─────────────────────────────────── */
+
+:root,
+[data-theme="light"] {
+  --bg: var(--paper);
+  --surface: #FEFCF6;
+  --surface-2: var(--paper-2);
+  --border: #D8D2C1;
+  --border-2: #C5BEA9;
+  --fg: #0B0C0A;
+  --fg-muted: #6B6F62;
+  --fg-subtle: #9A9C8E;
+  --ink-contrast: #0B0C0A;
+  color-scheme: light;
+}
+
+/* ── Dark Theme ────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  --bg: #0B0C0A;
+  --surface: #121410;
+  --surface-2: #1A1D17;
+  --border: #2A2E26;
+  --border-2: #3A3F35;
+  --fg: #F4F1EA;
+  --fg-muted: #9A9C8E;
+  --fg-subtle: #6B6F62;
+  --ink-contrast: #F4F1EA;
+  color-scheme: dark;
+}
+
+/* ── Tailwind v4 Theme Extensions ───────────────────────────── */
+/* Using @theme to map CSS custom properties to Tailwind utilities */
+
+@theme {
+  /* Colors from CSS custom properties */
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-lime: var(--lime);
+  --color-lime-dim: var(--lime-dim);
+  --color-coral: var(--coral);
+  --color-coral-dim: var(--coral-dim);
+  --color-sage: var(--sage);
+  --color-sage-dim: var(--sage-dim);
+  --color-amber: var(--amber);
+  --color-sky: var(--sky);
+
+  /* Semantic theme-aware colors */
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-2: var(--border-2);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-ink-contrast: var(--ink-contrast);
+
+  /* Font families */
+  --font-ui: var(--font-ui);
+  --font-mono: var(--font-mono);
+  --font-serif: var(--font-serif);
+
+  /* Border radii */
+  --radius-sm: 3px;
+  --radius-default: 6px;
+  --radius-lg: 10px;
+}
+
+/* ── Base Resets ────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: var(--bg);
+  color: var(--fg);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* ── Typography Utility Classes ─────────────────────────────── */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.serif {
+  font-family: var(--font-serif);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-2);
+}
