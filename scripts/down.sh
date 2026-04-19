@@ -12,9 +12,9 @@ cd "$ROOT_DIR"
 VOLUMES_FLAG=""
 if [ "${1:-}" = "--volumes" ]; then
   VOLUMES_FLAG="--volumes"
-  echo "🗑  Removing containers AND volumes"
+  echo "Removing containers AND volumes"
 else
-  echo "🛑 Removing containers (preserving volumes)"
+  echo "Removing containers (preserving volumes)"
 fi
 
-docker compose down $VOLUMES_FLAG
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml down $VOLUMES_FLAG

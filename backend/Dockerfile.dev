@@ -1,0 +1,15 @@
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+COPY gradle/ gradle/
+COPY gradlew gradlew
+COPY build.gradle settings.gradle ./
+
+RUN chmod +x gradlew && ./gradlew dependencies --no-daemon || true
+
+COPY src/ src/
+
+EXPOSE 8080
+
+CMD ["./gradlew", "bootRun", "--no-daemon"]

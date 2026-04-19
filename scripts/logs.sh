@@ -13,9 +13,9 @@ cd "$ROOT_DIR"
 SERVICE="${1:-}"
 
 if [ -n "$SERVICE" ]; then
-  echo "📋 Following logs for: $SERVICE"
-  docker compose logs -f "$SERVICE"
+  echo "Following logs for: $SERVICE"
+  docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml logs -f "$SERVICE"
 else
-  echo "📋 Following logs for all services"
-  docker compose logs -f
+  echo "Following logs for all services"
+  docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml logs -f
 fi

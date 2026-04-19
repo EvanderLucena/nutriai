@@ -9,20 +9,17 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$ROOT_DIR"
 
-# Ensure .env exists
 if [ ! -f .env ]; then
-  echo "⚠  No .env file found. Run ./scripts/setup.sh first."
+  echo "No .env file found. Run ./scripts/setup.sh first."
   exit 1
 fi
 
-# Source environment
 set -a; source .env; set +a
 
-# Build flag
 BUILD_FLAG=""
 if [ "${1:-}" = "--build" ]; then
   BUILD_FLAG="--build"
 fi
 
-echo "🚀 Starting NutriAI development environment..."
-docker compose up $BUILD_FLAG
+echo "Starting NutriAI development environment..."
+docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up $BUILD_FLAG

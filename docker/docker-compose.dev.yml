@@ -1,0 +1,14 @@
+services:
+  backend:
+    volumes:
+      - ../backend/src:/app/src
+    environment:
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_PROFILES_ACTIVE: dev
+
+  frontend:
+    volumes:
+      - ../frontend/src:/app/src
+      - ../frontend/public:/app/public
+    environment:
+      - VITE_API_URL=http://localhost:8080

@@ -1,0 +1,56 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nutriai-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nutriai}
+      POSTGRES_USER: ${POSTGRES_USER:-nutriai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - nutriai-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nutriai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nutriai
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    container_name: nutriai-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nutriai}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nutriai}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nutriai
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.dev
+    container_name: nutriai-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - nutriai
+
+volumes:
+  nutriai-pgdata:
+
+networks:
+  nutriai:
+    driver: bridge
