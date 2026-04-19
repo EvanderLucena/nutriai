@@ -34,7 +34,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Backend boots with an accessible health endpoint and PostgreSQL connection established
   3. Frontend serves from Vite dev server with hot reload inside the Docker environment
   4. Flyway migrations run automatically on backend startup creating the initial database schema
-**Plans**: TBD
+**Plans:** 3 plans in 2 waves
+Plans:
+- [ ] 01-01-PLAN.md — Monorepo scaffold + Spring Boot backend skeleton
+- [ ] 01-02-PLAN.md — Frontend scaffold with Tailwind theme and component library
+- [ ] 01-03-PLAN.md — Docker Compose integration and verification
 
 ### Phase 2: Frontend Migration
 **Goal**: All prototype UI works in a modern build pipeline without runtime Babel
