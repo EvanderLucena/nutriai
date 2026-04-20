@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { ANA } from '../data/ana';
-import type { DetailedPatient } from '../types/patient';
+import type { DetailedPatient, MacroTarget } from '../types/patient';
 import { IconEdit, IconPlus } from '../components/icons';
 import { EditPatientModal, Timeline, NewBiometryModal, MultiLineChart } from '../components/patient';
-import { LineChart } from '../components/viz';
+import { MacroRings, WeekBars, LineChart } from '../components/viz';
 import { PlansView } from './PlansView';
 
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
@@ -108,6 +108,8 @@ export function PatientView() {
 }
 
 function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (t: Tab) => void }) {
+  const reportedMacrosToday: MacroTarget = patient.macrosToday;
+
   return (
     <div>
       <div style={{ padding: '24px 28px' }}>
@@ -127,12 +129,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                 <div className="eyebrow">META DIÁRIA</div>
                 <div className="mono tnum" style={{ fontSize: 14, color: 'var(--fg-muted)' }}>6 refeições</div>
               </div>
-              <div className="today-macros-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                <PlanMacro label="kcal" value="2.200" />
-                <PlanMacro label="proteína" value="140g" color="var(--sage-dim)" />
-                <PlanMacro label="carboidrato" value="250g" color="var(--carb)" />
-                <PlanMacro label="gordura" value="70g" color="var(--sky)" />
-              </div>
+              <MacroRings macros={patient.macrosToday} size={64} />
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.5 }}>
                 <span className="mono" style={{ fontSize: 10, letterSpacing: '0.06em', color: 'var(--fg-subtle)', marginRight: 6 }}>OBSERVAÇÕES</span>
                 Evitar lactose · preferir proteína magra à noite · carne vermelha máx 2×/semana
@@ -153,17 +150,23 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                 <div className="eyebrow">EXTRAÍDO ATÉ AGORA · 14:28</div>
                 <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}>VIA WHATSAPP</div>
               </div>
-              <div className="today-macros-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                <PlanMacro label="kcal" value="1.680" />
-                <PlanMacro label="proteína" value="108g" color="var(--sage-dim)" />
-                <PlanMacro label="carboidrato" value="182g" color="var(--carb)" />
-                <PlanMacro label="gordura" value="54g" color="var(--sky)" />
-              </div>
+              <MacroRings macros={reportedMacrosToday} size={64} />
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
                 <span className="mono" style={{ fontSize: 10, letterSpacing: '0.06em', color: 'var(--fg-subtle)', marginRight: 6 }}>NOTA</span>
                 Macros estimados pela IA a partir do texto do paciente. Edite qualquer registro se houver erro de extração.
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Weekly adherence */}
+        <div className="card" style={{ marginBottom: 22 }}>
+          <div className="card-h">
+            <div className="title">Adesão semanal</div>
+            <div className="sub">SEG — DOM</div>
+          </div>
+          <div className="card-b">
+            <WeekBars values={patient.weekMacroFill} height={42} />
           </div>
         </div>
 
@@ -182,15 +185,6 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function PlanMacro({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div>
-      <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-      <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, letterSpacing: '-0.02em', color: color || 'var(--fg)' }}>{value}</div>
     </div>
   );
 }
