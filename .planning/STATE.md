@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 plans created (3 plans, 2 waves), ready for execution
-last_updated: "2026-04-19T23:20:48.804Z"
-last_activity: 2026-04-19 -- Phase 2 planning complete
+stopped_at: Phase 2 (Frontend Migration) fully complete with all user feedback fixes
+last_updated: "2026-04-20T14:06:31.090Z"
+last_activity: 2026-04-20 -- Phase 2 execution started
 progress:
   total_phases: 10
   completed_phases: 0
-  total_plans: 9
-  completed_plans: 1
-  percent: 11
+  total_plans: 10
+  completed_plans: 6
+  percent: 60
 ---
 
 # Project State
@@ -21,37 +21,53 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 1 — Monorepo & Infrastructure
+**Current focus:** Phase 2 — Frontend Migration
 
 ## Current Position
 
-Phase: 1 of 10 (Monorepo & Infrastructure) ✓ COMPLETE
-Plan: 3 of 3 verified
-Status: Ready to execute
-Last activity: 2026-04-19 -- Phase 2 planning complete
+Phase: 2 (Frontend Migration) — EXECUTING
+Plan: 1 of 7
+Status: Executing Phase 2
+Last activity: 2026-04-20 -- Phase 2 execution started
 
 Progress: ██████████ 100%
+
+## Phase 2 Completion Summary
+
+All 10 views migrated from prototype to React+TypeScript+Vite+Tailwind:
+
+- **Authenticated views** (6): Home, Patients, Patient, Plans, Foods, Insights — full implementation
+- **Public views** (4): Landing, Login, Signup, Onboarding — rewritten to match prototype after code review
+
+User testing fixes applied:
+
+- ✅ Patient click navigation (HomeView + PatientsView → navigate() + setActivePatientId)
+- ✅ Dark mode forced light on public pages (/, /login, /signup, /onboarding)
+- ✅ CSV import removed from onboarding
+- ✅ Plan selection step added to onboarding (5 steps now)
+- ✅ PlansView header layout fixed (title+buttons row 1, macros row 2)
+- ✅ HomeView redundancy fixed (replaced duplicate patient list with "Alertas & tendências")
+- ✅ Responsive CSS for all admin views (grid breakpoints at 900px and 600px)
+- ✅ PatientView flexWrap + responsive header stats hiding at narrow widths
+- ✅ CRUD completeness: edit/delete FoodsView, delete patients, delete meals in PlansView
+
+CSS: Full prototype styles + admin responsive rules in globals.css (~2,000 lines).
+Build: 86 modules, ~465KB JS + ~55KB CSS, 0 TypeScript errors.
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: —
+- Total plans completed: 6
+- Average duration: ~1 session per wave
+- Total execution time: ~5 sessions (including code review + user testing fixes)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Monorepo & Infrastructure | 3 | ~1 session | — |
-
-**Recent Trend:**
-
-- Last 5 plans: —
-- Trend: —
-
-*Updated after each plan completion*
+| 2. Frontend Migration | 6 | ~5 sessions | ~0.83 session |
 
 ## Accumulated Context
 
@@ -68,7 +84,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- None for Phase 2 — all views complete with user testing fixes
 
 ### Blockers/Concerns
 
@@ -80,5 +96,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-04-19
-Stopped at: Phase 1 plans created (3 plans, 2 waves), ready for execution
-Resume file: .planning/phases/01-monorepo-infrastructure/01-01-PLAN.md
+Stopped at: Phase 2 (Frontend Migration) fully complete with all user feedback fixes
+Resume file: .planning/phases/02-frontend-migration/02-06-SUMMARY.md
