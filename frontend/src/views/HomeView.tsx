@@ -1,189 +1,192 @@
-import { useState, useEffect } from 'react';
-import { apiClient } from '../api/client';
-import { useTheme } from '../hooks/useTheme';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Modal } from '../components/ui/Modal';
-import { Rail } from '../components/shell/Rail';
-import { Sidebar } from '../components/shell/Sidebar';
-import { Topbar } from '../components/shell/Topbar';
-import type { HealthResponse } from '../types';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router';
+import { PATIENTS } from '../data/patients';
+import { AGGREGATE } from '../data/aggregate';
+import { KPI } from '../components/KPI';
+import { IconPlus, IconChevronR } from '../components/icons';
+import { useNavigationStore } from '../stores/navigationStore';
+import type { PatientStatus } from '../types/patient';
 
-// Simple SVG icons as inline components
-function IconHome() {
+function PatientCard({ p, onNavigate }: { p: typeof PATIENTS[number]; onNavigate: (id: string) => void }) {
+  const statusColors: Record<string, string> = { ontrack: 'var(--sage)', warning: 'var(--amber)', danger: 'var(--coral)' };
+  const statusLabels: Record<string, string> = { ontrack: 'No caminho', warning: 'Atenção', danger: 'Crítico' };
+
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
+    <div
+      className="card"
+      style={{ cursor: 'pointer', padding: 16, transition: 'border-color 0.12s' }}
+      onClick={() => onNavigate(p.id)}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-2)')}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        <div
+          style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'var(--surface-2)', display: 'grid', placeItems: 'center',
+            fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600,
+            position: 'relative', flexShrink: 0,
+          }}
+        >
+          {p.initials}
+          <span style={{
+            position: 'absolute', bottom: -1, right: -1,
+            width: 10, height: 10, borderRadius: '50%',
+            background: statusColors[p.status] || 'var(--fg-subtle)',
+            boxShadow: '0 0 0 3px var(--surface)',
+          }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+          <div style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>{p.objective} · {p.age}A</div>
+        </div>
+        <div
+          className={`chip ${p.status}`}
+          style={{ padding: '2px 6px' }}
+        >
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: statusColors[p.status], marginRight: 4 }} />
+          {statusLabels[p.status]}
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+        <div>
+          <div className="eyebrow">Adesão 7d</div>
+          <div
+            className="mono tnum"
+            style={{
+              fontSize: 22, fontWeight: 500,
+              color: p.status === 'ontrack' ? 'var(--sage-dim)' : p.status === 'warning' ? '#A0801F' : 'var(--coral-dim)',
+            }}
+          >
+            {p.adherence}%
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--fg-muted)', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+        <span className="mono tnum">{p.weight}kg · {p.weightDelta > 0 ? '+' : ''}{p.weightDelta.toFixed(1)}</span>
+      </div>
+    </div>
   );
 }
 
-function IconUsers() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
-    </svg>
-  );
-}
-
-function IconPlan() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <polyline points="10 9 9 9 8 9" />
-    </svg>
-  );
-}
-
-function IconInsights() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 16v-4" />
-      <path d="M12 8h.01" />
-    </svg>
-  );
-}
-
-const RAIL_ITEMS = [
-  { id: 'home', label: 'Início', icon: <IconHome /> },
-  { id: 'patients', label: 'Pacientes', icon: <IconUsers /> },
-  { id: 'plan', label: 'Plano', icon: <IconPlan /> },
-  { id: 'insights', label: 'Insights', icon: <IconInsights /> },
-];
+const PAGE_SIZE = 8;
 
 export function HomeView() {
-  const [health, setHealth] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState('home');
-  const { theme, toggleTheme } = useTheme();
+  const { setActivePatientId, setView } = useNavigationStore();
+  const navigate = useNavigate();
+  const activePats = useMemo(() => PATIENTS.filter(p => p.active !== false), []);
+  const [page] = useMemo(() => [0], []);
+  const patientSlice = activePats.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  useEffect(() => {
-    apiClient
-      .get<HealthResponse>('/health')
-      .then((res) => setHealth(res.data))
-      .catch(() => setError('Backend não disponível'));
-  }, []);
+  const handleNavigate = (id: string) => {
+    setActivePatientId(id);
+    setView('patient');
+    navigate(`/patient/${id}`);
+  };
+
+  const statusColors: Record<string, string> = { ontrack: 'var(--sage)', warning: 'var(--amber)', danger: 'var(--coral)' };
+
+  const events = [
+    { time: '14:28', who: 'Ana Beatriz L.', whoId: 'p1', status: 'ontrack' as PatientStatus, text: 'Almoço', tag: '620 kcal · P45 C62 G20' },
+    { time: '13:50', who: 'Carla Mendonça', whoId: 'p3', status: 'ontrack' as PatientStatus, text: 'Almoço', tag: '540 kcal · P38 C55 G18' },
+    { time: '12:05', who: 'Diogo Campos', whoId: 'p6', status: 'warning' as PatientStatus, text: 'Almoço', tag: '1.100 kcal · P32 C88 G55' },
+    { time: '10:40', who: 'Isabela Nunes', whoId: 'p7', status: 'ontrack' as PatientStatus, text: 'Lanche manhã', tag: '210 kcal · P8 C28 G8' },
+    { time: '09:14', who: 'Rafael Tonioli', whoId: 'p4', status: 'ontrack' as PatientStatus, text: 'Café da manhã', tag: '380 kcal · P26 C28 G16' },
+    { time: '08:02', who: 'Ana Beatriz L.', whoId: 'p1', status: 'ontrack' as PatientStatus, text: 'Café da manhã', tag: '410 kcal · P28 C32 G18' },
+  ];
 
   return (
-    <div className="flex h-screen bg-bg">
-      {/* Rail */}
-      <Rail
-        items={RAIL_ITEMS}
-        activeId={activeNav}
-        onSelect={setActiveNav}
-      />
-
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Dashboard" />
-
-        <main className="flex-1 overflow-y-auto p-6">
-          <h1 className="font-serif text-4xl tracking-tight text-fg mb-6">
-            Dashboard
+    <div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 20, flexWrap: 'wrap' }}>
+        <div>
+          <div className="eyebrow">Quarta-feira · 17 abril 2026</div>
+          <h1 className="serif" style={{ fontSize: 34, margin: '4px 0 0', letterSpacing: '-0.02em', fontWeight: 400, whiteSpace: 'nowrap' }}>
+            Bom dia, Helena.
           </h1>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
+          <div className="chip ontrack"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--sage)', marginRight: 4 }} />{AGGREGATE.onTrack} on-track</div>
+          <div className="chip warning"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)', marginRight: 4 }} />{AGGREGATE.warning} atenção</div>
+          <div className="chip danger"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--coral)', marginRight: 4 }} />{AGGREGATE.danger} crítico</div>
+          <button className="btn btn-primary" onClick={() => { /* New patient modal would open here */ }} style={{ marginLeft: 8 }}>
+            <IconPlus size={13} /> Novo paciente
+          </button>
+        </div>
+      </div>
 
-          {/* Health endpoint card */}
-          <Card title="Status da API" className="mb-6">
-            {error && <p className="text-coral">{error}</p>}
-            {health ? (
-              <div className="mono tnum space-y-2">
-                <div className="flex gap-4">
-                  <span className="text-fg-subtle w-20">Status:</span>
-                  <span className="text-sage font-semibold">{health.status}</span>
+      {/* KPI row */}
+      <div className="home-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
+        <KPI
+          label="Pacientes ativos"
+          value={String(AGGREGATE.active)}
+          sub="+2 esta semana"
+          sparklineData={[44, 45, 46, 47, 46, 48, 48]}
+          trend="up"
+        />
+        <KPI
+          label="Adesão média"
+          value={`${AGGREGATE.avgAdherence}%`}
+          sub={`${AGGREGATE.avgAdherenceWoW > 0 ? '+' : ''}${AGGREGATE.avgAdherenceWoW}pp vs. semana passada`}
+          sparklineData={[78, 79, 80, 81, 80, 82, 82]}
+          trend="up"
+        />
+        <KPI
+          label="Refeições registradas"
+          value="127"
+          sub="via WhatsApp"
+        />
+        <KPI
+          label="Sem registro há >3 dias"
+          value={String(AGGREGATE.danger)}
+          sub="contato recomendado"
+          danger
+        />
+      </div>
+
+      {/* Activity — extracted data */}
+      <div className="card">
+        <div className="card-h">
+          <div className="title">Refeições reportadas · hoje</div>
+          <div className="sub">EXTRAÍDO VIA WHATSAPP</div>
+          <div style={{ flex: 1 }} />
+          <div className="chip ai"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--lime-dim)', marginRight: 4 }} />AO VIVO</div>
+        </div>
+        <div style={{ padding: 0 }}>
+          {events.map((ev, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'grid', gridTemplateColumns: '60px 14px 1fr', alignItems: 'center', gap: 12,
+                padding: '12px 18px', borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer',
+              }}
+              onClick={() => handleNavigate(ev.whoId)}
+            >
+              <div className="mono tnum" style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>{ev.time}</div>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColors[ev.status] }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 13.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 600 }}>{ev.who}</span>
+                    <span style={{ color: 'var(--fg-muted)' }}> — {ev.text}</span>
+                  </div>
+                  <div className="mono tnum" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                    {ev.tag}
+                  </div>
                 </div>
-                <div className="flex gap-4">
-                  <span className="text-fg-subtle w-20">Versão:</span>
-                  <span className="text-fg">{health.version}</span>
-                </div>
-                <div className="flex gap-4">
-                  <span className="text-fg-subtle w-20">Banco:</span>
-                  <span className="text-fg">{health.db}</span>
-                </div>
+                <IconChevronR size={14} style={{ color: 'var(--fg-subtle)' }} />
               </div>
-            ) : (
-              !error && (
-                <p className="text-fg-muted mono">Carregando...</p>
-              )
-            )}
-          </Card>
+            </div>
+          ))}
+        </div>
+      </div>
 
-          {/* Component showcase cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Buttons showcase */}
-            <Card title="Botões">
-              <div className="flex flex-wrap gap-2">
-                <Button variant="primary">Primário</Button>
-                <Button variant="secondary">Secundário</Button>
-                <Button variant="ghost">Fantasma</Button>
-                <Button variant="ai">IA ✨</Button>
-                <Button variant="danger">Perigo</Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <Button size="sm">Pequeno</Button>
-                <Button size="md">Médio</Button>
-                <Button size="lg">Grande</Button>
-                <Button disabled>Desativado</Button>
-              </div>
-            </Card>
-
-            {/* Input showcase */}
-            <Card title="Campos de Entrada">
-              <div className="space-y-3">
-                <Input label="NOME" placeholder="Digite o nome..." />
-                <Input label="E-MAIL" type="email" placeholder="exemplo@email.com" />
-                <Input label="COM ERRO" error="Campo obrigatório" placeholder="..." />
-              </div>
-            </Card>
-
-            {/* Theme card */}
-            <Card title="Tema">
-              <p className="text-fg-muted text-sm mb-3">
-                Tema atual: <span className="text-fg font-mono">{theme === 'dark' ? 'Escuro' : 'Claro'}</span>
-              </p>
-              <Button variant="secondary" onClick={toggleTheme}>
-                {theme === 'dark' ? '☀️ Mudar para Claro' : '🌙 Mudar para Escuro'}
-              </Button>
-            </Card>
-
-            {/* Modal card */}
-            <Card title="Modal">
-              <Button variant="secondary" onClick={() => setModalOpen(true)}>
-                Abrir Modal
-              </Button>
-              <Modal
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                title="Exemplo de Modal"
-              >
-                <p className="text-fg-muted mb-4">
-                  Este é um modal de exemplo. Pressione Escape ou clique fora para fechar.
-                </p>
-                <Input label="CAMPO NO MODAL" placeholder="Digite algo..." />
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="ghost" onClick={() => setModalOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button variant="primary" onClick={() => setModalOpen(false)}>
-                    Confirmar
-                  </Button>
-                </div>
-              </Modal>
-            </Card>
-          </div>
-        </main>
+      {/* Patient grid */}
+      <div className="divider"><span>Sua carteira · {activePats.length} pacientes</span></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {patientSlice.map(p => (
+          <PatientCard key={p.id} p={p} onNavigate={handleNavigate} />
+        ))}
       </div>
     </div>
   );
