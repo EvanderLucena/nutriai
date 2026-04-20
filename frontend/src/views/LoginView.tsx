@@ -76,7 +76,7 @@ export function LoginView() {
               </label>
               <a href="#" className="auth-link">Esqueci minha senha</a>
             </div>
-            <button type="submit" className="btn btn-primary auth-submit">Entrar</button>
+            <button type="submit" className="btn btn-primary auth-submit" disabled={!email || !password} style={{ opacity: (!email || !password) ? 0.45 : 1 }}>Entrar</button>
           </form>
 
           <div className="auth-divider">
