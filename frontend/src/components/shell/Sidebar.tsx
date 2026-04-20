@@ -1,98 +1,131 @@
-import { useState } from 'react';
-import { cn } from '../../lib/utils';
+import { useState, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router';
+import { useNavigationStore } from '../../stores/navigationStore';
+import { PATIENTS } from '../../data/patients';
+import { IconSearch, IconHome, IconUsers, IconMeal, IconInsight } from '../icons';
+import type { PatientStatus } from '../../types/patient';
 
-type StatusFilter = 'all' | 'ontrack' | 'warning' | 'danger';
-
-interface Patient {
+interface NavItem {
   id: string;
-  name: string;
-  status: StatusFilter;
+  path: string;
+  label: string;
+  Icon: React.FC<{ size?: number; className?: string; color?: string; style?: React.CSSProperties }>;
+  badge?: string;
 }
 
-const PLACEHOLDER_PATIENTS: Patient[] = [
-  { id: 'p1', name: 'Ana Silva', status: 'ontrack' },
-  { id: 'p2', name: 'Carlos Mendes', status: 'warning' },
-  { id: 'p3', name: 'Mariana Costa', status: 'danger' },
-  { id: 'p4', name: 'João Pereira', status: 'ontrack' },
-  { id: 'p5', name: 'Fernanda Lima', status: 'ontrack' },
+const NAV_ITEMS: NavItem[] = [
+  { id: 'home', path: '/home', label: 'Visão geral', Icon: IconHome, badge: 'HOJE' },
+  { id: 'patients', path: '/patients', label: 'Pacientes', Icon: IconUsers },
+  { id: 'foods', path: '/foods', label: 'Alimentos', Icon: IconMeal },
+  { id: 'insights', path: '/insights', label: 'Inteligência', Icon: IconInsight },
 ];
 
-const STATUS_CONFIG: Record<StatusFilter, { label: string; chipClass: string }> = {
-  all: { label: 'Todos', chipClass: 'bg-surface-2 text-fg' },
-  ontrack: { label: 'No prazo', chipClass: 'bg-sage/15 text-sage' },
-  warning: { label: 'Atenção', chipClass: 'bg-amber/15 text-amber' },
-  danger: { label: 'Crítico', chipClass: 'bg-coral/15 text-coral' },
-};
+const STATUS_FILTERS: { key: PatientStatus | 'all'; label: string; dot?: string }[] = [
+  { key: 'all', label: 'TODOS' },
+  { key: 'ontrack', label: '', dot: 'var(--sage)' },
+  { key: 'warning', label: '', dot: 'var(--amber)' },
+  { key: 'danger', label: '', dot: 'var(--coral)' },
+];
 
-interface SidebarProps {
-  className?: string;
-  onSelectPatient?: (id: string) => void;
-}
+export function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { setView, setActivePatientId, statusFilter, setStatusFilter, sidebarOpen } = useNavigationStore();
+  const [q, setQ] = useState('');
 
-export function Sidebar({ className, onSelectPatient }: SidebarProps) {
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<StatusFilter>('all');
-
-  const filtered = PLACEHOLDER_PATIENTS.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesFilter = filter === 'all' || p.status === filter;
-    return matchesSearch && matchesFilter;
-  });
+  const filtered = useMemo(() => {
+    let list = PATIENTS;
+    if (statusFilter !== 'all') list = list.filter((p) => p.status === statusFilter);
+    if (q) list = list.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
+    return list;
+  }, [q, statusFilter]);
 
   return (
-    <aside
-      className={cn(
-        'flex flex-col w-72 bg-surface border-r border-border h-full',
-        className,
-      )}
-    >
-      {/* Search */}
-      <div className="p-3 border-b border-border">
-        <input
-          type="text"
-          placeholder="Buscar paciente..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-[var(--radius)] border border-border bg-bg px-3 py-2 text-sm font-ui text-fg placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-lime/40 focus:border-lime transition-colors"
-        />
+    <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
+      <div className="sidebar-header">
+        <div className="brand-row">
+          <div className="brand-name">Nutri<span style={{ color: 'var(--lime-dim)' }}>AI</span></div>
+          <div className="brand-tag mono">v2.4</div>
+        </div>
+        <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          Dra. Helena Viana · CRN-3 24781
+        </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-1.5 px-3 py-2 border-b border-border flex-wrap">
-        {(Object.keys(STATUS_CONFIG) as StatusFilter[]).map((key) => (
+      <div className="search">
+        <IconSearch size={14} />
+        <input placeholder="Buscar paciente, plano, alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <span className="kbd">⌘K</span>
+      </div>
+
+      <div className="nav-section-label">Workspace</div>
+      <div className="nav-list">
+        {NAV_ITEMS.map((it) => (
           <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={cn(
-              'px-2.5 py-0.5 rounded-full text-xs font-mono font-medium transition-colors cursor-pointer',
-              STATUS_CONFIG[key].chipClass,
-              filter === key ? 'ring-1 ring-lime' : '',
-            )}
+            key={it.id}
+            className={`nav-item ${location.pathname.startsWith(it.path) ? 'active' : ''}`}
+            onClick={() => { setView(it.id as 'home' | 'patients' | 'foods' | 'insights'); navigate(it.path); }}
           >
-            {STATUS_CONFIG[key].label}
+            <it.Icon size={15} />
+            <span>{it.label}</span>
+            {'badge' in it && it.badge && <span className="count">{it.badge}</span>}
+            {it.id === 'patients' && <span className="count">{PATIENTS.length}</span>}
           </button>
         ))}
       </div>
 
-      {/* Patient list */}
-      <div className="flex-1 overflow-y-auto">
-        {filtered.map((patient) => (
-          <button
-            key={patient.id}
-            onClick={() => onSelectPatient?.(patient.id)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-surface-2 transition-colors text-left cursor-pointer"
+      <div className="nav-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 18 }}>
+        <span>Pacientes ativos</span>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {STATUS_FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              title={f.key}
+              style={{
+                padding: f.key === 'all' ? '2px 6px' : '4px',
+                borderRadius: 4,
+                border: `1px solid ${statusFilter === f.key ? 'var(--fg)' : 'var(--border)'}`,
+                background: statusFilter === f.key ? 'var(--surface-2)' : 'transparent',
+                fontSize: 9,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                color: 'var(--fg-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: f.key === 'all' ? 0 : 18,
+                minHeight: 18,
+                cursor: 'pointer',
+              }}
+            >
+              {f.key === 'all' ? 'TODOS' : <span style={{ width: 6, height: 6, borderRadius: 999, background: f.dot, display: 'block' }} />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="patient-quick">
+        {filtered.map((p) => (
+          <div
+            key={p.id}
+            className={`pq-item ${location.pathname === `/patient/${p.id}` ? 'active' : ''}`}
+            onClick={() => {
+              setActivePatientId(p.id);
+              setView('patient');
+              navigate(`/patient/${p.id}`);
+            }}
           >
-            <div
-              className={cn(
-                'w-2 h-2 rounded-full shrink-0',
-                patient.status === 'ontrack' && 'bg-sage',
-                patient.status === 'warning' && 'bg-amber',
-                patient.status === 'danger' && 'bg-coral',
-              )}
-            />
-            <span className="text-sm text-fg truncate">{patient.name}</span>
-          </button>
+            <span className={`pq-status ${p.status}`} />
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div className="pq-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+              <div className="pq-meta" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.objective.toUpperCase()}</div>
+            </div>
+            <div className="pq-meta tnum" style={{ flexShrink: 0 }}>{p.adherence}%</div>
+          </div>
         ))}
+        {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-subtle)' }}>Nenhum paciente neste filtro.</div>}
       </div>
     </aside>
   );

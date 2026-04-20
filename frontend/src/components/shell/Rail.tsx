@@ -1,42 +1,43 @@
-import { cn } from '../../lib/utils';
+import { useNavigate, useLocation } from 'react-router';
+import { useNavigationStore } from '../../stores/navigationStore';
+import { IconHome, IconUsers, IconFood, IconInsight, IconSettings } from '../icons';
 
-interface RailItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-}
+const RAIL_ITEMS = [
+  { id: 'home' as const, path: '/home', label: 'Visão geral', Icon: IconHome },
+  { id: 'patients' as const, path: '/patients', label: 'Pacientes', Icon: IconUsers },
+  { id: 'foods' as const, path: '/foods', label: 'Alimentos', Icon: IconFood },
+  { id: 'insights' as const, path: '/insights', label: 'Inteligência', Icon: IconInsight },
+];
 
-interface RailProps {
-  items: RailItem[];
-  activeId: string;
-  onSelect: (id: string) => void;
-  className?: string;
-}
+export function Rail() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const setView = useNavigationStore((s) => s.setView);
 
-export function Rail({ items, activeId, onSelect, className }: RailProps) {
   return (
-    <nav className={cn('flex flex-col items-center w-14 bg-surface border-r border-border py-4 gap-1', className)}>
-      {/* Logo/brand mark */}
-      <div className="w-8 h-8 rounded-full bg-lime flex items-center justify-center mb-4">
-        <span className="font-serif text-ink text-sm font-bold">N</span>
+    <aside className="rail">
+      <div className="rail-logo" title="NutriAI">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2c0 6-6 7-6 13a6 6 0 0 0 12 0c0-6-6-7-6-13Z" stroke="var(--lime)" strokeWidth="1.6" />
+          <circle cx="12" cy="14" r="1.4" fill="var(--lime)" />
+        </svg>
       </div>
-
-      {items.map((item) => (
-        <button
-          key={item.id}
-          onClick={() => onSelect(item.id)}
-          className={cn(
-            'flex items-center justify-center w-10 h-10 rounded-[var(--radius)] transition-colors duration-150 cursor-pointer',
-            item.id === activeId
-              ? 'bg-lime/15 text-lime'
-              : 'text-fg-subtle hover:bg-surface-2 hover:text-fg',
-          )}
-          title={item.label}
-          aria-label={item.label}
-        >
-          {item.icon}
-        </button>
-      ))}
-    </nav>
+      {RAIL_ITEMS.map((it) => {
+        const isActive = location.pathname.startsWith(it.path);
+        return (
+          <button
+            key={it.id}
+            className={`rail-btn ${isActive ? 'active' : ''}`}
+            onClick={() => { setView(it.id); navigate(it.path); }}
+            title={it.label}
+          >
+            <it.Icon size={18} />
+          </button>
+        );
+      })}
+      <div className="rail-spacer" />
+      <button className="rail-btn" title="Ajustes"><IconSettings size={18} /></button>
+      <div className="rail-avatar" title="Dra. Helena Viana">HV</div>
+    </aside>
   );
 }
