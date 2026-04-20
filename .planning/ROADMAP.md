@@ -54,12 +54,12 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — Icons, types, data, and visualization components
 - [x] 02-02-PLAN.md — App shell, routing, styles, and stub views
-- [ ] 02-03-PLAN.md — Landing and auth views (Landing, Login, Signup, Onboarding)
-- [ ] 02-04-PLAN.md — Dashboard and patient list views (HomeView, PatientsView)
+- [x] 02-03-PLAN.md — Landing and auth views (Landing, Login, Signup, Onboarding)
+- [x] 02-04-PLAN.md — Dashboard and patient list views (HomeView, PatientsView)
 - [x] 02-05-PLAN.md — Patient detail view with tabs, timeline, biometry
 - [x] 02-06-PLAN.md — Meal plans, food catalog, and insights views
 - [x] 02-07-PLAN.md — UAT gap fixes: theme tokens, deletion confirmation, login disabled state
-- [ ] 02-08-PLAN.md — Verification gap closure: hardcoded colors + wire orphaned viz components
+- [x] 02-08-PLAN.md — Verification gap closure: hardcoded colors + wire orphaned viz components
 
 ### Phase 3: Authentication & Onboarding
 **Goal**: Nutritionists can create real accounts and begin using the application

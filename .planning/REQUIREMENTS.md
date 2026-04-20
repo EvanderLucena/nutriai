@@ -60,7 +60,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Infrastructure
 
 - [ ] **INFRA-01**: Monorepo structure (frontend, backend, docker + root scripts)
-- [ ] **INFRA-02**: Frontend migration to React + TypeScript + Vite + Tailwind
+- [x] **INFRA-02**: Frontend migration to React + TypeScript + Vite + Tailwind
 - [ ] **INFRA-03**: Backend: Java 21 + Spring Boot + PostgreSQL
 - [ ] **INFRA-04**: Docker Compose for local development (front + back + postgres + evolution-api)
 - [ ] **INFRA-05**: CI/CD via GitHub Actions with automated VPS deployment
@@ -139,7 +139,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LGPD-02 | Phase 9 | Pending |
 | LGPD-03 | Phase 9 | Pending |
 | INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 2 | Pending |
+| INFRA-02 | Phase 2 | Complete |
 | INFRA-03 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
 | INFRA-05 | Phase 10 | Pending |
