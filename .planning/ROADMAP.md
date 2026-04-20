@@ -50,7 +50,7 @@ Plans:
   3. All prototype interactions work: sidebar collapse, modals, table/grid toggle, pagination, tab navigation
   4. App builds as a Vite production bundle with zero Babel standalone dependency
   5. All SVG visualizations (Ring, MacroRings, Sparkline, WeekBars, LineChart, StackBar) render correctly
-**Plans:** 5/7 plans executed
+**Plans:** 5/8 plans executed
 Plans:
 - [x] 02-01-PLAN.md — Icons, types, data, and visualization components
 - [x] 02-02-PLAN.md — App shell, routing, styles, and stub views
@@ -59,6 +59,7 @@ Plans:
 - [x] 02-05-PLAN.md — Patient detail view with tabs, timeline, biometry
 - [x] 02-06-PLAN.md — Meal plans, food catalog, and insights views
 - [x] 02-07-PLAN.md — UAT gap fixes: theme tokens, deletion confirmation, login disabled state
+- [ ] 02-08-PLAN.md — Verification gap closure: hardcoded colors + wire orphaned viz components
 
 ### Phase 3: Authentication & Onboarding
 **Goal**: Nutritionists can create real accounts and begin using the application
