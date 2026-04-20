@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "presets": {
+      "genius": {
+        "planning": "ollama-cloud/glm-5.1",
+        "execution": "ollama-cloud/glm-5.1",
+        "verification": "ollama-cloud/glm-5.1"
+      }
+    }
+  },
+  "current_oc_profile": "genius"
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "external_directory": {
+      "C:\\Users\\evand\\.config\\opencode\\get-shit-done/**": "allow"
+    }
+  },
+  "agent": {
+    "gsd-planner": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-plan-checker": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-phase-researcher": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-roadmapper": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-project-researcher": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-research-synthesizer": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-codebase-mapper": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-executor": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-debugger": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-verifier": {
+      "model": "ollama-cloud/glm-5.1"
+    },
+    "gsd-integration-checker": {
+      "model": "ollama-cloud/glm-5.1"
+    }
+  }
+}
