@@ -129,7 +129,24 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                 <div className="eyebrow">META DIÁRIA</div>
                 <div className="mono tnum" style={{ fontSize: 14, color: 'var(--fg-muted)' }}>6 refeições</div>
               </div>
-              <MacroRings macros={patient.macrosToday} size={64} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="eyebrow">KCAL</div>
+                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, marginTop: 2 }}>{patient.macrosToday.kcal.target.toLocaleString('pt-BR')}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="eyebrow">PROTEÍNA</div>
+                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--sage-dim)', marginTop: 2 }}>{patient.macrosToday.prot.target}g</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="eyebrow">CARBOIDRATO</div>
+                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--carb)', marginTop: 2 }}>{patient.macrosToday.carb.target}g</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="eyebrow">GORDURA</div>
+                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--sky)', marginTop: 2 }}>{patient.macrosToday.fat.target}g</div>
+                </div>
+              </div>
               <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.5 }}>
                 <span className="mono" style={{ fontSize: 10, letterSpacing: '0.06em', color: 'var(--fg-subtle)', marginRight: 6 }}>OBSERVAÇÕES</span>
                 Evitar lactose · preferir proteína magra à noite · carne vermelha máx 2×/semana
