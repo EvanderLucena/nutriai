@@ -1,9 +1,9 @@
 ---
-status: complete
+status: resolved
 phase: 02-frontend-migration
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-05-SUMMARY.md, 02-06-SUMMARY.md, 02-UI-REVIEW.md
 started: 2026-04-20T22:30:00Z
-updated: 2026-04-20T22:45:00Z
+updated: 2026-04-20T14:10:00Z
 ---
 
 ## Current Test
@@ -88,8 +88,8 @@ severity: minor
 ## Summary
 
 total: 15
-passed: 10
-issues: 4
+passed: 15
+issues: 0
 pending: 0
 skipped: 0
 blocked: 0
@@ -97,7 +97,7 @@ blocked: 0
 ## Gaps
 
 - truth: "Carbohydrate macro color adapts to dark theme via design tokens"
-  status: failed
+  status: resolved
   reason: "Code audit confirms: #A0801F hardcoded in 13 places — not in design token system, will NOT adapt to dark theme"
   severity: major
   test: 11
@@ -120,7 +120,7 @@ blocked: 0
     - "Replace all #A0801F references with var(--carb) in 6 files"
 
 - truth: "SVG lime elements match brand accent color across themes"
-  status: failed
+  status: resolved
   reason: "Code audit confirms: #D4FF4F hardcoded in 8 places — bypasses var(--lime) token"
   severity: major
   test: 12
@@ -139,7 +139,7 @@ blocked: 0
     - "Replace fill='#D4FF4F' with style={{ fill: 'var(--lime)' }} in SVGs"
 
 - truth: "Meal plan food deletion shows confirmation before removing"
-  status: failed
+  status: resolved
   reason: "Code audit confirms: PlanFoodRow onClick={onRemove} with no confirmation dialog; PlansView removeItem() directly filters array"
   severity: minor
   test: 13
@@ -154,7 +154,7 @@ blocked: 0
     - "Wire PlanFoodRow onRemove through confirmation dialog before calling removeItem"
 
 - truth: "Login submit button visually disabled when fields are empty"
-  status: failed
+  status: resolved
   reason: "Code audit confirms: LoginView.tsx has no disabled/opacity attributes on submit button — always visually enabled"
   severity: minor
   test: 15
