@@ -178,16 +178,66 @@ export function PlansView() {
   const exportPDF = () => {
     const win = window.open('', '_blank');
     if (!win) return;
-    const mealBlocks = meals.map((m) => {
-      const opts = options.map((o) => {
-        if (!o.items.length) return '';
-        const rows = o.items.map((it) => `<li><strong>${it.food}</strong>${it.qty ? ' · ' + it.qty : ''}${it.prep && it.prep !== '-' ? ' <span class="prep">(' + it.prep + ')</span>' : ''}</li>`).join('');
-        return `<div class="option"><div class="option-name">${o.name}</div><ul>${rows}</ul></div>`;
-      }).join('');
-      return `<div class="meal"><div class="meal-header"><span class="meal-label">${m.label}</span><span class="meal-time">${m.time}</span></div>${opts}</div>`;
-    }).join('');
-    win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${planTitle}</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;font-size:13px;color:#111;padding:40px 48px;max-width:720px;margin:0 auto}h1{font-size:24px;font-weight:normal;margin-bottom:4px}.meta{font-size:11px;color:#888;margin-bottom:32px;font-family:-apple-system,sans-serif}.meal{margin-bottom:28px;break-inside:avoid}.meal-header{display:flex;align-items:baseline;gap:10px;border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:10px}.meal-label{font-size:15px;font-weight:bold}.meal-time{font-size:11px;color:#888;font-family:monospace}.option{margin-bottom:10px}.option-name{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:#999;margin-bottom:5px;font-family:-apple-system,sans-serif}ul{list-style:none;padding-left:0;display:flex;flex-direction:column;gap:4px}li{font-size:13px;padding-left:12px;position:relative}li::before{content:"·";position:absolute;left:0;color:#aaa}.prep{color:#888;font-style:italic;font-size:12px}@media print{body{padding:20px 24px}}</style></head><body><h1>${planTitle}</h1><div class="meta">Ana Beatriz L. · ${new Date().toLocaleDateString('pt-BR')} · NutriAI</div>${mealBlocks}</body></html>`);
-    win.document.close();
+    const doc = win.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title></title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Georgia,serif;font-size:13px;color:#111;padding:40px 48px;max-width:720px;margin:0 auto}h1{font-size:24px;font-weight:normal;margin-bottom:4px}.meta{font-size:11px;color:#888;margin-bottom:32px;font-family:-apple-system,sans-serif}.meal{margin-bottom:28px;break-inside:avoid}.meal-header{display:flex;align-items:baseline;gap:10px;border-bottom:1.5px solid #111;padding-bottom:6px;margin-bottom:10px}.meal-label{font-size:15px;font-weight:bold}.meal-time{font-size:11px;color:#888;font-family:monospace}.option{margin-bottom:10px}.option-name{font-size:10px;text-transform:uppercase;letter-spacing:0.07em;color:#999;margin-bottom:5px;font-family:-apple-system,sans-serif}ul{list-style:none;padding-left:0;display:flex;flex-direction:column;gap:4px}li{font-size:13px;padding-left:12px;position:relative}li::before{content:"·";position:absolute;left:0;color:#aaa}.prep{color:#888;font-style:italic;font-size:12px}@media print{body{padding:20px 24px}}</style></head><body></body></html>`);
+    doc.close();
+
+    const h1 = doc.createElement('h1');
+    h1.textContent = planTitle;
+    doc.body.appendChild(h1);
+
+    const meta = doc.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `Ana Beatriz L. · ${new Date().toLocaleDateString('pt-BR')} · NutriAI`;
+    doc.body.appendChild(meta);
+
+    meals.forEach((m) => {
+      const mealDiv = doc.createElement('div');
+      mealDiv.className = 'meal';
+      const header = doc.createElement('div');
+      header.className = 'meal-header';
+      const label = doc.createElement('span');
+      label.className = 'meal-label';
+      label.textContent = m.label;
+      const time = doc.createElement('span');
+      time.className = 'meal-time';
+      time.textContent = m.time;
+      header.appendChild(label);
+      header.appendChild(time);
+      mealDiv.appendChild(header);
+
+      options.forEach((o) => {
+        if (!o.items.length) return;
+        const optDiv = doc.createElement('div');
+        optDiv.className = 'option';
+        const optName = doc.createElement('div');
+        optName.className = 'option-name';
+        optName.textContent = o.name;
+        optDiv.appendChild(optName);
+        const ul = doc.createElement('ul');
+        o.items.forEach((it) => {
+          const li = doc.createElement('li');
+          const strong = doc.createElement('strong');
+          strong.textContent = it.food;
+          li.appendChild(strong);
+          if (it.qty) li.appendChild(doc.createTextNode(` · ${it.qty}`));
+          if (it.prep && it.prep !== '-') {
+            const prepSpan = doc.createElement('span');
+            prepSpan.className = 'prep';
+            prepSpan.textContent = `(${it.prep})`;
+            li.appendChild(doc.createTextNode(' '));
+            li.appendChild(prepSpan);
+          }
+          ul.appendChild(li);
+        });
+        optDiv.appendChild(ul);
+        mealDiv.appendChild(optDiv);
+      });
+
+      doc.body.appendChild(mealDiv);
+    });
+
     win.focus();
     setTimeout(() => win.print(), 400);
   };
