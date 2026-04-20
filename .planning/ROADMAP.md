@@ -71,8 +71,10 @@ Plans:
   3. Nutritionist can log out from any page, invalidating the session
   4. A 30-day free trial is automatically activated on signup
   5. Nutritionist completes the 4-step onboarding flow (carteira, plano, convite, pronto) after first signup
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 2 plans in 2 waves
+Plans:
+- [ ] 03-01-PLAN.md — Backend authentication: Spring Security, JWT, auth endpoints, Flyway V2
+- [ ] 03-02-PLAN.md — Frontend auth wiring: LoginView, SignupView, OnboardingView, authStore refactor
 
 ### Phase 4: Patient Management
 **Goal**: Nutritionists can manage their patient roster with complete data isolation
@@ -170,7 +172,7 @@ Phase 9 depends on Phase 3 and Phase 7 and can begin once both are complete.
 |-------|----------------|--------|-----------|
 | 1. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
 | 2. Frontend Migration | 5/7 | In Progress|  |
-| 3. Authentication & Onboarding | 0/? | Not started | - |
+| 3. Authentication & Onboarding | 0/2 | Ready to execute | - |
 | 4. Patient Management | 0/? | Not started | - |
 | 5. Meal Plans & Food Catalog | 0/? | Not started | - |
 | 6. Dashboard & Biometry | 0/? | Not started | - |
