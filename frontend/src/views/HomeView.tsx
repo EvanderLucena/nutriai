@@ -55,7 +55,7 @@ function PatientCard({ p, onNavigate }: { p: typeof PATIENTS[number]; onNavigate
             className="mono tnum"
             style={{
               fontSize: 22, fontWeight: 500,
-              color: p.status === 'ontrack' ? 'var(--sage-dim)' : p.status === 'warning' ? '#A0801F' : 'var(--coral-dim)',
+              color: p.status === 'ontrack' ? 'var(--sage-dim)' : p.status === 'warning' ? 'var(--carb)' : 'var(--coral-dim)',
             }}
           >
             {p.adherence}%
