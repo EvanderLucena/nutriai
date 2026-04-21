@@ -20,16 +20,18 @@ status: findings
 
 ## Findings Summary
 
-| # | Severity | Category | File | Line | Finding |
-|---|----------|----------|------|------|---------|
-| 1 | **MEDIUM** | Security / Input Validation | PatientRepository.java | 44 | SQL LIKE wildcard injection via user-controlled `search` param. `%` and `_` in search string act as wildcards, potentially broadening results unexpectedly. |
-| 2 | **MEDIUM** | Reliability | PatientService.java | 39 | `PatientObjective.valueOf(req.objective())` throws `IllegalArgumentException` (500) for invalid objective strings instead of returning 400. No validation. |
-| 3 | **MEDIUM** | Reliability | PatientService.java | 91 | `PatientStatus.valueOf(req.status())` throws `IllegalArgumentException` (500) for invalid status strings. Same pattern as #2. |
-| 4 | **LOW** | Completeness | PatientController.java | 40 | `objective` `@RequestParam` accepted but **never passed to service** — objective filter is documented in API but non-functional. |
-| 5 | **LOW** | Performance | PatientService.java | 60 | `listPatients()` and `getPatient()` missing `@Transactional(readOnly=true)` — unnecessary dirty checking overhead. |
-| 6 | **MEDIUM** | Reliability | patientStore.ts | 49 | `usePatients()` has no `onError` retry strategy or staleTime — transient failures propagate raw to UI. |
-| 7 | **LOW** | Security | PatientController.java | 37 | `size` parameter has no `@Max` bound — user could request `size=99999` causing memory pressure. |
-| 8 | **LOW** | Maintainability | patientStore.ts | 70 | `usePatient(id!)` uses non-null assertion despite `enabled: !!id` guard — type-safe but brittle. |
+| # | Severity | Category | File | Line | Finding | Status |
+|---|----------|----------|------|------|---------|--------|
+| 1 | MEDIUM | Security / Input Validation | PatientRepository.java | 44 | SQL LIKE wildcard injection via user-controlled `search` param. | **RESOLVED** — Escaped `%` `_` with `ESCAPE '!'`, added `escapeLike()` method |
+| 2 | MEDIUM | Reliability | PatientService.java | 39 | `PatientObjective.valueOf()` throws `IllegalArgumentException` (500) for invalid objective. | **RESOLVED** — Added `parseObjective()` with 400 BAD_REQUEST and allowed values list |
+| 3 | MEDIUM | Reliability | PatientService.java | 91 | `PatientStatus.valueOf()` throws `IllegalArgumentException` (500) for invalid status. | **RESOLVED** — Added `parseStatus()` with 400 BAD_REQUEST and allowed values list |
+| 4 | LOW | Completeness | PatientController.java | 40 | `objective` `@RequestParam` accepted but never passed to service. | **RESOLVED** — Wired `objective` through controller → service → repository |
+| 5 | LOW | Performance | PatientService.java | 60 | `listPatients()` and `getPatient()` missing `@Transactional(readOnly=true)`. | **RESOLVED** — Added `readOnly = true` to both query methods |
+| 6 | MEDIUM | Reliability | patientStore.ts | 49 | `usePatients()` has no retry strategy or staleTime. | **RESOLVED** — Added `retry: 2` and `staleTime: 30_000` |
+| 7 | LOW | Security | PatientController.java | 37 | `size` parameter has no `@Max` bound — user could request huge page sizes. | **RESOLVED** — Added `@Max(100)` to cap page size |
+| 8 | LOW | Maintainability | patientStore.ts | 70 | `usePatient(id!)` uses non-null assertion despite guard. | **RESOLVED** — Replaced with explicit guard that throws `Error` if `id` is null |
+
+**All 8 findings resolved. Build passes, tests pass, TypeScript compiles.**
 
 ---
 
