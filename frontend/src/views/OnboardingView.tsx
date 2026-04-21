@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { completeOnboarding, getCurrentUser } from '../api/auth';
+import type { AuthUser } from '../types';
 import { useNavigate } from 'react-router';
 
 const TOTAL_STEPS = 6;
@@ -70,12 +72,19 @@ export function OnboardingView() {
   const [payment, setPayment] = useState({ name: '', cpf: '', card: '', expiry: '', cvv: '' });
   const [patients, setPatients] = useState<OnboardPatient[]>([]);
   const [patientForm, setPatientForm] = useState({ name: '', whatsapp: '' });
-  const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
 
-  const goHome = () => {
-    login();
-    navigate('/home');
+  const goHome = async () => {
+    try {
+      await completeOnboarding();
+      // Update user in store
+      const user = await getCurrentUser();
+      useAuthStore.setState({ user: { id: user.id, name: user.name, email: user.email, role: user.role as AuthUser['role'], onboardingCompleted: true } });
+      navigate('/home');
+    } catch {
+      // Even if onboarding API fails, still navigate home
+      navigate('/home');
+    }
   };
 
   const set = (k: string, v: string) => setPayment((p) => ({ ...p, [k]: v }));

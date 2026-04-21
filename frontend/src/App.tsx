@@ -1,4 +1,5 @@
-import { RouterProvider, createBrowserRouter, Navigate, Outlet } from 'react-router';
+import { RouterProvider, createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
+import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
 import { usePublicTheme } from './hooks/usePublicTheme';
 import { AppShell } from './components/shell/AppShell';
@@ -16,7 +17,28 @@ import type { ReactNode } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  if (!isAuthenticated) return <Navigate to="/" replace />;
+  const user = useAuthStore((s) => s.user);
+
+  if (!isAuthenticated || !user) return <Navigate to="/" replace />;
+
+  // If authenticated but onboarding not completed, redirect to onboarding
+  const location = useLocation();
+  if (!user.onboardingCompleted && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function RedirectIfAuthenticated({ children }: { children: ReactNode }) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
+
+  if (isAuthenticated && user) {
+    if (!user.onboardingCompleted) return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/home" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -25,14 +47,27 @@ function ThemeSync() {
   return <Outlet />;
 }
 
+function InitializeAuth() {
+  const initializeAuth = useAuthStore((s) => s.initializeAuth);
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+  return null;
+}
+
 const router = createBrowserRouter([
   {
-    element: <ThemeSync />,
+    element: (
+      <>
+        <InitializeAuth />
+        <ThemeSync />
+      </>
+    ),
     children: [
-      { path: '/', element: <LandingView /> },
-      { path: '/login', element: <LoginView /> },
-      { path: '/signup', element: <SignupView /> },
-      { path: '/onboarding', element: <OnboardingView /> },
+      { path: '/', element: <RedirectIfAuthenticated><LandingView /></RedirectIfAuthenticated> },
+      { path: '/login', element: <RedirectIfAuthenticated><LoginView /></RedirectIfAuthenticated> },
+      { path: '/signup', element: <RedirectIfAuthenticated><SignupView /></RedirectIfAuthenticated> },
+      { path: '/onboarding', element: <AuthGuard><OnboardingView /></AuthGuard> },
       {
         element: <AuthGuard><AppShell /></AuthGuard>,
         children: [

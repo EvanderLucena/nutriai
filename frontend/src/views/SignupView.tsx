@@ -21,29 +21,50 @@ export function SignupView() {
     name: '', email: '', password: '', crn: '', crnRegional: '',
     specialty: '', whatsapp: '', terms: false,
   });
-  const [error, setError] = useState('');
-  const login = useAuthStore((s) => s.login);
+  const [localError, setLocalError] = useState('');
+  const signup = useAuthStore((s) => s.signup);
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const navigate = useNavigate();
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
       if (!form.name || !form.email || !form.password) {
-        setError('Preencha todos os campos obrigatórios.');
+        setLocalError('Preencha todos os campos obrigatórios.');
         return;
       }
-      setError('');
+      setLocalError('');
       setStep(2);
     } else {
       if (!form.crn || !form.crnRegional || !form.terms) {
-        setError('Preencha o CRN, regional e aceite os termos.');
+        setLocalError('Preencha o CRN, regional e aceite os termos.');
         return;
       }
-      setError('');
-      login();
-      navigate('/onboarding');
+      setLocalError('');
+      try {
+        await signup({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          crn: form.crn,
+          crnRegional: form.crnRegional,
+          specialty: form.specialty || undefined,
+          whatsapp: form.whatsapp || undefined,
+          terms: form.terms,
+        });
+        // After successful signup, redirect based on onboardingCompleted
+        if (user && !user.onboardingCompleted) {
+          navigate('/onboarding');
+        } else {
+          navigate('/home');
+        }
+      } catch (err: unknown) {
+        const message = (err as { message?: string })?.message || 'Erro ao criar conta. Tente novamente.';
+        setLocalError(message);
+      }
     }
   };
 
@@ -76,7 +97,7 @@ export function SignupView() {
 
       <div className="auth-right">
         <div className="auth-form-wrap">
-          {error && <div className="auth-error">{error}</div>}
+          {localError && <div className="auth-error">{localError}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             {step === 1 && (
@@ -132,12 +153,14 @@ export function SignupView() {
                   <span className="auth-hint">Seu número de contato — NÃO é o número da IA.</span>
                 </div>
                 <label className="auth-checkbox auth-terms">
-                  <input type="checkbox" checked={form.terms} onChange={(e) => set('terms', e.target.checked)} />
+                  <input type="checkbox" checked={form.terms as boolean} onChange={(e) => set('terms', e.target.checked)} />
                   <span>Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a> (LGPD).</span>
                 </label>
                 <div className="auth-row-between">
                   <button type="button" className="btn btn-ghost" onClick={() => setStep(1)}>← Voltar</button>
-                  <button type="submit" className="btn btn-primary auth-submit">Criar conta</button>
+                  <button type="submit" className="btn btn-primary auth-submit" disabled={isLoading}>
+                    {isLoading ? 'Criando conta...' : 'Criar conta'}
+                  </button>
                 </div>
               </>
             )}

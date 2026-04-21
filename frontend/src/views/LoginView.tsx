@@ -1,25 +1,31 @@
 import { useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { useNavigate, Link } from 'react-router';
+import { Link } from 'react-router';
 
 export function LoginView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
   const login = useAuthStore((s) => s.login);
-  const navigate = useNavigate();
+  const isLoading = useAuthStore((s) => s.isLoading);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Preencha todos os campos.');
+      setLocalError('Preencha todos os campos.');
       return;
     }
-    setError('');
-    login();
-    navigate('/home');
+    setLocalError('');
+    try {
+      await login(email, password);
+      // login updates authStore, App.tsx AuthGuard handles redirect
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message || 'Credenciais inválidas. Tente novamente.';
+      setLocalError(message);
+    }
   };
+
+  const displayError = localError;
 
   return (
     <div className="auth-page">
@@ -44,7 +50,7 @@ export function LoginView() {
             <p>Acesse sua conta NutriAI</p>
           </div>
 
-          {error && <div className="auth-error">{error}</div>}
+          {displayError && <div className="auth-error">{displayError}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="auth-field">
@@ -70,13 +76,11 @@ export function LoginView() {
               />
             </div>
             <div className="auth-row">
-              <label className="auth-checkbox">
-                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-                <span>Lembrar de mim</span>
-              </label>
-              <a href="#" className="auth-link">Esqueci minha senha</a>
+              <a href="#" className="auth-link" title="Recuperação de senha será implementada em breve">Esqueci minha senha</a>
             </div>
-            <button type="submit" className="btn btn-primary auth-submit" disabled={!email || !password} style={{ opacity: (!email || !password) ? 0.45 : 1 }}>Entrar</button>
+            <button type="submit" className="btn btn-primary auth-submit" disabled={!email || !password || isLoading} style={{ opacity: (!email || !password || isLoading) ? 0.45 : 1 }}>
+              {isLoading ? 'Entrando...' : 'Entrar'}
+            </button>
           </form>
 
           <div className="auth-divider">
