@@ -73,8 +73,8 @@ Plans:
   5. Nutritionist completes the 4-step onboarding flow (carteira, plano, convite, pronto) after first signup
 **Plans:** 2 plans in 2 waves
 Plans:
-- [ ] 03-01-PLAN.md — Backend authentication: Spring Security, JWT, auth endpoints, Flyway V2
-- [ ] 03-02-PLAN.md — Frontend auth wiring: LoginView, SignupView, OnboardingView, authStore refactor
+- [x] 03-01-PLAN.md — Backend authentication: Spring Security, JWT, auth endpoints, Flyway V2
+- [x] 03-02-PLAN.md — Frontend auth wiring: LoginView, SignupView, OnboardingView, authStore refactor
 
 ### Phase 4: Patient Management
 **Goal**: Nutritionists can manage their patient roster with complete data isolation

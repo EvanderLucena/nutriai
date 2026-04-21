@@ -41,3 +41,18 @@ logs/
 # Misc
 *.tmp
 *.bak
+
+# Test/debug artifacts
+cors_*.txt
+headers*.txt
+resp_*.json
+response.json
+test_*.json
+test_*.txt
+verify_headers.txt
+test-results-*.csv
+run-tests.ps1
+session-ses_*.md
+frontend/test-results/
+*.tsbuildinfo
+.claude/

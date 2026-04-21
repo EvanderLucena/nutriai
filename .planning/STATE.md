@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-08-PLAN.md
-last_updated: "2026-04-20T21:18:09.777Z"
-last_activity: 2026-04-20
+stopped_at: Phase 3 complete — all unit + E2E tests passing
+last_updated: "2026-04-21T12:00:00.000Z"
+last_activity: 2026-04-21
 progress:
   total_phases: 10
-  completed_phases: 1
-  total_plans: 11
-  completed_plans: 9
-  percent: 82
+  completed_phases: 3
+  total_plans: 13
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 2 — Frontend Migration
+**Current focus:** Phase 4 — patient-management
 
 ## Current Position
 
-Phase: 3
+Phase: 4
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-20
+Last activity: 2026-04-21 -- Phase 3 complete
 
 Progress: ██████████ 100%
 
@@ -54,11 +54,44 @@ User testing fixes applied:
 CSS: Full prototype styles + admin responsive rules in globals.css (~2,000 lines).
 Build: 86 modules, ~465KB JS + ~55KB CSS, 0 TypeScript errors.
 
+## Phase 3 Completion Summary
+
+Auth & Onboarding fully implemented and tested:
+
+**Backend (29 unit tests passing):**
+- JWT auth (access + refresh tokens), signup, login, logout, refresh
+- Nutritionist model with CRN/validation, role-based access
+- V3 migration: role enum → VARCHAR(20) for Hibernate compatibility
+- CORS fix: @Profile({"dev", "default"}) for non-profiled runs
+- Set-Cookie fix: removed duplicate addCookie(), kept addHeader()
+- Spring Boot DevTools added for hot-reload
+
+**Frontend (connected to real API):**
+- LoginView, SignupView, OnboardingView connected via authStore (Zustand)
+- Field-level error display (auth-input-error, auth-field-error CSS classes)
+- data-testid on all auth inputs for E2E
+- apiClient interceptor: 401 → refresh → retry queue
+
+**Tests (31 unit + 6 E2E):**
+- authStore.test.ts: 12 tests (signup/login/logout/refresh/fieldErrors/clearError)
+- LoginView.test.tsx: 8 tests (button state, form submission, error display, navigation)
+- SignupView.test.tsx: 8 tests (step navigation, validation, terms, navigation)
+- PlansView.test.tsx: 3 tests (existing)
+- e2e/auth.spec.ts: 6 E2E tests (Playwright)
+
+**Bugs fixed this phase:**
+1. PostgreSQL enum incompatibility (V3 migration)
+2. CORS not activating on default profile
+3. Set-Cookie header duplication
+4. Frontend not extracting field-level errors from API
+
+**Next:** Phase 4 — Patient Management
+
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 14
+- Total plans completed: 16
 - Average duration: ~1 session per wave
 - Total execution time: ~5 sessions (including code review + user testing fixes)
 
@@ -70,6 +103,7 @@ Build: 86 modules, ~465KB JS + ~55KB CSS, 0 TypeScript errors.
 | 2. Frontend Migration | 6 | ~5 sessions | ~0.83 session |
 | Phase 02 P08 | 11min | 2 tasks | 3 files |
 | 02 | 8 | - | - |
+| 03 | 2 | - | - |
 
 ## Accumulated Context
 

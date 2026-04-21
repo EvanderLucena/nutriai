@@ -369,6 +369,90 @@ Use these entry points:
 Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
 <!-- GSD:workflow-end -->
 
+## Anti-Stall Protocol
+
+When executing tasks, if the same operation fails 3 times in a row (compilation error, test failure, or repeated tool error), you MUST:
+
+1. **STOP retrying the same approach** — the strategy is wrong, not the attempt
+2. **Diagnose the root cause** — read error output carefully, check dependencies, verify config
+3. **Try an alternative approach** — different test strategy, different dependency version, different file structure
+4. **Report status to the user within 4 tool calls of detecting the stall** — even if unresolved
+
+Never spend more than 5 consecutive tool calls on the same failing operation without surfacing the issue.
+
+### Mandatory Verify Gates
+
+- After creating or modifying a test: compile checks MUST pass before marking task done
+- After modifying source code: `./gradlew compileJava` (backend) or `npx tsc --noEmit` (frontend) MUST pass before moving on
+- After completing a task: the relevant test suite MUST pass before declaring success
+- If a verify gate fails 3 times: switch to alternative approach per anti-stall rule above
+
+## Process Management (Windows)
+
+**NEVER** use `./gradlew bootRun` — it blocks the shell and causes tool timeouts.
+
+**NEVER** chain `Start-Sleep` after `Start-Process` — it blocks the tool call.
+
+### Starting the backend (correct pattern — use Spring Boot directly)
+
+```powershell
+# Step 1: Start with Gradle (DevTools enables hot-reload)
+cd C:\Users\evand\Documents\NutriAI\backend && ./gradlew bootRun
+
+# — OR — if you need a standalone jar:
+./gradlew bootJar
+Start-Process -FilePath "C:\Program Files\Eclipse Adoptium\jdk-21.0.3.9-hotspot\bin\java.exe" `
+  -ArgumentList "-jar","C:\Users\evand\Documents\NutriAI\backend\build\libs\nutriai-api-0.1.0.jar" `
+  -RedirectStandardOutput "C:\Users\evand\Documents\NutriAI\backend\stdout.log" `
+  -RedirectStandardError "C:\Users\evand\Documents\NutriAI\backend\stderr.log" `
+  -WindowStyle Hidden
+
+# Step 2: SEPARATE tool call to verify it's up
+curl -s http://localhost:8080/api/v1/health
+```
+
+### Killing the backend
+
+```powershell
+Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force
+```
+
+### Checking logs
+
+```powershell
+Get-Content C:\Users\evand\Documents\NutriAI\backend\stdout.log -Tail 30
+Get-Content C:\Users\evand\Documents\NutriAI\backend\stderr.log -Tail 10
+```
+
+### Key rules
+1. `Start-Process` = immediate return, no waiting
+2. Health check = always a **separate** tool call
+3. `./gradlew bootJar` = ok (builds then exits), but `./gradlew bootRun` = FORBIDDEN
+4. If backend isn't ready on first health check, just retry in the next tool call
+
+## Testing Standards
+
+Every phase must include tests as part of the "Done" criteria. No phase is complete without:
+
+### Frontend (Vitest + Testing Library)
+- **Unit tests** for stores (`*.test.ts`) — state transitions, error handling, async flows
+- **Component tests** for views (`*.test.tsx`) — rendering, user interactions, form validation
+- Run: `npm test` (vitest run) or `npm run test:watch` (watch mode)
+
+### Backend (JUnit 5 + Mockito)
+- **Unit tests** for services and controllers — business logic, validation, auth
+- Run: `./gradlew test` (from backend/)
+
+### E2E (Playwright)
+- **End-to-end tests** for critical user flows (`e2e/*.spec.ts`)
+- Requires backend + frontend running
+- Run: `npm run test:e2e` (from frontend/)
+
+### Verify Gates
+- After modifying frontend: `npx tsc --noEmit` must pass
+- After modifying backend: `./gradlew compileJava` must pass
+- After completing a task: relevant test suite must pass
+
 
 
 <!-- GSD:profile-start -->
