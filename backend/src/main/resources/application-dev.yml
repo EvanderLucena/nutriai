@@ -15,3 +15,9 @@ spring:
 logging:
   level:
     com.nutriai: DEBUG
+
+nutriai:
+  jwt:
+    cookie:
+      secure: false
+      same-site: Lax

@@ -35,6 +35,34 @@ public class Nutritionist {
     @Builder.Default
     private UserRole role = UserRole.NUTRITIONIST;
 
+    @Column(name = "crn")
+    private String crn;
+
+    @Column(name = "crn_regional")
+    private String crnRegional;
+
+    @Column
+    private String specialty;
+
+    @Column
+    private String whatsapp;
+
+    @Column(name = "onboarding_completed")
+    @Builder.Default
+    private Boolean onboardingCompleted = false;
+
+    @Column(name = "trial_ends_at")
+    @Builder.Default
+    private LocalDateTime trialEndsAt = null;
+
+    @Column(name = "subscription_tier")
+    @Builder.Default
+    private String subscriptionTier = "TRIAL";
+
+    @Column(name = "patient_limit")
+    @Builder.Default
+    private Integer patientLimit = 15;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -45,6 +73,9 @@ public class Nutritionist {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        if (trialEndsAt == null) {
+            trialEndsAt = LocalDateTime.now().plusDays(30);
+        }
     }
 
     @PreUpdate
