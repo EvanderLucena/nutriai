@@ -4,6 +4,29 @@
 
 Migrate a functional single-file prototype to a production SaaS for solo nutricionistas in Brazil — preserving 90% of the existing UI while building a real backend (Java 21 + Spring Boot + PostgreSQL), adding WhatsApp AI as the core differentiator, and enabling self-service billing with LGPD compliance. The journey goes from monorepo scaffolding through core clinical features to AI-powered WhatsApp conversations, then wraps with billing, legal compliance, and automated deployment.
 
+## Testing Standards
+
+Every phase must include tests as part of its "Done" criteria. No phase is complete without:
+
+### Frontend (Vitest + Testing Library)
+- **Unit tests** for stores (`*.test.ts`) — state transitions, error handling, async flows
+- **Component tests** for views (`*.test.tsx`) — rendering, user interactions, form validation
+- Run: `npm test` (vitest run) or `npm run test:watch` (watch mode)
+
+### Backend (JUnit 5 + Mockito)
+- **Unit tests** for services and controllers — business logic, validation, auth
+- Run: `./gradlew test` (from backend/)
+
+### E2E (Playwright)
+- **End-to-end tests** for critical user flows (`e2e/*.spec.ts`)
+- Requires backend + frontend running
+- Run: `npm run test:e2e` (from frontend/)
+
+### Verify Gates
+- After modifying frontend: `npx tsc --noEmit` must pass
+- After modifying backend: `./gradlew compileJava` must pass
+- After completing a task: relevant test suite must pass
+
 ## Phases
 
 **Phase Numbering:**
@@ -13,8 +36,8 @@ Migrate a functional single-file prototype to a production SaaS for solo nutrici
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Monorepo & Infrastructure** - Working dev environment with all services booting together
-- [ ] **Phase 2: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
-- [ ] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
+- [x] **Phase 2: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
+- [x] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
 - [ ] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
 - [ ] **Phase 5: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
 - [ ] **Phase 6: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
@@ -34,6 +57,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Backend boots with an accessible health endpoint and PostgreSQL connection established
   3. Frontend serves from Vite dev server with hot reload inside the Docker environment
   4. Flyway migrations run automatically on backend startup creating the initial database schema
+**Tests (infrastructure)**:
+  - Docker Compose health check passes for all services
+  - Backend `/health` endpoint returns 200 with database status
+  - Frontend Vite dev server starts and serves the app
 **Plans:** 3 plans in 2 waves
 Plans:
 - [ ] 01-01-PLAN.md — Monorepo scaffold + Spring Boot backend skeleton
@@ -50,7 +77,11 @@ Plans:
   3. All prototype interactions work: sidebar collapse, modals, table/grid toggle, pagination, tab navigation
   4. App builds as a Vite production bundle with zero Babel standalone dependency
   5. All SVG visualizations (Ring, MacroRings, Sparkline, WeekBars, LineChart, StackBar) render correctly
-**Plans:** 5/8 plans executed
+**Tests (component)**:
+  - Vitest component tests for each migrated view (rendering, interactions)
+  - `npx tsc --noEmit` passes with zero errors
+  - Vite production build succeeds (`npm run build`)
+**Plans:** 8/8 plans executed
 Plans:
 - [x] 02-01-PLAN.md — Icons, types, data, and visualization components
 - [x] 02-02-PLAN.md — App shell, routing, styles, and stub views
@@ -71,6 +102,11 @@ Plans:
   3. Nutritionist can log out from any page, invalidating the session
   4. A 30-day free trial is automatically activated on signup
   5. Nutritionist completes the 4-step onboarding flow (carteira, plano, convite, pronto) after first signup
+**Tests**:
+  - **Backend (JUnit 5)**: AuthController, AuthService, JwtService — 29 unit tests
+  - **Frontend (Vitest)**: authStore (12), LoginView (8), SignupView (8) — 28 unit tests
+  - **E2E (Playwright)**: signup flow, duplicate email, auth navigation, wrong password, protected route — 6 tests
+  - Integration tested: 55/61 pass, bugs fixed (enum, CORS, Set-Cookie, field errors)
 **Plans:** 2 plans in 2 waves
 Plans:
 - [x] 03-01-PLAN.md — Backend authentication: Spring Security, JWT, auth endpoints, Flyway V2
@@ -85,6 +121,10 @@ Plans:
   2. Patient list displays status tracking (on-track, attention, critical) with search and filter by status and objective
   3. Each nutritionist sees only their own patients — no cross-data leakage between accounts
   4. Patient detail view loads with all 5 tabs (Hoje, Plano, Biometria, Insights, Histórico) showing real data
+**Tests**:
+  - **Backend (JUnit 5)**: PatientController, PatientService — CRUD, search, filter, data isolation (nutritionist scope)
+  - **Frontend (Vitest)**: patientStore — state transitions, API calls, filters; PatientsView — rendering, search, table/grid toggle; PatientView — tab navigation, detail loading
+  - **E2E (Playwright)**: create patient, edit patient, search/filter, data isolation between accounts
 **Plans**: TBD
 **UI hint**: yes
 
@@ -98,6 +138,10 @@ Plans:
   3. Macronutrients (kcal, protein, carbs, fat) are calculated automatically as foods are added to a plan
   4. Multiple food options can be added per meal slot and nutritionist can switch between them
   5. Extras and out-of-plan foods can be authorized and tracked within the meal plan
+**Tests**:
+  - **Backend (JUnit 5)**: PlanController, PlanService, FoodController, FoodService — CRUD, macro calculation, plan-patient linkage
+  - **Frontend (Vitest)**: planStore, foodStore — state, API, macro math; PlansView — inline editing, macro totals; FoodsView — search, pagination, create/edit
+  - **E2E (Playwright)**: create meal plan, add foods, macro calculation, edit/delete food from catalog
 **Plans**: TBD
 **UI hint**: yes
 
@@ -110,6 +154,10 @@ Plans:
   2. Dashboard home shows KPIs (active patients, adherence indicators, trends) and a patient grid with real data
   3. Biometric evolution charts display weight and body fat percentage over time using real assessment data
   4. All SVG visualizations render with real biometric data (not mock data)
+**Tests**:
+  - **Backend (JUnit 5)**: BiometryController, BiometryService — CRUD assessments, date validation, scope isolation
+  - **Frontend (Vitest)**: HomeView — KPI rendering with real data; PatientView biometry tab — recording, evolution charts
+  - **E2E (Playwright)**: record biometry, view evolution chart, dashboard KPIs show real patient data
 **Plans**: TBD
 **UI hint**: yes
 
@@ -123,6 +171,10 @@ Plans:
   3. AI extracts meal data from patient messages (text, audio, photo acknowledgments) and registers them in the patient's timeline
   4. Nutritionist sees WhatsApp-captured meal data in the patient's timeline view
   5. Shared WhatsApp number architecture works (1 number serving multiple nutritionists' patients without cross-talk)
+**Tests**:
+  - **Backend (JUnit 5)**: WebhookController, ConversationService, ExtractionService — webhook handling, message routing, meal extraction, cross-tenant isolation
+  - **Frontend (Vitest)**: conversation/timeline store — message display, extraction status; PatientView timeline — showing captured data
+  - **E2E (Playwright)**: generate activation link, send message (mock webhook), verify timeline update
 **Plans**: TBD
 **UI hint**: yes
 
@@ -135,6 +187,10 @@ Plans:
   2. Nutritionist can manage their subscription — upgrade, downgrade, or cancel — from within the app
   3. Patient creation is enforced based on subscription tier (15 for Iniciante, 30 for Profissional, unlimited for Ilimitado)
   4. Trial expiration triggers subscription prompt blocking access to paid features
+**Tests**:
+  - **Backend (JUnit 5)**: BillingController, SubscriptionService — Stripe webhook handling, tier enforcement, trial expiration logic
+  - **Frontend (Vitest)**: billingStore — subscription state, tier checks; OnboardingView — plan selection, payment form validation
+  - **E2E (Playwright)**: checkout flow (with Stripe test mode), subscription management, patient limit enforcement, trial expiration redirect
 **Plans**: TBD
 **UI hint**: yes
 
@@ -146,6 +202,10 @@ Plans:
   1. Explicit consent is collected at signup (terms acceptance) and patient registration (health data processing consent)
   2. Terms of service and privacy policy pages are publicly accessible and linkable
   3. Nutritionist can export all their data and request full account deletion
+**Tests**:
+  - **Backend (JUnit 5)**: ConsentController, DataExportService — consent recording, data export, account deletion, anonymization
+  - **Frontend (Vitest)**: consent flow — checkbox validation, consent version tracking; data export UI — download trigger
+  - **E2E (Playwright)**: signup consent flow, terms/privacy page access, data export download, account deletion request
 **Plans**: TBD
 **UI hint**: yes
 
@@ -157,6 +217,10 @@ Plans:
   1. Push to main branch triggers an automated GitHub Actions pipeline that builds and deploys both frontend and backend
   2. Frontend builds as static files served by Nginx on the VPS with SSL
   3. Backend deploys as a Docker container with health checks and automatic restarts
+**Tests**:
+  - **CI/CD (GitHub Actions)**: Pipeline runs lint, typecheck, unit tests, E2E tests on every push
+  - **Smoke tests**: After deploy, health endpoint returns 200, frontend loads, login flow works
+  - **Rollback test**: Failed deployment triggers automatic rollback to previous version
 **Plans**: TBD
 
 ## Progress
@@ -171,9 +235,9 @@ Phase 9 depends on Phase 3 and Phase 7 and can begin once both are complete.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
-| 2. Frontend Migration | 5/7 | In Progress|  |
-| 3. Authentication & Onboarding | 0/2 | Ready to execute | - |
-| 4. Patient Management | 0/? | Not started | - |
+| 2. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
+| 3. Auth & Onboarding | 2/2 | Complete ✓ | 2026-04-21 |
+| 4. Patient Management | 0/? | Next up | - |
 | 5. Meal Plans & Food Catalog | 0/? | Not started | - |
 | 6. Dashboard & Biometry | 0/? | Not started | - |
 | 7. WhatsApp Intelligence | 0/? | Not started | - |
