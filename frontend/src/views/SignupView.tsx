@@ -25,6 +25,7 @@ export function SignupView() {
   const signup = useAuthStore((s) => s.signup);
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const fieldErrors = useAuthStore((s) => s.fieldErrors);
   const navigate = useNavigate();
 
   const set = (k: string, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
@@ -62,7 +63,11 @@ export function SignupView() {
           navigate('/home');
         }
       } catch (err: unknown) {
-        const message = (err as { message?: string })?.message || 'Erro ao criar conta. Tente novamente.';
+        const apiErr = err as { message?: string; errors?: { field: string; message: string }[] };
+        const message = apiErr.message || 'Erro ao criar conta. Tente novamente.';
+        if (apiErr.errors?.length) {
+          setStep(apiErr.errors.some((e) => ['name','email','password'].includes(e.field)) ? 1 : 2);
+        }
         setLocalError(message);
       }
     }
@@ -108,15 +113,18 @@ export function SignupView() {
                 </div>
                 <div className="auth-field">
                   <label className="auth-label">Nome completo *</label>
-                  <input className="auth-input" placeholder="Dra. Helena Viana" value={form.name} onChange={(e) => set('name', e.target.value)} />
+                  <input data-testid="signup-name" className={'auth-input' + (fieldErrors.name ? ' auth-input-error' : '')} placeholder="Dra. Helena Viana" value={form.name} onChange={(e) => set('name', e.target.value)} />
+                  {fieldErrors.name && <span className="auth-field-error">{fieldErrors.name}</span>}
                 </div>
                 <div className="auth-field">
                   <label className="auth-label">E-mail *</label>
-                  <input type="email" className="auth-input" placeholder="helena@consultorio.com" value={form.email} onChange={(e) => set('email', e.target.value)} autoComplete="email" />
+                  <input data-testid="signup-email" type="email" className={'auth-input' + (fieldErrors.email ? ' auth-input-error' : '')} placeholder="helena@consultorio.com" value={form.email} onChange={(e) => set('email', e.target.value)} autoComplete="email" />
+                  {fieldErrors.email && <span className="auth-field-error">{fieldErrors.email}</span>}
                 </div>
                 <div className="auth-field">
                   <label className="auth-label">Senha *</label>
-                  <input type="password" className="auth-input" placeholder="Mínimo 8 caracteres" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" />
+                  <input data-testid="signup-password" type="password" className={'auth-input' + (fieldErrors.password ? ' auth-input-error' : '')} placeholder="Mínimo 8 caracteres" value={form.password} onChange={(e) => set('password', e.target.value)} autoComplete="new-password" />
+                  {fieldErrors.password && <span className="auth-field-error">{fieldErrors.password}</span>}
                 </div>
                 <button type="submit" className="btn btn-primary auth-submit">Continuar</button>
               </>
@@ -131,14 +139,16 @@ export function SignupView() {
                 <div className="auth-row-auto">
                   <div className="auth-field" style={{ flex: 1 }}>
                     <label className="auth-label">CRN *</label>
-                    <input className="auth-input" placeholder="24781" value={form.crn} onChange={(e) => set('crn', e.target.value)} />
-                  </div>
-                  <div className="auth-field" style={{ width: 140 }}>
-                    <label className="auth-label">Regional *</label>
-                    <select className="auth-input auth-select" value={form.crnRegional} onChange={(e) => set('crnRegional', e.target.value)}>
+                  <input data-testid="signup-crn" className={'auth-input' + (fieldErrors.crn ? ' auth-input-error' : '')} placeholder="24781" value={form.crn} onChange={(e) => set('crn', e.target.value)} />
+                  {fieldErrors.crn && <span className="auth-field-error">{fieldErrors.crn}</span>}
+                </div>
+                <div className="auth-field" style={{ width: 140 }}>
+                  <label className="auth-label">Regional *</label>
+                  <select data-testid="signup-crn-regional" className={'auth-input auth-select' + (fieldErrors.crnRegional ? ' auth-input-error' : '')} value={form.crnRegional} onChange={(e) => set('crnRegional', e.target.value)}>
                       <option value="">UF</option>
                       {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
                     </select>
+                    {fieldErrors.crnRegional && <span className="auth-field-error">{fieldErrors.crnRegional}</span>}
                   </div>
                 </div>
                 <div className="auth-field">
@@ -152,8 +162,8 @@ export function SignupView() {
                   <input className="auth-input" placeholder="(11) 99999-9999" value={form.whatsapp} onChange={(e) => set('whatsapp', e.target.value)} />
                   <span className="auth-hint">Seu número de contato — NÃO é o número da IA.</span>
                 </div>
-                <label className="auth-checkbox auth-terms">
-                  <input type="checkbox" checked={form.terms as boolean} onChange={(e) => set('terms', e.target.checked)} />
+                <label className={'auth-checkbox auth-terms' + (fieldErrors.terms ? ' auth-terms-error' : '')}>
+                  <input data-testid="signup-terms" type="checkbox" checked={form.terms as boolean} onChange={(e) => set('terms', e.target.checked)} />
                   <span>Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Política de Privacidade</a> (LGPD).</span>
                 </label>
                 <div className="auth-row-between">

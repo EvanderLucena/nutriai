@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as authService from '../api/auth';
-import type { AuthUser, SignupRequest, MeResponse } from '../types';
+import type { AuthUser, SignupRequest, MeResponse, FieldError } from '../types';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -9,6 +9,7 @@ interface AuthState {
   accessToken: string | null;
   isLoading: boolean;
   error: string | null;
+  fieldErrors: Record<string, string>;
 
   // Auth actions
   signup: (data: SignupRequest) => Promise<void>;
@@ -29,9 +30,10 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       isLoading: false,
       error: null,
+      fieldErrors: {},
 
       signup: async (data) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, fieldErrors: {} });
         try {
           const response = await authService.signup(data);
           set({
@@ -41,17 +43,22 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         } catch (err: unknown) {
-          const message = (err as { message?: string })?.message || 'Erro ao criar conta.';
+          const apiErr = err as { message?: string; errors?: FieldError[] };
+          const fieldMap: Record<string, string> = {};
+          if (apiErr.errors?.length) {
+            apiErr.errors.forEach((e) => { fieldMap[e.field] = e.message; });
+          }
           set({
             isLoading: false,
-            error: message,
+            error: apiErr.message || 'Erro ao criar conta.',
+            fieldErrors: fieldMap,
           });
           throw err;
         }
       },
 
       login: async (email, password) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true, error: null, fieldErrors: {} });
         try {
           const response = await authService.login({ email, password });
           set({
@@ -61,13 +68,18 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
           });
         } catch (err: unknown) {
-          const message = (err as { message?: string })?.message || 'Credenciais inválidas.';
+          const apiErr = err as { message?: string; errors?: FieldError[] };
+          const fieldMap: Record<string, string> = {};
+          if (apiErr.errors?.length) {
+            apiErr.errors.forEach((e) => { fieldMap[e.field] = e.message; });
+          }
           set({
             isAuthenticated: false,
             user: null,
             accessToken: null,
             isLoading: false,
-            error: message,
+            error: apiErr.message || 'Credenciais inválidas.',
+            fieldErrors: fieldMap,
           });
           throw err;
         }
@@ -106,7 +118,7 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      clearError: () => set({ error: null }),
+      clearError: () => set({ error: null, fieldErrors: {} }),
 
       initializeAuth: async () => {
         // Clean up old mock auth key

@@ -75,11 +75,12 @@ apiClient.interceptors.response.use(
 
     // Normalize error response
     if (axios.isAxiosError(error) && error.response?.data) {
-      const apiError: ApiResponse<null> = {
+      const data = error.response.data;
+      const apiError: ApiResponse<null> & { errors?: import('../types').FieldError[] } = {
         success: false,
         data: null,
-        errors: error.response.data.errors || [],
-        message: error.response.data.message || error.message,
+        errors: Array.isArray(data?.errors) ? data.errors : [],
+        message: data?.message || error.message,
         status: error.response.status,
       };
       return Promise.reject(apiError);

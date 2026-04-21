@@ -8,6 +8,7 @@ export function LoginView() {
   const [localError, setLocalError] = useState('');
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const fieldErrors = useAuthStore((s) => s.fieldErrors);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,24 +57,28 @@ export function LoginView() {
             <div className="auth-field">
               <label className="auth-label">E-mail</label>
               <input
+                data-testid="login-email"
                 type="email"
-                className="auth-input"
+                className={'auth-input' + (fieldErrors.email ? ' auth-input-error' : '')}
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="email"
               />
+              {fieldErrors.email && <span className="auth-field-error">{fieldErrors.email}</span>}
             </div>
             <div className="auth-field">
               <label className="auth-label">Senha</label>
               <input
+                data-testid="login-password"
                 type="password"
-                className="auth-input"
+                className={'auth-input' + (fieldErrors.password ? ' auth-input-error' : '')}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
               />
+              {fieldErrors.password && <span className="auth-field-error">{fieldErrors.password}</span>}
             </div>
             <div className="auth-row">
               <a href="#" className="auth-link" title="Recuperação de senha será implementada em breve">Esqueci minha senha</a>

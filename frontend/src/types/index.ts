@@ -3,10 +3,15 @@ export type { FoodType, FoodCategory, FoodPer100, FoodPortion, Food } from './fo
 export type { MealFood, MealOption, MealSlot, PlanExtra } from './plan';
 export type { SkinfoldEntry, SkinfoldData as BiometrySkinfoldData, PerimetryMeasure as BiometryPerimetryMeasure, PerimetryData as BiometryPerimetryData } from './biometry';
 
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T | null;
-  errors?: string[];
+  errors?: FieldError[];
   message?: string;
   status?: number;
 }

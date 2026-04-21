@@ -707,6 +707,22 @@ body {
   margin-bottom: 20px;
 }
 
+.auth-input-error {
+  border-color: var(--coral) !important;
+}
+
+.auth-field-error {
+  display: block;
+  font-size: 11px;
+  color: var(--coral);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+
+.auth-terms-error {
+  color: var(--coral);
+}
+
 .auth-form {
   display: flex; flex-direction: column; gap: 18px;
 }
