@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { PATIENTS } from '../data/patients';
+import { usePatientUIStore, usePatients, useCreatePatient, useUpdatePatient, useDeactivatePatient, useReactivatePatient } from '../stores/patientStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { IconSearch, IconPlus, IconFilter, IconArchive } from '../components/icons';
 import { PatientTable, PatientGrid, NewPatientModal, EditPatientModal, Pagination } from '../components/patients';
-import type { Patient, PatientStatus } from '../types/patient';
-
-const PAGE_SIZE = 10;
+import { mapPatientFromApi, STATUS_LABELS, STATUS_COLORS } from '../types/patient';
+import type { Patient } from '../types/patient';
+import type { CreatePatientRequest, UpdatePatientRequest } from '../api/patients';
 
 function MiniStat({ label, value, dot }: { label: string; value: string; dot?: string }) {
   return (
@@ -35,12 +35,8 @@ function TogglePatientModal({ name, activating, onClose, onConfirm }: { name: st
           </p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-            <button
-              className="btn"
-              style={activating ? { background: 'var(--sage)', color: '#fff', borderColor: 'transparent' } : { background: 'var(--amber)', color: '#fff', borderColor: 'transparent' }}
-              onClick={onConfirm}
-            >
-              <IconArchive size={13} /> {activating ? 'Reativar' : 'Desativar'}
+            <button className="btn" style={activating ? { background: 'var(--sage)', color: '#fff', borderColor: 'transparent' } : { background: 'var(--amber)', color: '#fff', borderColor: 'transparent' }} onClick={onConfirm}>
+              {activating ? 'Reativar' : 'Desativar'}
             </button>
           </div>
         </div>
@@ -52,47 +48,57 @@ function TogglePatientModal({ name, activating, onClose, onConfirm }: { name: st
 export function PatientsView() {
   const navigate = useNavigate();
   const { setActivePatientId, setView } = useNavigationStore();
-  const [patientsList, setPatientsList] = useState<Patient[]>([...PATIENTS]);
-  const [mode, setMode] = useState<'table' | 'grid'>('table');
-  const [q, setQ] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [statusF, setStatusF] = useState<PatientStatus | 'all' | 'inactive'>('all');
-  const [page, setPage] = useState(0);
-  const [newPatientOpen, setNewPatientOpen] = useState(false);
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
-  const [togglingPatient, setTogglingPatient] = useState<Patient | null>(null);
 
-  const showInactive = statusF === 'inactive';
+  const {
+    searchQuery, statusFilter, objectiveFilter: _objectiveFilter, currentPage, pageSize: _pageSize,
+    newPatientModalOpen, editingPatientId, togglingPatientId,
+    setSearchQuery, setStatusFilter, setCurrentPage,
+    setNewPatientModalOpen, setEditingPatientId, setTogglingPatientId,
+  } = usePatientUIStore();
 
-  const activePats = useMemo(() => patientsList.filter(p => p.active !== false), [patientsList]);
-  const inactivePats = useMemo(() => patientsList.filter(p => p.active === false), [patientsList]);
+  const { data, isLoading, isError } = usePatients();
+  const createMutation = useCreatePatient();
+  const updateMutation = useUpdatePatient();
+  const deactivateMutation = useDeactivatePatient();
+  const reactivateMutation = useReactivatePatient();
 
-  const filtered = useMemo(() => {
-    let list = showInactive ? inactivePats : activePats;
-    if (statusF !== 'all' && !showInactive) {
-      list = list.filter(p => p.status === statusF);
-    }
-    if (q) list = list.filter(p => p.name.toLowerCase().includes(q.toLowerCase()));
-    return list;
-  }, [activePats, inactivePats, showInactive, statusF, q]);
+  const showInactive = statusFilter === 'inactive';
 
-  const activeFilters = !showInactive ? [statusF !== 'all'].filter(Boolean).length : 0;
+  const patientsList: Patient[] = data?.content.map(mapPatientFromApi) ?? [];
+  const totalElements = data?.totalElements ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+
+  const activePats = showInactive ? [] : patientsList;
+
+  const activeFilters = !showInactive ? (statusFilter !== 'all' ? 1 : 0) : 0;
 
   const toggleActive = useCallback((id: string) => {
-    const patient = patientsList.find(p => p.id === id);
-    if (patient) setTogglingPatient(patient);
-  }, [patientsList]);
+    setTogglingPatientId(id);
+  }, [setTogglingPatientId]);
 
   const confirmToggle = useCallback(() => {
-    if (!togglingPatient) return;
-    setPatientsList(prev => prev.map(p => p.id === togglingPatient.id ? { ...p, active: p.active === false ? true : false } : p));
-    setTogglingPatient(null);
-  }, [togglingPatient]);
+    if (!togglingPatientId) return;
+    const patient = patientsList.find((p) => p.id === togglingPatientId);
+    if (!patient) return;
+    if (patient.active) {
+      deactivateMutation.mutate(togglingPatientId, { onSuccess: () => setTogglingPatientId(null) });
+    } else {
+      reactivateMutation.mutate(togglingPatientId, { onSuccess: () => setTogglingPatientId(null) });
+    }
+  }, [togglingPatientId, patientsList, deactivateMutation, reactivateMutation, setTogglingPatientId]);
 
   const saveEdit = useCallback((id: string, updated: Partial<Patient>) => {
-    setPatientsList(prev => prev.map(p => p.id !== id ? p : { ...p, ...updated }));
-    setEditingPatient(null);
-  }, []);
+    const updateData: UpdatePatientRequest = {};
+    if (updated.name !== undefined) updateData.name = updated.name;
+    if (updated.age !== undefined) updateData.age = updated.age;
+    if (updated.objective !== undefined) updateData.objective = updated.objective;
+    if (updated.status !== undefined) updateData.status = updated.status.toUpperCase();
+    if (updated.weight !== undefined) updateData.weight = updated.weight;
+    if (updated.weightDelta !== undefined) updateData.weightDelta = updated.weightDelta;
+    if (updated.adherence !== undefined) updateData.adherence = updated.adherence;
+    if (updated.tag !== undefined) updateData.tag = updated.tag;
+    updateMutation.mutate({ id, data: updateData }, { onSuccess: () => setEditingPatientId(null) });
+  }, [updateMutation, setEditingPatientId]);
 
   const handleOpen = useCallback((id: string) => {
     setActivePatientId(id);
@@ -100,23 +106,30 @@ export function PatientsView() {
     navigate(`/patient/${id}`);
   }, [setActivePatientId, setView, navigate]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  if (isError) {
+    return (
+      <div style={{ padding: '60px 0', textAlign: 'center' }}>
+        <p style={{ color: 'var(--coral)', marginBottom: 16 }}>Erro ao carregar pacientes.</p>
+        <button className="btn btn-primary" onClick={() => window.location.reload()}>Tentar novamente</button>
+      </div>
+    );
+  }
+
+  const [mode, setMode] = useState<'table' | 'grid'>('table');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: filterOpen && !showInactive ? 12 : 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div className="eyebrow">{showInactive ? 'Inativos · arquivo clínico' : 'Carteira clínica'}</div>
           <h1 className="serif" style={{ fontSize: 34, margin: '4px 0 0', fontWeight: 400, letterSpacing: '-0.02em' }}>
-            {filtered.length} {showInactive ? 'pacientes inativos' : 'pacientes ativos'}
+            {isLoading ? '...' : `${totalElements} ${showInactive ? 'pacientes inativos' : 'pacientes ativos'}`}
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           {!showInactive && (
             <>
-              <MiniStat label="Adesão média" value="82%" />
               <MiniStat label="On-track" value={String(activePats.filter(p => p.status === 'ontrack').length)} dot="var(--sage)" />
               <MiniStat label="Atenção" value={String(activePats.filter(p => p.status === 'warning').length)} dot="var(--amber)" />
               <MiniStat label="Crítico" value={String(activePats.filter(p => p.status === 'danger').length)} dot="var(--coral)" />
@@ -125,7 +138,7 @@ export function PatientsView() {
           )}
           <div className="search" style={{ margin: 0, width: 200 }}>
             <IconSearch size={13} />
-            <input placeholder="Buscar por nome…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+            <input placeholder="Buscar por nome…" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(0); }} />
           </div>
           {!showInactive && (
             <div className="seg" style={{ height: 30 }}>
@@ -134,144 +147,93 @@ export function PatientsView() {
             </div>
           )}
           {!showInactive && (
-            <button
-              className={`btn ${filterOpen || activeFilters > 0 ? 'btn-secondary' : 'btn-ghost'}`}
-              onClick={() => setFilterOpen(v => !v)}
-              style={{ position: 'relative' }}
-            >
+            <button className={`btn ${filterOpen || activeFilters > 0 ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => setFilterOpen(v => !v)}>
               <IconFilter size={13} /> Filtrar
-              {activeFilters > 0 && (
-                <span style={{
-                  position: 'absolute', top: -5, right: -5,
-                  width: 16, height: 16, borderRadius: '50%',
-                  background: 'var(--fg)', color: 'var(--bg)',
-                  fontSize: 9, fontFamily: 'var(--font-mono)',
-                  display: 'grid', placeItems: 'center',
-                }}>{activeFilters}</span>
-              )}
             </button>
           )}
-          <button
-            className={`btn ${showInactive ? 'btn-secondary' : 'btn-ghost'}`}
-            onClick={() => { setStatusF(showInactive ? 'all' : 'inactive'); setQ(''); setPage(0); }}
-            style={{ color: showInactive ? 'var(--fg)' : inactivePats.length > 0 ? 'var(--fg-muted)' : 'var(--fg-subtle)' }}
-          >
+          <button className={`btn ${showInactive ? 'btn-secondary' : 'btn-ghost'}`} onClick={() => { setStatusFilter(showInactive ? 'all' : 'inactive'); setSearchQuery(''); setCurrentPage(0); }} style={{ color: showInactive ? 'var(--fg)' : 'var(--fg-muted)' }}>
             <IconArchive size={13} />
-            {showInactive ? ' Ver ativos' : inactivePats.length > 0 ? ` ${inactivePats.length} inativos` : ' Inativos'}
+            {showInactive ? ' Ver ativos' : ` Inativos`}
           </button>
           {!showInactive && (
-            <button className="btn btn-primary" onClick={() => setNewPatientOpen(true)}>
+            <button className="btn btn-primary" onClick={() => setNewPatientModalOpen(true)}>
               <IconPlus size={13} /> Novo paciente
             </button>
           )}
         </div>
       </div>
 
-      {/* Filter bar */}
       {filterOpen && !showInactive && (
-        <div style={{
-          display: 'flex', gap: 20, alignItems: 'flex-end', flexWrap: 'wrap',
-          padding: '16px 18px', marginBottom: 20,
-          background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
-        }}>
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', flexWrap: 'wrap', padding: '16px 18px', marginBottom: 20, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div className="eyebrow">Status</div>
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {([
-                { key: 'all' as const, label: 'Todos', color: undefined },
-                { key: 'ontrack' as const, label: 'On-track', color: 'var(--sage)' },
-                { key: 'warning' as const, label: 'Atenção', color: 'var(--amber)' },
-                { key: 'danger' as const, label: 'Crítico', color: 'var(--coral)' },
-              ]).map(f => (
-                <button
-                  key={f.key}
-                  onClick={() => { setStatusF(f.key); setPage(0); }}
-                  style={{
-                    padding: '5px 10px', borderRadius: 5, fontSize: 12,
-                    border: statusF === f.key ? '1px solid var(--fg)' : '1px solid var(--border)',
-                    background: statusF === f.key ? 'var(--surface-2)' : 'transparent',
-                    display: 'flex', alignItems: 'center', gap: 5, color: 'var(--fg)', cursor: 'pointer',
-                  }}
-                >
-                  {f.color && <span style={{ width: 6, height: 6, borderRadius: '50%', background: f.color }} />}
-                  {f.label}
-                </button>
-              ))}
+              {(['all', 'ontrack', 'warning', 'danger'] as const).map((key) => {
+                const label = key === 'all' ? 'Todos' : STATUS_LABELS[key];
+                const color = key === 'all' ? undefined : STATUS_COLORS[key];
+                return (
+                  <button key={key} onClick={() => { setStatusFilter(key); setCurrentPage(0); }} style={{ padding: '5px 10px', borderRadius: 5, fontSize: 12, border: statusFilter === key ? '1px solid var(--fg)' : '1px solid var(--border)', background: statusFilter === key ? 'var(--surface-2)' : 'transparent', cursor: 'pointer' }}>
+                    {color && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />} {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
-
           {activeFilters > 0 && (
-            <button
-              onClick={() => { setStatusF('all'); setQ(''); setPage(0); }}
-              style={{ fontSize: 12, color: 'var(--fg-muted)', padding: '5px 0', marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              ✕ Limpar filtros
-            </button>
+            <button onClick={() => { setStatusFilter('all'); setSearchQuery(''); setCurrentPage(0); }} style={{ fontSize: 12, color: 'var(--fg-muted)', padding: '5px 0', marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Limpar filtros</button>
           )}
         </div>
       )}
 
-      {/* Empty state */}
-      {showInactive && filtered.length === 0 && (
-        <div style={{ padding: '60px 0', textAlign: 'center', fontSize: 13, color: 'var(--fg-subtle)' }}>
-          Nenhum paciente inativo no momento.
-        </div>
+      {showInactive && patientsList.length === 0 && !isLoading && (
+        <div style={{ padding: '60px 0', textAlign: 'center', fontSize: 13, color: 'var(--fg-subtle)' }}>Nenhum paciente inativo no momento.</div>
       )}
 
-      {/* Patient list */}
-      {(!showInactive || filtered.length > 0) && (
-        mode === 'table' || showInactive ? (
-          <PatientTable
-            patients={paged}
-            onOpen={handleOpen}
-            onToggleActive={toggleActive}
-          />
-        ) : (
-          <PatientGrid
-            patients={paged}
-            onOpen={handleOpen}
-            onToggleActive={toggleActive}
-          />
-        )
+      {isLoading ? (
+        <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'var(--fg-subtle)' }}>Carregando...</div>
+      ) : (
+        <>
+          {(mode === 'table' || showInactive) ? (
+            <PatientTable patients={patientsList} onOpen={handleOpen} onToggleActive={toggleActive} />
+          ) : (
+            <PatientGrid patients={patientsList} onOpen={handleOpen} onToggleActive={toggleActive} />
+          )}
+          <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+        </>
       )}
 
-      <Pagination currentPage={page} totalPages={pages} onPageChange={setPage} />
-
-      {/* Modals */}
       <NewPatientModal
-        open={newPatientOpen}
-        onClose={() => setNewPatientOpen(false)}
+        open={newPatientModalOpen}
+        onClose={() => setNewPatientModalOpen(false)}
         onSave={(data) => {
-          const newId = `p${patientsList.length + 1}`;
-          const initials = data.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-          setPatientsList(prev => [...prev, {
-            id: newId,
+          const payload: CreatePatientRequest = {
             name: data.name,
-            initials,
             age: 30,
-            objective: data.objective || 'Saúde geral',
-            status: 'ontrack' as PatientStatus,
-            adherence: 80,
+            objective: data.objective,
             weight: 70,
-            weightDelta: 0,
-            tag: '01 semanas',
-          }]);
-          setNewPatientOpen(false);
+          };
+          createMutation.mutate(payload, { onSuccess: () => setNewPatientModalOpen(false) });
         }}
       />
-      {editingPatient && (
-        <EditPatientModal
-          patient={editingPatient}
-          open={!!editingPatient}
-          onClose={() => setEditingPatient(null)}
-          onSave={saveEdit}
-        />
+      {editingPatientId && (
+        (() => {
+          const patient = patientsList.find(p => p.id === editingPatientId);
+          if (!patient) return null;
+          return (
+            <EditPatientModal
+              patient={patient}
+              open={!!editingPatientId}
+              onClose={() => setEditingPatientId(null)}
+              onSave={saveEdit}
+            />
+          );
+        })()
       )}
-      {togglingPatient && (
+      {togglingPatientId && (
         <TogglePatientModal
-          name={togglingPatient.name}
-          activating={togglingPatient.active === false}
-          onClose={() => setTogglingPatient(null)}
+          name={patientsList.find(p => p.id === togglingPatientId)?.name ?? ''}
+          activating={!patientsList.find(p => p.id === togglingPatientId)?.active}
+          onClose={() => setTogglingPatientId(null)}
           onConfirm={confirmToggle}
         />
       )}

@@ -1,4 +1,27 @@
 export type PatientStatus = 'ontrack' | 'warning' | 'danger';
+export type ObjectiveOption = 'EMAGRECIMENTO' | 'HIPERTROFIA' | 'CONTROLE_GLICEMICO' | 'PERFORMANCE_ESPORTIVA' | 'REEDUCACAO_ALIMENTAR' | 'CONTROLE_PRESSAO' | 'SAUDE_GERAL';
+
+export const OBJECTIVE_LABELS: Record<string, string> = {
+  EMAGRECIMENTO: 'Emagrecimento',
+  HIPERTROFIA: 'Hipertrofia',
+  CONTROLE_GLICEMICO: 'Controle glicêmico',
+  PERFORMANCE_ESPORTIVA: 'Performance esportiva',
+  REEDUCACAO_ALIMENTAR: 'Reeducação alimentar',
+  CONTROLE_PRESSAO: 'Controle pressão',
+  SAUDE_GERAL: 'Saúde geral',
+};
+
+export const STATUS_LABELS: Record<PatientStatus, string> = {
+  ontrack: 'On-track',
+  warning: 'Atenção',
+  danger: 'Crítico',
+};
+
+export const STATUS_COLORS: Record<PatientStatus, string> = {
+  ontrack: 'var(--sage)',
+  warning: 'var(--amber)',
+  danger: 'var(--coral)',
+};
 
 export interface MacroValues {
   target: number;
@@ -24,6 +47,44 @@ export interface Patient {
   weightDelta: number;
   tag: string;
   active?: boolean;
+}
+
+export interface PatientApiResponse {
+  id: string;
+  name: string;
+  initials: string;
+  age: number;
+  objective: string;
+  status: 'ONTRACK' | 'WARNING' | 'DANGER';
+  adherence: number;
+  weight: number;
+  weightDelta: number;
+  tag: string;
+  active: boolean;
+}
+
+export interface PatientListApiResponse {
+  content: PatientApiResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export function mapPatientFromApi(p: PatientApiResponse): Patient {
+  return {
+    id: p.id,
+    name: p.name,
+    initials: p.initials,
+    age: p.age,
+    objective: OBJECTIVE_LABELS[p.objective] || p.objective,
+    status: p.status.toLowerCase() as PatientStatus,
+    adherence: p.adherence,
+    weight: p.weight,
+    weightDelta: p.weightDelta,
+    tag: p.tag,
+    active: p.active,
+  };
 }
 
 export interface BiometricEntry {

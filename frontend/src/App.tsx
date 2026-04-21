@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
@@ -84,5 +85,11 @@ const router = createBrowserRouter([
 ]);
 
 export function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
 }
+
+const queryClient = new QueryClient();

@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useParams } from 'react-router';
 import { ANA } from '../data/ana';
+import { usePatient } from '../stores/patientStore';
 import type { DetailedPatient, MacroTarget } from '../types/patient';
 import { IconEdit, IconPlus } from '../components/icons';
 import { EditPatientModal, Timeline, NewBiometryModal, MultiLineChart } from '../components/patient';
@@ -9,11 +11,35 @@ import { PlansView } from './PlansView';
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
 
 export function PatientView() {
-  const [patientData, setPatientData] = useState<DetailedPatient>({ ...ANA });
+  const { id } = useParams();
+  const { data: apiData, isLoading } = usePatient(id ?? null);
   const [tab, setTab] = useState<Tab>('today');
   const [editOpen, setEditOpen] = useState(false);
 
-  const patient = patientData;
+  const patient: DetailedPatient = {
+    ...ANA,
+    ...(apiData ? {
+      id: apiData.id,
+      name: apiData.name,
+      initials: apiData.initials,
+      age: apiData.age,
+      objective: apiData.objective,
+      status: apiData.status.toLowerCase() as DetailedPatient['status'],
+      adherence: apiData.adherence,
+      weight: apiData.weight,
+      weightDelta: apiData.weightDelta,
+      tag: apiData.tag,
+      active: apiData.active,
+    } : {}),
+  };
+
+  if (isLoading) {
+    return (
+      <div className="page" style={{ maxWidth: 'none', padding: 40, textAlign: 'center' }}>
+        <p style={{ color: 'var(--fg-subtle)', fontSize: 14 }}>Carregando paciente...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="page" style={{ maxWidth: 'none', padding: 0 }}>
@@ -100,7 +126,7 @@ export function PatientView() {
         <EditPatientModal
           patient={patient}
           onClose={() => setEditOpen(false)}
-          onSave={(updated) => { setPatientData((p) => ({ ...p, ...updated })); setEditOpen(false); }}
+          onSave={() => { setEditOpen(false); }}
         />
       )}
     </div>
