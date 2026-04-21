@@ -147,18 +147,8 @@ public class AuthController {
     }
 
     private void setRefreshTokenCookie(HttpServletResponse response, String value, int maxAge) {
-        Cookie cookie = new Cookie(cookieName, value);
-        cookie.setPath(cookiePath);
-        cookie.setMaxAge(maxAge);
-        cookie.setHttpOnly(cookieHttpOnly);
-        cookie.setSecure(cookieSecure);
-        response.addCookie(cookie);
-
-        // Also set SameSite via header (Cookie API doesn't support SameSite)
-        // The Set-Cookie header is already added by response.addCookie,
-        // we add the SameSite attribute via a separate header approach
-        String sameSiteAttribute = "; SameSite=" + cookieSameSite;
-        // We'll add this as a raw header supplement
+        // Use only addHeader with the full Set-Cookie value (including SameSite).
+        // addCookie() doesn't support SameSite and would create a duplicate Set-Cookie header.
         response.addHeader("Set-Cookie", buildCookieHeaderValue(value, maxAge));
     }
 
