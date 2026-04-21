@@ -1,0 +1,79 @@
+package com.nutriai.api.controller;
+
+import com.nutriai.api.auth.NutritionistAccess;
+import com.nutriai.api.dto.ApiResponse;
+import com.nutriai.api.dto.patient.*;
+import com.nutriai.api.model.PatientStatus;
+import com.nutriai.api.service.PatientService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/patients")
+public class PatientController {
+
+    private final PatientService patientService;
+
+    public PatientController(PatientService patientService) {
+        this.patientService = patientService;
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<PatientResponse>> create(@RequestBody @Valid CreatePatientRequest request) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientResponse response = patientService.createPatient(nutritionistId, request);
+        return ResponseEntity
+                .created(URI.create("/api/v1/patients/" + response.id()))
+                .body(ApiResponse.ok(response));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PatientListResponse>> list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String objective,
+            @RequestParam(required = false) Boolean active
+    ) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientStatus statusEnum = status != null ? PatientStatus.valueOf(status.toUpperCase()) : null;
+        PatientListResponse response = patientService.listPatients(nutritionistId, search, statusEnum, active, page, size);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<PatientResponse>> get(@PathVariable UUID id) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientResponse response = patientService.getPatient(id, nutritionistId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<PatientResponse>> update(
+            @PathVariable UUID id,
+            @RequestBody UpdatePatientRequest request
+    ) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientResponse response = patientService.updatePatient(id, nutritionistId, request);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    public ResponseEntity<ApiResponse<PatientResponse>> deactivate(@PathVariable UUID id) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientResponse response = patientService.deactivatePatient(id, nutritionistId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PatchMapping("/{id}/reactivate")
+    public ResponseEntity<ApiResponse<PatientResponse>> reactivate(@PathVariable UUID id) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        PatientResponse response = patientService.reactivatePatient(id, nutritionistId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+}

@@ -1,0 +1,248 @@
+package com.nutriai.api.service;
+
+import com.nutriai.api.dto.patient.*;
+import com.nutriai.api.exception.ResourceNotFoundException;
+import com.nutriai.api.model.*;
+import com.nutriai.api.repository.EpisodeRepository;
+import com.nutriai.api.repository.NutritionistRepository;
+import com.nutriai.api.repository.PatientRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class PatientServiceTest {
+
+    @Mock
+    private PatientRepository patientRepository;
+
+    @Mock
+    private EpisodeRepository episodeRepository;
+
+    @Mock
+    private NutritionistRepository nutritionistRepository;
+
+    @InjectMocks
+    private PatientService patientService;
+
+    private UUID nutritionistId;
+    private Nutritionist nutritionist;
+    private Patient samplePatient;
+
+    @BeforeEach
+    void setUp() {
+        nutritionistId = UUID.randomUUID();
+        nutritionist = Nutritionist.builder()
+                .id(nutritionistId)
+                .email("nutri@test.com")
+                .passwordHash("hash")
+                .name("Dr. Test")
+                .role(UserRole.NUTRITIONIST)
+                .build();
+
+        samplePatient = Patient.builder()
+                .id(UUID.randomUUID())
+                .nutritionistId(nutritionistId)
+                .name("Maria Silva")
+                .initials("MS")
+                .age(30)
+                .objective(PatientObjective.EMAGRECIMENTO)
+                .status(PatientStatus.ONTRACK)
+                .weight(new BigDecimal("75.00"))
+                .weightDelta(BigDecimal.ZERO)
+                .adherence(80)
+                .active(true)
+                .build();
+    }
+
+    @Test
+    void createPatient_createsPatientAndFirstEpisode() {
+        when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> {
+            Patient p = inv.getArgument(0);
+            p.setId(UUID.randomUUID());
+            return p;
+        });
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", 30, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        PatientResponse resp = patientService.createPatient(nutritionistId, req);
+
+        assertNotNull(resp);
+        assertEquals("Maria Silva", resp.name());
+        assertEquals("EMAGRECIMENTO", resp.objective());
+        verify(patientRepository).save(any(Patient.class));
+        verify(episodeRepository).save(any(Episode.class));
+    }
+
+    @Test
+    void createPatient_throwsWhenNutritionistNotFound() {
+        when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.empty());
+
+        CreatePatientRequest req = new CreatePatientRequest("Test", 30, "EMAGRECIMENTO", null);
+        assertThrows(ResourceNotFoundException.class, () -> patientService.createPatient(nutritionistId, req));
+    }
+
+    @Test
+    void listPatients_returnsOnlyCurrentNutritionistPatients() {
+        Page<Patient> page = new PageImpl<>(List.of(samplePatient));
+        when(patientRepository.findByNutritionistId(eq(nutritionistId), any(PageRequest.class))).thenReturn(page);
+
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, 0, 10);
+
+        assertEquals(1, resp.content().size());
+        assertEquals(1, resp.totalElements());
+    }
+
+    @Test
+    void listPatients_withFilters_usesFilteredQuery() {
+        Page<Patient> page = new PageImpl<>(List.of(samplePatient));
+        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("maria"), eq(PatientStatus.ONTRACK), eq(true), any(PageRequest.class)))
+                .thenReturn(page);
+
+        PatientListResponse resp = patientService.listPatients(nutritionistId, "maria", PatientStatus.ONTRACK, true, 0, 10);
+
+        assertEquals(1, resp.content().size());
+    }
+
+    @Test
+    void getPatient_returnsPatientForCorrectNutritionist() {
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+
+        PatientResponse resp = patientService.getPatient(samplePatient.getId(), nutritionistId);
+
+        assertEquals(samplePatient.getId(), resp.id());
+        assertEquals("Maria Silva", resp.name());
+    }
+
+    @Test
+    void getPatient_throws404ForWrongNutritionist() {
+        UUID wrongId = UUID.randomUUID();
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), wrongId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> patientService.getPatient(samplePatient.getId(), wrongId));
+    }
+
+    @Test
+    void updatePatient_partialUpdateOnlyModifiesProvidedFields() {
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UpdatePatientRequest req = new UpdatePatientRequest("Ana Costa", null, null, "WARNING", null, null, null, null);
+        patientService.updatePatient(samplePatient.getId(), nutritionistId, req);
+
+        verify(patientRepository).save(argThat(p ->
+                "Ana Costa".equals(p.getName()) &&
+                        p.getStatus() == PatientStatus.WARNING &&
+                        p.getAge() == 30
+        ));
+    }
+
+    @Test
+    void deactivatePatient_setsActiveFalseAndClosesEpisode() {
+        Episode currentEpisode = Episode.builder()
+                .id(UUID.randomUUID())
+                .patientId(samplePatient.getId())
+                .startDate(java.time.LocalDateTime.now())
+                .build();
+
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId()))
+                .thenReturn(Optional.of(currentEpisode));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        patientService.deactivatePatient(samplePatient.getId(), nutritionistId);
+
+        assertNotNull(currentEpisode.getEndDate());
+        verify(patientRepository).save(argThat(p -> !p.getActive()));
+    }
+
+    @Test
+    void reactivatePatient_setsActiveTrueAndCreatesNewEpisode() {
+        samplePatient.setActive(false);
+
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        patientService.reactivatePatient(samplePatient.getId(), nutritionistId);
+
+        assertTrue(samplePatient.getActive());
+        verify(episodeRepository).save(any(Episode.class));
+    }
+
+    @Test
+    void updatePatient_throws404ForWrongNutritionist() {
+        UUID wrongId = UUID.randomUUID();
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), wrongId)).thenReturn(Optional.empty());
+
+        UpdatePatientRequest req = new UpdatePatientRequest("New Name", null, null, null, null, null, null, null);
+        assertThrows(ResourceNotFoundException.class,
+                () -> patientService.updatePatient(samplePatient.getId(), wrongId, req));
+    }
+
+    @Test
+    void deactivatePatient_throws404ForWrongNutritionist() {
+        UUID wrongId = UUID.randomUUID();
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), wrongId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> patientService.deactivatePatient(samplePatient.getId(), wrongId));
+    }
+
+    @Test
+    void reactivatePatient_throws404ForWrongNutritionist() {
+        UUID wrongId = UUID.randomUUID();
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), wrongId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> patientService.reactivatePatient(samplePatient.getId(), wrongId));
+    }
+
+    @Test
+    void listPatients_returnsEmptyWhenNoPatients() {
+        Page<Patient> emptyPage = new PageImpl<>(List.of());
+        when(patientRepository.findByNutritionistId(eq(nutritionistId), any(PageRequest.class))).thenReturn(emptyPage);
+
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, 0, 10);
+
+        assertEquals(0, resp.content().size());
+        assertEquals(0, resp.totalElements());
+    }
+
+    @Test
+    void listPatients_withActiveFilter_callsFilteredQuery() {
+        Page<Patient> page = new PageImpl<>(List.of(samplePatient));
+        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), eq(true), any(PageRequest.class)))
+                .thenReturn(page);
+
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, true, 0, 10);
+
+        verify(patientRepository).findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), eq(true), any(PageRequest.class));
+        verify(patientRepository, never()).findByNutritionistId(any(), any());
+    }
+
+    @Test
+    void createPatient_computesInitialsFromName() {
+        when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreatePatientRequest req = new CreatePatientRequest("João Pedro", 28, "HIPERTROFIA", null);
+        PatientResponse resp = patientService.createPatient(nutritionistId, req);
+
+        assertEquals("JP", resp.initials());
+    }
+}
