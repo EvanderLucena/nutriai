@@ -8,6 +8,7 @@ export interface ApiResponse<T> {
   data: T | null;
   errors?: string[];
   message?: string;
+  status?: number;
 }
 
 export interface HealthResponse {
@@ -15,4 +16,49 @@ export interface HealthResponse {
   timestamp: string;
   version: string;
   db: string;
+}
+
+// Auth types
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'NUTRITIONIST' | 'ADMIN';
+  onboardingCompleted: boolean;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface SignupRequest {
+  name: string;
+  email: string;
+  password: string;
+  crn: string;
+  crnRegional: string;
+  specialty?: string;
+  whatsapp?: string;
+  terms: boolean;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  user: AuthUser;
+}
+
+export interface MeResponse {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  crn: string;
+  crnRegional: string;
+  specialty: string | null;
+  whatsapp: string | null;
+  onboardingCompleted: boolean;
+  trialEndsAt: string;
+  subscriptionTier: string;
+  patientLimit: number;
 }
