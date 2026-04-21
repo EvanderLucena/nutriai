@@ -1,54 +1,113 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { LoginView } from './LoginView';
 
-// Mock react-router and auth store
+const mockLogin = vi.fn();
+const mockClearError = vi.fn();
+
 vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
   Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
 
 vi.mock('../stores/authStore', () => ({
-  useAuthStore: () => vi.fn(),
+  useAuthStore: (selector: (s: Record<string, unknown>) => unknown) => {
+    const state = {
+      login: mockLogin,
+      isLoading: false,
+      fieldErrors: {} as Record<string, string>,
+      clearError: mockClearError,
+    };
+    return selector(state);
+  },
 }));
 
-describe('LoginView - Disabled Submit Button', () => {
-  it('submit button is disabled when email and password are empty', () => {
-    render(<LoginView />);
-
-    const submitButton = screen.getByRole('button', { name: /entrar/i });
-    expect(submitButton).toBeDisabled();
+describe('LoginView', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('submit button is disabled when email is filled but password is empty', () => {
-    render(<LoginView />);
+  describe('Submit button state', () => {
+    it('submit button is disabled when email and password are empty', () => {
+      render(<LoginView />);
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      expect(submitButton).toBeDisabled();
+    });
 
-    const emailInput = screen.getByPlaceholderText(/seu@email/i);
-    const submitButton = screen.getByRole('button', { name: /entrar/i });
+    it('submit button is disabled when email is filled but password is empty', () => {
+      render(<LoginView />);
+      const emailInput = screen.getByTestId('login-email');
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      expect(submitButton).toBeDisabled();
+    });
 
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+    it('submit button is enabled when both email and password have values', () => {
+      render(<LoginView />);
+      const emailInput = screen.getByTestId('login-email');
+      const passwordInput = screen.getByTestId('login-password');
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      expect(submitButton).not.toBeDisabled();
+    });
 
-    expect(submitButton).toBeDisabled();
+    it('submit button has opacity 0.45 when disabled', () => {
+      render(<LoginView />);
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveStyle({ opacity: 0.45 });
+    });
   });
 
-  it('submit button is enabled when both email and password have values', () => {
-    render(<LoginView />);
+  describe('Form submission', () => {
+    it('calls login with email and password on valid submit', async () => {
+      mockLogin.mockResolvedValue(undefined);
+      render(<LoginView />);
+      const emailInput = screen.getByTestId('login-email');
+      const passwordInput = screen.getByTestId('login-password');
+      fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'password123' } });
 
-    const emailInput = screen.getByPlaceholderText(/seu@email/i);
-    const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-    const submitButton = screen.getByRole('button', { name: /entrar/i });
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      fireEvent.click(submitButton);
 
-    fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-    fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+    });
 
-    expect(submitButton).not.toBeDisabled();
+    it('shows local error when fields are empty on submit', async () => {
+      render(<LoginView />);
+      const form = screen.getByTestId('login-email').closest('form')!;
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(screen.getByText(/preencha todos os campos/i)).toBeInTheDocument();
+      });
+    });
+
+    it('shows error message when login fails', async () => {
+      mockLogin.mockRejectedValue(new Error('Credenciais inválidas.'));
+      render(<LoginView />);
+
+      const emailInput = screen.getByTestId('login-email');
+      const passwordInput = screen.getByTestId('login-password');
+      fireEvent.change(emailInput, { target: { value: 'wrong@test.com' } });
+      fireEvent.change(passwordInput, { target: { value: 'wrongpass' } });
+
+      const submitButton = screen.getByRole('button', { name: /entrar/i });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/credenciais/i)).toBeInTheDocument();
+      });
+    });
   });
 
-  it('submit button has opacity 0.45 when disabled', () => {
-    render(<LoginView />);
-
-    const submitButton = screen.getByRole('button', { name: /entrar/i });
-    expect(submitButton).toBeDisabled();
-    expect(submitButton).toHaveStyle({ opacity: 0.45 });
+  describe('Navigation', () => {
+    it('has a link to signup page', () => {
+      render(<LoginView />);
+      const signupLink = screen.getByRole('link', { name: /criar conta/i });
+      expect(signupLink).toHaveAttribute('href', '/signup');
+    });
   });
 });
