@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.nutriai.api.repository")
+@EnableJpaRepositories(basePackages = {"com.nutriai.api.repository", "com.nutriai.api.auth"})
 public class NutriAiApplication {
 
     public static void main(String[] args) {
