@@ -125,8 +125,10 @@ Plans:
   - **Backend (JUnit 5)**: PatientController, PatientService — CRUD, search, filter, data isolation (nutritionist scope)
   - **Frontend (Vitest)**: patientStore — state transitions, API calls, filters; PatientsView — rendering, search, table/grid toggle; PatientView — tab navigation, detail loading
   - **E2E (Playwright)**: create patient, edit patient, search/filter, data isolation between accounts
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 2 plans in 2 waves
+Plans:
+- [ ] 04-01-PLAN.md — Backend Patient CRUD with data isolation (entities, API, tests)
+- [ ] 04-02-PLAN.md — Frontend patient management wiring (store, views, E2E tests)
 
 ### Phase 5: Meal Plans & Food Catalog
 **Goal**: Nutritionists can create complete meal plans using the food catalog
@@ -237,7 +239,7 @@ Phase 9 depends on Phase 3 and Phase 7 and can begin once both are complete.
 | 1. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
 | 2. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
 | 3. Auth & Onboarding | 2/2 | Complete ✓ | 2026-04-21 |
-| 4. Patient Management | 0/? | Next up | - |
+| 4. Patient Management | 0/2 | Planned | - |
 | 5. Meal Plans & Food Catalog | 0/? | Not started | - |
 | 6. Dashboard & Biometry | 0/? | Not started | - |
 | 7. WhatsApp Intelligence | 0/? | Not started | - |
