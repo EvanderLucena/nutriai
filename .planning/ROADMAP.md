@@ -127,8 +127,8 @@ Plans:
   - **E2E (Playwright)**: create patient, edit patient, search/filter, data isolation between accounts
 **Plans:** 2 plans in 2 waves
 Plans:
-- [ ] 04-01-PLAN.md — Backend Patient CRUD with data isolation (entities, API, tests)
-- [ ] 04-02-PLAN.md — Frontend patient management wiring (store, views, E2E tests)
+- [x] 04-01-PLAN.md — Backend Patient CRUD with data isolation (entities, API, tests)
+- [x] 04-02-PLAN.md — Frontend patient management wiring (store, views, E2E tests)
 
 ### Phase 5: Meal Plans & Food Catalog
 **Goal**: Nutritionists can create complete meal plans using the food catalog
