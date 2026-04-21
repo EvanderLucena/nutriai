@@ -1,6 +1,7 @@
 package com.nutriai.api.repository;
 
 import com.nutriai.api.model.Patient;
+import com.nutriai.api.model.PatientObjective;
 import com.nutriai.api.model.PatientStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -41,13 +42,15 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
      * Combined filter query with name search (case-insensitive LIKE) + status + active (D-13).
      */
     @Query("SELECT p FROM Patient p WHERE p.nutritionistId = :nutritionistId " +
-           "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!') " +
            "AND (:status IS NULL OR p.status = :status) " +
+           "AND (:objective IS NULL OR p.objective = :objective) " +
            "AND (:active IS NULL OR p.active = :active)")
     Page<Patient> findByNutritionistIdWithFilters(
             @Param("nutritionistId") UUID nutritionistId,
             @Param("search") String search,
             @Param("status") PatientStatus status,
+            @Param("objective") PatientObjective objective,
             @Param("active") Boolean active,
             Pageable pageable
     );

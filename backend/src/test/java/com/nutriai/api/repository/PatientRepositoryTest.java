@@ -143,7 +143,7 @@ class PatientRepositoryTest {
 
         // When: search by "maria" (case-insensitive)
         Page<Patient> result = patientRepository.findByNutritionistIdWithFilters(
-                nutritionistId1, "maria", null, null, PageRequest.of(0, 20));
+                nutritionistId1, "maria", null, null, null, PageRequest.of(0, 20));
 
         // Then: both "Maria" patients found
         assertEquals(2, result.getTotalElements());
@@ -158,7 +158,7 @@ class PatientRepositoryTest {
 
         // When: filter by ONTRACK + active=true
         Page<Patient> result = patientRepository.findByNutritionistIdWithFilters(
-                nutritionistId1, null, PatientStatus.ONTRACK, true, PageRequest.of(0, 20));
+                nutritionistId1, null, PatientStatus.ONTRACK, null, true, PageRequest.of(0, 20));
 
         // Then: only active on-track patients
         assertEquals(1, result.getTotalElements());

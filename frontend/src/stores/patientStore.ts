@@ -60,6 +60,8 @@ export function usePatients() {
         objective: objectiveFilter !== 'all' ? objectiveFilter : undefined,
         active,
       }),
+    retry: 2,
+    staleTime: 30_000,
   });
 }
 
@@ -67,7 +69,10 @@ export function usePatients() {
 export function usePatient(id: string | null) {
   return useQuery({
     queryKey: ['patient', id],
-    queryFn: () => patientApi.getPatient(id!),
+    queryFn: () => {
+      if (!id) throw new Error('Patient ID is required');
+      return patientApi.getPatient(id);
+    },
     enabled: !!id,
   });
 }

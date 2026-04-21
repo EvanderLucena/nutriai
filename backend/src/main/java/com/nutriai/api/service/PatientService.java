@@ -11,9 +11,12 @@ import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -36,7 +39,7 @@ public class PatientService {
         nutritionistRepository.findById(nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Nutricionista", nutritionistId));
 
-        PatientObjective objective = PatientObjective.valueOf(req.objective());
+        PatientObjective objective = parseObjective(req.objective());
 
         Patient patient = Patient.builder()
                 .nutritionistId(nutritionistId)
@@ -57,13 +60,17 @@ public class PatientService {
         return PatientResponse.from(saved);
     }
 
+    @Transactional(readOnly = true)
     public PatientListResponse listPatients(UUID nutritionistId, String search, PatientStatus status,
-                                              Boolean active, int page, int size) {
+                                              PatientObjective objective, Boolean active, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
-        if (search != null || status != null || active != null) {
+        String escapedSearch = search != null ? escapeLike(search) : null;
+        boolean hasFilter = escapedSearch != null || status != null || objective != null || active != null;
+
+        if (hasFilter) {
             Page<Patient> result = patientRepository.findByNutritionistIdWithFilters(
-                    nutritionistId, search, status, active, pageRequest);
+                    nutritionistId, escapedSearch, status, objective, active, pageRequest);
             return PatientListResponse.from(result);
         }
 
@@ -71,6 +78,7 @@ public class PatientService {
         return PatientListResponse.from(result);
     }
 
+    @Transactional(readOnly = true)
     public PatientResponse getPatient(UUID id, UUID nutritionistId) {
         Patient patient = patientRepository.findByIdAndNutritionistId(id, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", id));
@@ -87,8 +95,8 @@ public class PatientService {
             patient.setInitials(patient.getName() != null ? computeInitials(req.name()) : null);
         }
         if (req.age() != null) patient.setAge(req.age());
-        if (req.objective() != null) patient.setObjective(PatientObjective.valueOf(req.objective()));
-        if (req.status() != null) patient.setStatus(PatientStatus.valueOf(req.status()));
+        if (req.objective() != null) patient.setObjective(parseObjective(req.objective()));
+        if (req.status() != null) patient.setStatus(parseStatus(req.status()));
         if (req.weight() != null) patient.setWeight(req.weight());
         if (req.weightDelta() != null) patient.setWeightDelta(req.weightDelta());
         if (req.adherence() != null) patient.setAdherence(req.adherence());
@@ -135,5 +143,41 @@ public class PatientService {
             if (!words[i].isEmpty()) sb.append(Character.toUpperCase(words[i].charAt(0)));
         }
         return sb.toString();
+    }
+
+    /**
+     * Escape SQL LIKE special characters (% and _) for safe wildcard search.
+     */
+    private String escapeLike(String search) {
+        if (search == null) return null;
+        return search.replace("!", "!!")
+                .replace("%", "!%")
+                .replace("_", "!_");
+    }
+
+    /**
+     * Validates and parses a PatientObjective enum value, throwing 400 for invalid values.
+     */
+    private PatientObjective parseObjective(String value) {
+        try {
+            return PatientObjective.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Objetivo inválido. Valores permitidos: " + Arrays.toString(PatientObjective.values()));
+        }
+    }
+
+    /**
+     * Validates and parses a PatientStatus enum value, throwing 400 for invalid values.
+     */
+    private PatientStatus parseStatus(String value) {
+        try {
+            return PatientStatus.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Status inválido. Valores permitidos: " + Arrays.toString(PatientStatus.values()));
+        }
     }
 }

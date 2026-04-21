@@ -3,9 +3,11 @@ package com.nutriai.api.controller;
 import com.nutriai.api.auth.NutritionistAccess;
 import com.nutriai.api.dto.ApiResponse;
 import com.nutriai.api.dto.patient.*;
+import com.nutriai.api.model.PatientObjective;
 import com.nutriai.api.model.PatientStatus;
 import com.nutriai.api.service.PatientService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,7 +36,7 @@ public class PatientController {
     @GetMapping
     public ResponseEntity<ApiResponse<PatientListResponse>> list(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "10") @Max(100) int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String objective,
@@ -42,7 +44,8 @@ public class PatientController {
     ) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         PatientStatus statusEnum = status != null ? PatientStatus.valueOf(status.toUpperCase()) : null;
-        PatientListResponse response = patientService.listPatients(nutritionistId, search, statusEnum, active, page, size);
+        PatientObjective objectiveEnum = objective != null ? PatientObjective.valueOf(objective.toUpperCase()) : null;
+        PatientListResponse response = patientService.listPatients(nutritionistId, search, statusEnum, objectiveEnum, active, page, size);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 

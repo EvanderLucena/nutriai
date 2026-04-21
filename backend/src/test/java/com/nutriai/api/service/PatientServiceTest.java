@@ -100,7 +100,7 @@ class PatientServiceTest {
         Page<Patient> page = new PageImpl<>(List.of(samplePatient));
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any(PageRequest.class))).thenReturn(page);
 
-        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, 0, 10);
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, null, 0, 10);
 
         assertEquals(1, resp.content().size());
         assertEquals(1, resp.totalElements());
@@ -109,10 +109,10 @@ class PatientServiceTest {
     @Test
     void listPatients_withFilters_usesFilteredQuery() {
         Page<Patient> page = new PageImpl<>(List.of(samplePatient));
-        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("maria"), eq(PatientStatus.ONTRACK), eq(true), any(PageRequest.class)))
+        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("maria"), eq(PatientStatus.ONTRACK), isNull(), eq(true), any(PageRequest.class)))
                 .thenReturn(page);
 
-        PatientListResponse resp = patientService.listPatients(nutritionistId, "maria", PatientStatus.ONTRACK, true, 0, 10);
+        PatientListResponse resp = patientService.listPatients(nutritionistId, "maria", PatientStatus.ONTRACK, null, true, 0, 10);
 
         assertEquals(1, resp.content().size());
     }
@@ -216,7 +216,7 @@ class PatientServiceTest {
         Page<Patient> emptyPage = new PageImpl<>(List.of());
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any(PageRequest.class))).thenReturn(emptyPage);
 
-        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, 0, 10);
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, null, 0, 10);
 
         assertEquals(0, resp.content().size());
         assertEquals(0, resp.totalElements());
@@ -225,12 +225,12 @@ class PatientServiceTest {
     @Test
     void listPatients_withActiveFilter_callsFilteredQuery() {
         Page<Patient> page = new PageImpl<>(List.of(samplePatient));
-        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), eq(true), any(PageRequest.class)))
+        when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), isNull(), eq(true), any(PageRequest.class)))
                 .thenReturn(page);
 
-        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, true, 0, 10);
+        PatientListResponse resp = patientService.listPatients(nutritionistId, null, null, null, true, 0, 10);
 
-        verify(patientRepository).findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), eq(true), any(PageRequest.class));
+        verify(patientRepository).findByNutritionistIdWithFilters(eq(nutritionistId), isNull(), isNull(), isNull(), eq(true), any(PageRequest.class));
         verify(patientRepository, never()).findByNutritionistId(any(), any());
     }
 
