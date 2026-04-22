@@ -9,7 +9,6 @@ import { PatientsView } from './views/PatientsView';
 import { PatientView } from './views/PatientView';
 import { FoodsView } from './views/FoodsView';
 import { InsightsView } from './views/InsightsView';
-import { PlansView } from './views/PlansView';
 import { LandingView } from './views/LandingView';
 import { LoginView } from './views/LoginView';
 import { SignupView } from './views/SignupView';
@@ -75,7 +74,7 @@ const router = createBrowserRouter([
           { path: '/home', element: <HomeView /> },
           { path: '/patients', element: <PatientsView /> },
           { path: '/patient/:id', element: <PatientView /> },
-          { path: '/plans', element: <PlansView /> },
+          { path: '/plans', element: <Navigate to="/patients" replace /> },
           { path: '/foods', element: <FoodsView /> },
           { path: '/insights', element: <InsightsView /> },
         ],

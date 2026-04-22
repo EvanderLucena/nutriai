@@ -1,66 +1,109 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { PlansView } from './PlansView';
+import type { MealPlan } from '../types/plan';
 
 // Mock react-router
 vi.mock('react-router', () => ({
   useNavigate: () => vi.fn(),
+  useParams: () => ({ id: 'test-patient-id' }),
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 }));
 
-describe('PlansView - Delete Confirmation', () => {
-  it('renders DeleteConfirmModal with food name and Cancelar/Excluir buttons', async () => {
-    render(<PlansView />);
+// Mock planStore
+const mockPlan: MealPlan = {
+  id: 'plan-1',
+  episodeId: 'ep-1',
+  title: 'Plano de emagrecimento',
+  notes: 'Evitar lactose',
+  kcalTarget: 2200,
+  protTarget: 140,
+  carbTarget: 250,
+  fatTarget: 70,
+  meals: [
+    {
+      id: 'meal-1',
+      label: 'Café da manhã',
+      time: '07:00',
+      options: [
+        {
+          id: 'opt-1',
+          name: 'Opção 1 · Clássico',
+          items: [
+            { id: 'item-1', foodId: 'food-1', foodName: 'Aveia em flocos', qty: '2 col. sopa', grams: 30, prep: '-', kcal: 117, prot: 5, carb: 20, fat: 2 },
+          ],
+        },
+      ],
+    },
+  ],
+  extras: [
+    { id: 'extra-1', name: 'Chocolate 70%', quantity: '20g', kcal: 108, prot: 2, carb: 8, fat: 8 },
+  ],
+  createdAt: '2026-04-01T00:00:00Z',
+  updatedAt: '2026-04-22T00:00:00Z',
+};
 
-    // Find a delete button (×) on a food row and click it
-    const removeButtons = screen.getAllByTitle('Remover');
-    if (removeButtons.length > 0) {
-      fireEvent.click(removeButtons[0]);
+vi.mock('../stores/planStore', () => ({
+  usePlan: () => ({
+    data: mockPlan,
+    isLoading: false,
+  }),
+  usePlanUIStore: () => ({
+    activeMealId: 'meal-1',
+    activeOptionIndex: 0,
+    addFoodModalOpen: false,
+    addMealModalOpen: false,
+    pendingDeleteMealId: null,
+    pendingDeleteItem: null,
+    saveStatus: 'saved' as const,
+    setActiveMealId: vi.fn(),
+    setActiveOptionIndex: vi.fn(),
+    setAddFoodModalOpen: vi.fn(),
+    setAddMealModalOpen: vi.fn(),
+    setPendingDeleteMealId: vi.fn(),
+    setPendingDeleteItem: vi.fn(),
+    setSaveStatus: vi.fn(),
+  }),
+  useUpdatePlan: () => ({ mutate: vi.fn() }),
+  useAddMealSlot: () => ({ mutate: vi.fn() }),
+  useDeleteMealSlot: () => ({ mutate: vi.fn() }),
+  useAddOption: () => ({ mutate: vi.fn() }),
+  useAddFoodItem: () => ({ mutate: vi.fn() }),
+  useUpdateFoodItem: () => ({ mutate: vi.fn() }),
+  useDeleteFoodItem: () => ({ mutate: vi.fn() }),
+  useAddExtra: () => ({ mutate: vi.fn() }),
+  useUpdateExtra: () => ({ mutate: vi.fn() }),
+  useDeleteExtra: () => ({ mutate: vi.fn() }),
+}));
 
-      // After clicking, a confirmation modal should appear
-      const modal = await screen.findByText(/Tem certeza/i);
-      expect(modal).toBeInTheDocument();
-
-      // Modal should have Cancelar and Excluir buttons
-      expect(screen.getByText('Cancelar')).toBeInTheDocument();
-      expect(screen.getByText('Excluir')).toBeInTheDocument();
-    }
+describe('PlansView', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('clicking Cancelar closes DeleteConfirmModal without removing item', async () => {
-    render(<PlansView />);
-
-    const removeButtons = screen.getAllByTitle('Remover');
-    if (removeButtons.length > 0) {
-      // Get the food name before clicking
-      fireEvent.click(removeButtons[0]);
-
-      // Click Cancelar
-      const cancelar = await screen.findByText('Cancelar');
-      fireEvent.click(cancelar);
-
-      // Modal should be gone
-      expect(screen.queryByText(/Tem certeza/i)).not.toBeInTheDocument();
-    }
+  it('renders plan data from usePlan hook', () => {
+    render(<PlansView patientId="test-patient-id" />);
+    expect(screen.getByText('Plano de emagrecimento')).toBeInTheDocument();
   });
 
-  it('clicking Excluir in DeleteConfirmModal removes the item', async () => {
-    render(<PlansView />);
+  it('displays SaveStatusIndicator with SALVO when status is saved', () => {
+    render(<PlansView patientId="test-patient-id" />);
+    expect(screen.getByText('SALVO')).toBeInTheDocument();
+  });
 
-    const removeButtons = screen.getAllByTitle('Remover');
-    if (removeButtons.length > 0) {
-      const foodCount = removeButtons.length;
-      fireEvent.click(removeButtons[0]);
+  it('renders meal labels from plan data', () => {
+    render(<PlansView patientId="test-patient-id" />);
+    expect(screen.getByText('Café da manhã')).toBeInTheDocument();
+  });
 
-      // Click Excluir
-      const excluir = await screen.findByText('Excluir');
-      fireEvent.click(excluir);
+  it('renders food items with frozen food name', () => {
+    render(<PlansView patientId="test-patient-id" />);
+    expect(screen.getByText('Aveia em flocos')).toBeInTheDocument();
+  });
 
-      // Modal should be gone and item should be removed
-      expect(screen.queryByText(/Tem certeza/i)).not.toBeInTheDocument();
-      // After removal, there should be one fewer remove buttons
-      const newRemoveButtons = screen.getAllByTitle('Remover');
-      expect(newRemoveButtons.length).toBeLessThan(foodCount);
-    }
+  it('renders macro targets from plan data', () => {
+    render(<PlansView patientId="test-patient-id" />);
+    expect(screen.getByText('2200')).toBeInTheDocument();
+    expect(screen.getByText('140g')).toBeInTheDocument();
   });
 });

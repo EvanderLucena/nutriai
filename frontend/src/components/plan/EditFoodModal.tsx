@@ -9,16 +9,28 @@ interface EditFoodModalProps {
 }
 
 export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
-  const [food, setFood] = useState(item.food);
+  const [foodName, setFoodName] = useState(item.foodName);
   const [qty, setQty] = useState(item.qty);
   const [prep, setPrep] = useState(item.prep);
+  const [grams, setGrams] = useState(String(item.grams));
   const [kcal, setKcal] = useState(String(item.kcal));
   const [prot, setProt] = useState(String(item.prot));
   const [carb, setCarb] = useState(String(item.carb));
   const [fat, setFat] = useState(String(item.fat));
 
   const handle = () => {
-    onSave({ food, qty, prep, kcal: Number(kcal) || 0, prot: Number(prot) || 0, carb: Number(carb) || 0, fat: Number(fat) || 0 });
+    if (!foodName.trim()) return;
+    onSave({
+      ...item,
+      foodName: foodName.trim(),
+      qty,
+      prep,
+      grams: Number(grams) || 0,
+      kcal: Number(kcal) || 0,
+      prot: Number(prot) || 0,
+      carb: Number(carb) || 0,
+      fat: Number(fat) || 0,
+    });
   };
 
   const field = (label: string, val: string, set: (v: string) => void, opts: { color?: string; mono?: boolean } = {}) => (
@@ -48,12 +60,16 @@ export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
           <button onClick={onClose} className="btn btn-ghost" style={{ padding: '4px 6px' }}><IconX size={14} /></button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {field('Alimento', food, setFood)}
+          <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Alimento vinculqado ao catálogo
+          </div>
+          {field('Nome', foodName, setFoodName)}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {field('Quantidade', qty, setQty)}
-            {field('Preparo', prep, setPrep)}
+            {field('Gramas', grams, setGrams, { mono: true })}
           </div>
-          <div className="divider"><span>Valores nutricionais</span></div>
+          {field('Preparo', prep, setPrep)}
+          <div className="divider"><span>Valores nutricionais (congelados)</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
             {field('Kcal', kcal, setKcal, { mono: true })}
             {field('Prot (g)', prot, setProt, { color: 'var(--sage-dim)', mono: true })}
@@ -63,7 +79,7 @@ export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handle} disabled={!food.trim()} style={{ opacity: food.trim() ? 1 : 0.45 }}>
+          <button className="btn btn-primary" onClick={handle} disabled={!foodName.trim()} style={{ opacity: foodName.trim() ? 1 : 0.45 }}>
             <IconCheck size={13} /> Salvar
           </button>
         </div>

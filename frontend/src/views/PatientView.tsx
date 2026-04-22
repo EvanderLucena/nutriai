@@ -120,7 +120,7 @@ export function PatientView() {
         </div>
       </div>
       {tab === 'today' && <TodayTab patient={patient} onSetTab={setTab} />}
-      {tab === 'plan' && <PlansView />}
+      {tab === 'plan' && <PlansView patientId={id!} />}
       {tab === 'biometry' && <BiometryTab patient={patient} />}
       {tab === 'insights' && <InsightsTab />}
       {tab === 'history' && <HistoryTab />}

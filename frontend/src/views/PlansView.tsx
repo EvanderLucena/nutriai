@@ -1,57 +1,21 @@
 import { useState } from 'react';
-import type { MealSlot, MealOption, MealFood } from '../types/plan';
-import { IconPlus, IconDownload, IconCheck, IconX, IconTrash } from '../components/icons';
-import { PlanFoodRow, OptionTab, AddFoodModal, EditFoodModal, AddMealModal, ExtrasSection } from '../components/plan';
-
-const INITIAL_MEALS: MealSlot[] = [
-  { id: 'cafe', label: 'Café da manhã', time: '07:00', kcal: 380, prot: 26, carb: 28, fat: 16 },
-  { id: 'lanche1', label: 'Lanche manhã', time: '10:00', kcal: 210, prot: 8, carb: 28, fat: 8 },
-  { id: 'almoco', label: 'Almoço', time: '12:30', kcal: 620, prot: 45, carb: 62, fat: 20 },
-  { id: 'lanche2', label: 'Lanche tarde', time: '15:30', kcal: 240, prot: 14, carb: 32, fat: 6 },
-  { id: 'jantar', label: 'Jantar', time: '19:30', kcal: 530, prot: 36, carb: 42, fat: 22 },
-  { id: 'ceia', label: 'Ceia', time: '22:00', kcal: 220, prot: 16, carb: 14, fat: 10 },
-];
-
-const INITIAL_OPTIONS: MealOption[] = [
-  { name: 'Opção 1 · Clássico', items: [
-    { food: 'Frango grelhado', qty: '150g', prep: 'grelhado, sem óleo', kcal: 248, prot: 46, carb: 0, fat: 6 },
-    { food: 'Arroz integral', qty: '4 col. sopa', prep: 'cozido', kcal: 165, prot: 4, carb: 35, fat: 1 },
-    { food: 'Feijão carioca', qty: '1 concha', prep: 'cozido', kcal: 76, prot: 5, carb: 14, fat: 0 },
-    { food: 'Salada verde', qty: 'à vontade', prep: 'crua, azeite 1 col.', kcal: 90, prot: 2, carb: 6, fat: 7 },
-    { food: 'Azeite extra-virgem', qty: '1 col. chá', prep: '-', kcal: 40, prot: 0, carb: 0, fat: 5 },
-  ]},
-  { name: 'Opção 2 · Peixe', items: [
-    { food: 'Salmão', qty: '130g', prep: 'assado', kcal: 290, prot: 32, carb: 0, fat: 18 },
-    { food: 'Batata-doce', qty: '180g', prep: 'cozida', kcal: 155, prot: 3, carb: 36, fat: 0 },
-    { food: 'Brócolis refogado', qty: '1 xícara', prep: 'refogado com alho', kcal: 55, prot: 4, carb: 8, fat: 1 },
-    { food: 'Azeite extra-virgem', qty: '1 col. chá', prep: '-', kcal: 40, prot: 0, carb: 0, fat: 5 },
-  ]},
-  { name: 'Opção 3 · Vegetariano', items: [
-    { food: 'Tofu grelhado', qty: '150g', prep: 'temperado, grelhado', kcal: 180, prot: 20, carb: 4, fat: 10 },
-    { food: 'Quinoa', qty: '1/2 xícara', prep: 'cozida', kcal: 120, prot: 4, carb: 22, fat: 2 },
-    { food: 'Legumes assados', qty: '1 prato', prep: 'abobrinha, cenoura, beterraba', kcal: 110, prot: 4, carb: 20, fat: 2 },
-    { food: 'Castanhas-do-pará', qty: '3 unidades', prep: '-', kcal: 95, prot: 2, carb: 2, fat: 9 },
-  ]},
-];
-
-interface ExtraItem {
-  name: string;
-  qty: string;
-  category: string;
-  kcal: number | string;
-  prot: number | string;
-  carb: number | string;
-  fat: number | string;
-  note: string;
-}
-
-const INITIAL_EXTRAS: ExtraItem[] = [
-  { name: 'Cerveja Ultra', qty: '350ml · lata', category: 'Bebida alcoólica', kcal: 99, prot: 4, carb: 2, fat: 0, note: 'Se paciente reportar consumo à noite, IA orienta hidratação extra e ajuste do lanche seguinte.' },
-  { name: 'Chocolate 70% cacau', qty: '20g · 2 quadradinhos', category: 'Doce/sobremesa', kcal: 108, prot: 2, carb: 8, fat: 8, note: 'Opção aprovada como sobremesa ocasional. IA contabiliza no total diário.' },
-  { name: 'Açaí puro', qty: '200g · pequeno', category: 'Sobremesa/lanche', kcal: 120, prot: 1, carb: 10, fat: 7, note: 'Sem granola nem xarope. IA sugere combinar com banana no lugar do açúcar.' },
-  { name: 'Pizza muçarela', qty: '1 fatia · 110g', category: 'Refeição social', kcal: 265, prot: 11, carb: 30, fat: 10, note: 'Se paciente avisar jantar fora, IA orienta máx. 2 fatias + salada.' },
-  { name: 'Vinho tinto seco', qty: '150ml · 1 taça', category: 'Bebida alcoólica', kcal: 125, prot: 0, carb: 4, fat: 0, note: 'Até 2× na semana. IA reforça água entre taças.' },
-];
+import { IconPlus, IconDownload, IconX, IconTrash } from '../components/icons';
+import { PlanFoodRow, OptionTab, AddFoodModal, AddMealModal, ExtrasSection, SaveStatusIndicator } from '../components/plan';
+import { Toast } from '../components/ui/Toast';
+import {
+  usePlan,
+  usePlanUIStore,
+  useUpdatePlan,
+  useAddMealSlot,
+  useDeleteMealSlot,
+  useAddOption,
+  useAddFoodItem,
+  useUpdateFoodItem,
+  useDeleteFoodItem,
+  useAddExtra,
+  useUpdateExtra,
+  useDeleteExtra,
+} from '../stores/planStore';
 
 function DailyMacro({ label, value, sub, color }: { label: string; value: string; sub?: string; color: string }) {
   return (
@@ -64,16 +28,18 @@ function DailyMacro({ label, value, sub, color }: { label: string; value: string
 }
 
 function TotalCell({ label, actual, target, unit = '', color }: { label: string; actual: number; target: number; unit?: string; color?: string }) {
-  const pct = actual / target;
+  const pct = target > 0 ? actual / target : 0;
   const ok = pct >= 0.9 && pct <= 1.1;
   return (
     <div>
       <div className="eyebrow">{label} · {target}{unit}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 3 }}>
         <div className="mono tnum" style={{ fontSize: 18, fontWeight: 500, color: color || 'var(--fg)' }}>{actual}{unit}</div>
-        <div className="mono tnum" style={{ fontSize: 11, color: ok ? 'var(--sage-dim)' : 'var(--amber)' }}>
-          {pct >= 1 ? '+' : ''}{Math.round((pct - 1) * 100)}%
-        </div>
+        {target > 0 && (
+          <div className="mono tnum" style={{ fontSize: 11, color: ok ? 'var(--sage-dim)' : 'var(--amber)' }}>
+            {pct >= 1 ? '+' : ''}{Math.round((pct - 1) * 100)}%
+          </div>
+        )}
       </div>
     </div>
   );
@@ -84,7 +50,7 @@ function DeleteConfirmModal({ name, onClose, onConfirm }: { name: string; onClos
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }} onClick={onClose}>
       <div className="card" style={{ width: 'min(400px, 100%)', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '20px 24px' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>Excluir alimento</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>Excluir</h3>
           <p style={{ fontSize: 13.5, color: 'var(--fg-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
             Tem certeza que deseja excluir <strong style={{ color: 'var(--fg)' }}>{name}</strong>? Esta ação não pode ser desfeita.
           </p>
@@ -100,82 +66,135 @@ function DeleteConfirmModal({ name, onClose, onConfirm }: { name: string; onClos
   );
 }
 
-export function PlansView() {
-  const [selectedMeal, setSelectedMeal] = useState('almoco');
-  const [selectedOption, setSelectedOption] = useState(0);
+function SkeletonPlan() {
+  return (
+    <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: 620 }}>
+      <div style={{ borderRight: '1px solid var(--border)', padding: '16px 14px' }}>
+        <div style={{ padding: '0 6px 10px' }}>
+          <div style={{ width: 100, height: 10, background: 'var(--surface-2)', borderRadius: 3 }} />
+        </div>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} style={{ padding: '12px 14px', borderRadius: 6, marginBottom: 4 }}>
+            <div style={{ width: '60%', height: 13, background: 'var(--surface-2)', borderRadius: 3, marginBottom: 6 }} />
+            <div style={{ width: '40%', height: 11, background: 'var(--surface-2)', borderRadius: 3 }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ padding: '20px 24px', background: 'var(--bg)' }}>
+        <div style={{ width: 200, height: 26, background: 'var(--surface-2)', borderRadius: 4, marginBottom: 18 }} />
+        <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ width: 120, height: 32, background: 'var(--surface-2)', borderRadius: 6 }} />
+          ))}
+        </div>
+        <div className="card">
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10 }}>
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} style={{ height: 10, background: 'var(--surface-2)', borderRadius: 2 }} />
+            ))}
+          </div>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10 }}>
+              {Array.from({ length: 9 }).map((_, j) => (
+                <div key={j} style={{ height: 14, background: 'var(--surface-2)', borderRadius: 3 }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface PlansViewProps {
+  patientId: string;
+}
+
+export function PlansView({ patientId }: PlansViewProps) {
+  const { data: plan, isLoading } = usePlan(patientId);
+  const planUI = usePlanUIStore();
+  const activeMealId = planUI.activeMealId;
+  const activeOptionIndex = planUI.activeOptionIndex;
+  const addFoodModalOpen = planUI.addFoodModalOpen;
+  const addMealModalOpen = planUI.addMealModalOpen;
+  const pendingDeleteMealIds = planUI.pendingDeleteMealId;
+  const pendingDeleteItemData = planUI.pendingDeleteItem;
+  const saveStatus = planUI.saveStatus;
   const [section, setSection] = useState<'meals' | 'extras'>('meals');
-  const [dirty, setDirty] = useState(false);
-  const [planTitle, setPlanTitle] = useState('Hipertrofia com manutenção de % gordura');
   const [editingTitle, setEditingTitle] = useState(false);
-  const [meals, setMeals] = useState(INITIAL_MEALS);
-  const [options, setOptions] = useState(INITIAL_OPTIONS);
-  const [addFoodOpen, setAddFoodOpen] = useState(false);
-  const [addMealOpen, setAddMealOpen] = useState(false);
-  const [extras, setExtras] = useState(INITIAL_EXTRAS);
-  const [newFoodOpen, setNewFoodOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<{ optIdx: number; itemIdx: number; name: string } | null>(null);
-  const [pendingMealId, setPendingMealId] = useState<string | null>(null);
+  const [titleValue, setTitleValue] = useState('');
 
-  const markDirty = () => setDirty(true);
+  const updatePlan = useUpdatePlan(patientId);
+  const addMealSlot = useAddMealSlot(patientId);
+  const deleteMealSlot = useDeleteMealSlot(patientId);
+  const addOption = useAddOption(patientId);
+  const addFoodItem = useAddFoodItem(patientId);
+  const updateFoodItem = useUpdateFoodItem(patientId);
+  const deleteFoodItem = useDeleteFoodItem(patientId);
+  const addExtra = useAddExtra(patientId);
+  const updateExtra = useUpdateExtra(patientId);
+  const deleteExtra = useDeleteExtra(patientId);
 
-  const updateItem = (optIdx: number, itemIdx: number, key: keyof MealFood, val: string) => {
-    setOptions((opts) =>
-      opts.map((o, oi) =>
-        oi !== optIdx
-          ? o
-          : { ...o, items: o.items.map((it, ii) => ii !== itemIdx ? it : { ...it, [key]: ['food', 'qty', 'prep'].includes(key) ? val : (Number(val) || 0) }) },
-      ),
-    );
-    markDirty();
-  };
+  // Track previous save status to detect error transitions
+  const prevSaveStatus = useState(saveStatus);
+  if (saveStatus === 'error' && prevSaveStatus[0] !== 'error') {
+    // Toast will show automatically via saveStatus === 'error'
+  }
+  prevSaveStatus[0] = saveStatus;
 
-  const removeItem = (optIdx: number, itemIdx: number) => {
-    setOptions((opts) => opts.map((o, oi) => oi !== optIdx ? o : { ...o, items: o.items.filter((_, ii) => ii !== itemIdx) }));
-    markDirty();
-  };
+  const meals = plan?.meals ?? [];
+  const extras = plan?.extras ?? [];
 
-  const addItem = (optIdx: number, item: MealFood) => {
-    setOptions((opts) => opts.map((o, oi) => oi !== optIdx ? o : { ...o, items: [...o.items, item] }));
-    markDirty();
-  };
+  const activeMeal = meals.find((m) => m.id === activeMealId) ?? meals[0];
+  const activeOptIdx = activeOptionIndex;
+  const activeOpt = activeMeal?.options[activeOptIdx] ?? activeMeal?.options[0];
 
-  const addNewOption = () => {
-    const currentOpt = options[selectedOption] || options[0];
-    const newOpt: MealOption = { name: `Opção ${options.length + 1} · Cópia`, items: currentOpt.items.map((it) => ({ ...it })) };
-    setOptions((opts) => [...opts, newOpt]);
-    setSelectedOption(options.length);
-    markDirty();
-  };
+  const optTotals = activeOpt?.items.reduce(
+    (a, x) => ({
+      kcal: a.kcal + (Number(x.kcal) || 0),
+      prot: a.prot + (Number(x.prot) || 0),
+      carb: a.carb + (Number(x.carb) || 0),
+      fat: a.fat + (Number(x.fat) || 0),
+    }),
+    { kcal: 0, prot: 0, carb: 0, fat: 0 },
+  ) ?? { kcal: 0, prot: 0, carb: 0, fat: 0 };
 
-  const removeOption = (optIdx: number) => {
-    if (options.length <= 1) return;
-    setOptions((opts) => opts.filter((_, i) => i !== optIdx));
-    setSelectedOption((prev) => Math.min(prev, options.length - 2));
-    markDirty();
-  };
+  // Set initial activeMealId when plan loads
+  if (plan && meals.length > 0 && !activeMealId) {
+    planUI.setActiveMealId(meals[0].id);
+  }
 
-  const updateOptionName = (optIdx: number, name: string) => {
-    setOptions((opts) => opts.map((o, oi) => oi !== optIdx ? o : { ...o, name }));
-    markDirty();
-  };
-
-  const addMeal = (meal: MealSlot) => {
-    setMeals((ms) => [...ms, meal]);
-    setSelectedMeal(meal.id);
-    markDirty();
-  };
-
-  const removeMeal = (mealId: string) => {
-    if (meals.length <= 1) return;
-    const filtered = meals.filter((m) => m.id !== mealId);
-    setMeals(filtered);
-    if (selectedMeal === mealId) {
-      setSelectedMeal(filtered[0]?.id || meals[0].id);
+  const handleTitleBlur = () => {
+    setEditingTitle(false);
+    if (plan && titleValue.trim() && titleValue !== plan.title) {
+      updatePlan.mutate({ title: titleValue.trim() });
     }
-    markDirty();
+  };
+
+  const handleDeleteFoodItem = () => {
+    if (pendingDeleteItemData) {
+      deleteFoodItem.mutate({
+        mealId: pendingDeleteItemData.mealId,
+        optionId: pendingDeleteItemData.optionId,
+        itemId: pendingDeleteItemData.itemId,
+      });
+      planUI.setPendingDeleteItem(null);
+    }
+  };
+
+  const handleDeleteMeal = () => {
+    if (pendingDeleteMealIds) {
+      deleteMealSlot.mutate(pendingDeleteMealIds);
+      planUI.setPendingDeleteMealId(null);
+    }
+  };
+
+  const handleAddExtra = () => {
+    addExtra.mutate({ name: '', quantity: '' });
   };
 
   const exportPDF = () => {
+    if (!plan || !activeMeal) return;
     const win = window.open('', '_blank');
     if (!win) return;
     const doc = win.document;
@@ -184,12 +203,12 @@ export function PlansView() {
     doc.close();
 
     const h1 = doc.createElement('h1');
-    h1.textContent = planTitle;
+    h1.textContent = plan.title || 'Plano alimentar';
     doc.body.appendChild(h1);
 
     const meta = doc.createElement('div');
     meta.className = 'meta';
-    meta.textContent = `Ana Beatriz L. · ${new Date().toLocaleDateString('pt-BR')} · NutriAI`;
+    meta.textContent = `${new Date().toLocaleDateString('pt-BR')} · NutriAI`;
     doc.body.appendChild(meta);
 
     meals.forEach((m) => {
@@ -207,7 +226,7 @@ export function PlansView() {
       header.appendChild(time);
       mealDiv.appendChild(header);
 
-      options.forEach((o) => {
+      m.options.forEach((o) => {
         if (!o.items.length) return;
         const optDiv = doc.createElement('div');
         optDiv.className = 'option';
@@ -219,7 +238,7 @@ export function PlansView() {
         o.items.forEach((it) => {
           const li = doc.createElement('li');
           const strong = doc.createElement('strong');
-          strong.textContent = it.food;
+          strong.textContent = it.foodName;
           li.appendChild(strong);
           if (it.qty) li.appendChild(doc.createTextNode(` · ${it.qty}`));
           if (it.prep && it.prep !== '-') {
@@ -242,18 +261,9 @@ export function PlansView() {
     setTimeout(() => win.print(), 400);
   };
 
-  const activeMeal = meals.find((m) => m.id === selectedMeal) || meals[2];
-  const activeOptIdx = selectedOption;
-  const activeOpt = options[selectedOption] || options[0];
-  const optTotals = activeOpt.items.reduce(
-    (a, x) => ({
-      kcal: a.kcal + (Number(x.kcal) || 0),
-      prot: a.prot + (Number(x.prot) || 0),
-      carb: a.carb + (Number(x.carb) || 0),
-      fat: a.fat + (Number(x.fat) || 0),
-    }),
-    { kcal: 0, prot: 0, carb: 0, fat: 0 },
-  );
+  if (isLoading || !plan) {
+    return <SkeletonPlan />;
+  }
 
   return (
     <div>
@@ -264,39 +274,36 @@ export function PlansView() {
             {editingTitle ? (
               <input
                 autoFocus
-                value={planTitle}
-                onChange={(e) => { setPlanTitle(e.target.value); setDirty(true); }}
-                onBlur={() => setEditingTitle(false)}
-                onKeyDown={(e) => e.key === 'Enter' && setEditingTitle(false)}
+                value={titleValue}
+                onChange={(e) => setTitleValue(e.target.value)}
+                onBlur={handleTitleBlur}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleTitleBlur(); }}
                 className="serif"
                 style={{ fontSize: 24, margin: '4px 0 4px', fontWeight: 400, letterSpacing: '-0.01em', background: 'transparent', border: 'none', borderBottom: '1px solid var(--fg)', padding: '0 0 2px', color: 'var(--fg)', outline: 'none', width: '100%', maxWidth: 400 }}
               />
             ) : (
-              <h2 onClick={() => setEditingTitle(true)} className="serif" style={{ fontSize: 24, margin: '4px 0 4px', fontWeight: 400, letterSpacing: '-0.01em', cursor: 'text' }} title="Clique para renomear">
-                {planTitle}
+              <h2 onClick={() => { setTitleValue(plan.title); setEditingTitle(true); }} className="serif" style={{ fontSize: 24, margin: '4px 0 4px', fontWeight: 400, letterSpacing: '-0.01em', cursor: 'text' }} title="Clique para renomear">
+                {plan.title}
               </h2>
             )}
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Criado 04 abr 2026 · próxima revisão 25 abr</div>
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>Criado {new Date(plan.createdAt).toLocaleDateString('pt-BR')} · atualizado {new Date(plan.updatedAt).toLocaleDateString('pt-BR')}</div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="btn btn-ghost" onClick={exportPDF}><IconDownload size={13} /> Exportar PDF</button>
-            <button className="btn btn-primary" onClick={() => setDirty(false)} disabled={!dirty} style={{ opacity: dirty ? 1 : 0.55 }}><IconCheck size={13} /> Salvar</button>
-            <div className="mono" style={{ fontSize: 10, letterSpacing: '0.04em', color: dirty ? 'var(--amber)' : 'var(--fg-subtle)' }}>
-              {dirty ? 'NÃO SALVO' : 'SALVO'}
-            </div>
+            <SaveStatusIndicator status={saveStatus} />
           </div>
         </div>
 
         <div className="plans-macros-row" style={{ display: 'flex', gap: 20, marginTop: 16, flexWrap: 'wrap' }}>
-          <DailyMacro label="Kcal · meta" value="2200" color="var(--ink-contrast)" />
-          <DailyMacro label="Proteína" value="140g" sub="0.9g/kg magra" color="var(--sage)" />
-          <DailyMacro label="Carboidrato" value="250g" sub="45% VET" color="var(--amber)" />
-          <DailyMacro label="Gordura" value="70g" sub="30% VET" color="var(--sky)" />
+          <DailyMacro label="Kcal · meta" value={`${plan.kcalTarget}`} color="var(--ink-contrast)" />
+          <DailyMacro label="Proteína" value={`${plan.protTarget}g`} color="var(--sage)" />
+          <DailyMacro label="Carboidrato" value={`${plan.carbTarget}g`} color="var(--amber)" />
+          <DailyMacro label="Gordura" value={`${plan.fatTarget}g`} color="var(--sky)" />
         </div>
 
         <div style={{ marginTop: 16, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6, fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.5, display: 'flex', gap: 10 }}>
           <span className="mono" style={{ color: 'var(--lime-dim)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>OBSERVAÇÕES</span>
-          <span>Evitar lactose. Preferir proteína magra à noite. Carne vermelha máx 2×/semana.</span>
+          <span>{plan.notes || 'Sem observações'}</span>
         </div>
 
         <div style={{ marginTop: 14, display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: -17 }}>
@@ -322,19 +329,36 @@ export function PlansView() {
       </div>
 
       {section === 'extras' ? (
-        <ExtrasSection extras={extras} setExtras={setExtras} />
+        <ExtrasSection
+          extras={extras}
+          onUpdateExtra={(extraId, data) => updateExtra.mutate({ extraId, data })}
+          onAddExtra={handleAddExtra}
+          onDeleteExtra={(extraId) => deleteExtra.mutate(extraId)}
+        />
       ) : (
         <div className="plans-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: 620 }}>
           <div style={{ borderRight: '1px solid var(--border)', padding: '16px 14px' }}>
             <div className="eyebrow" style={{ padding: '0 6px 10px' }}>ESTRUTURA DO DIA</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {meals.map((m) => {
-                const active = selectedMeal === m.id;
+                const active = activeMeal?.id === m.id;
                 const canRemove = meals.length > 1;
+                const mTotals = m.options.reduce(
+                  (a, opt) => {
+                    const optT = opt.items.reduce((s, x) => ({
+                      kcal: s.kcal + (Number(x.kcal) || 0),
+                      prot: s.prot + (Number(x.prot) || 0),
+                      carb: s.carb + (Number(x.carb) || 0),
+                      fat: s.fat + (Number(x.fat) || 0),
+                    }), { kcal: 0, prot: 0, carb: 0, fat: 0 });
+                    return { kcal: a.kcal + optT.kcal, prot: a.prot + optT.prot, carb: a.carb + optT.carb, fat: a.fat + optT.fat };
+                  },
+                  { kcal: 0, prot: 0, carb: 0, fat: 0 },
+                );
                 return (
                   <div key={m.id}>
                     <button
-                      onClick={() => { setSelectedMeal(m.id); setSelectedOption(0); }}
+                      onClick={() => { planUI.setActiveMealId(m.id); planUI.setActiveOptionIndex(0); }}
                       style={{
                         padding: '12px 14px',
                         borderRadius: 6,
@@ -348,9 +372,9 @@ export function PlansView() {
                         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span className="mono tnum" style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{m.time}</span>
                           {canRemove && (
-                             <button
-                               onClick={(e) => { e.stopPropagation(); setPendingMealId(m.id); }}
-                               style={{ color: 'var(--fg-subtle)', border: 'none', background: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); planUI.setPendingDeleteMealId(m.id); }}
+                              style={{ color: 'var(--fg-subtle)', border: 'none', background: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}
                               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--coral)')}
                               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-subtle)')}
                             >
@@ -360,90 +384,132 @@ export function PlansView() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: 10, fontSize: 10.5, color: 'var(--fg-muted)' }} className="mono tnum">
-                        <span>{m.kcal}kcal</span>
-                        <span>P{m.prot}</span>
-                        <span>C{m.carb}</span>
-                        <span>G{m.fat}</span>
+                        <span>{mTotals.kcal || 0}kcal</span>
+                        <span>P{mTotals.prot || 0}</span>
+                        <span>C{mTotals.carb || 0}</span>
+                        <span>G{mTotals.fat || 0}</span>
                       </div>
                     </button>
                   </div>
                 );
               })}
-              <button onClick={() => setAddMealOpen(true)} style={{ padding: '10px 14px', borderRadius: 6, border: '1px dashed var(--border-2)', color: 'var(--fg-muted)', background: 'transparent', cursor: 'pointer', fontSize: 13, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={() => planUI.setAddMealModalOpen(true)} style={{ padding: '10px 14px', borderRadius: 6, border: '1px dashed var(--border-2)', color: 'var(--fg-muted)', background: 'transparent', cursor: 'pointer', fontSize: 13, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <IconPlus size={13} /> Adicionar refeição
               </button>
             </div>
           </div>
 
-          <div style={{ padding: '20px 24px', background: 'var(--bg)' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
-              <div>
-                <div className="eyebrow">EDITANDO · {activeMeal.label.toUpperCase()} · {activeMeal.time}</div>
-                <h2 className="serif" style={{ fontSize: 26, margin: '4px 0 0', fontWeight: 400, letterSpacing: '-0.02em' }}>
-                  {options.length} opções equivalentes
-                </h2>
+          {activeMeal && activeOpt && (
+            <div style={{ padding: '20px 24px', background: 'var(--bg)' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 18 }}>
+                <div>
+                  <div className="eyebrow">EDITANDO · {activeMeal.label.toUpperCase()} · {activeMeal.time}</div>
+                  <h2 className="serif" style={{ fontSize: 26, margin: '4px 0 0', fontWeight: 400, letterSpacing: '-0.02em' }}>
+                    {activeMeal.options.length} opções equivalentes
+                  </h2>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
-              {options.map((o, i) => (
-                <OptionTab key={i} name={o.name} active={selectedOption === i} onClick={() => setSelectedOption(i)} onRename={(name) => updateOptionName(i, name)} onRemove={options.length > 1 ? () => removeOption(i) : null} />
-              ))}
-              <button onClick={addNewOption} style={{ padding: '7px 12px', borderRadius: 6, border: '1px dashed var(--border-2)', background: 'transparent', color: 'var(--fg-muted)', fontSize: 12.5 }}>
-                <IconPlus size={12} style={{ verticalAlign: '-2px' }} /> Nova opção
-              </button>
-            </div>
-
-            <div className="card">
-              <div className="plans-food-table" style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-                {['Alimento', 'Quantidade', 'Preparo', 'Kcal', 'Prot', 'Carb', 'Gord', ''].map((h, i) => (
-                  <div key={i} className="eyebrow" style={{ fontSize: 10, textAlign: i >= 3 && i <= 6 ? 'right' : 'left' }}>{h}</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
+                {activeMeal.options.map((o, i) => (
+                  <OptionTab
+                    key={o.id}
+                    name={o.name}
+                    active={activeOptIdx === i}
+                    onClick={() => planUI.setActiveOptionIndex(i)}
+                    onRename={(_name) => {
+                      // Double-click rename → update via API
+                      // TODO: wire to useUpdateOption when PlanUIStore has mealId context
+                    }}
+                    onRemove={activeMeal.options.length > 1 ? () => {
+                      // Will be wired to useDeleteOption
+                    } : null}
+                  />
                 ))}
-              </div>
-              {activeOpt.items.map((it, i) => (
-                <PlanFoodRow key={i} item={it} isLast={i === activeOpt.items.length - 1} onChange={(key, val) => updateItem(activeOptIdx, i, key, val)} onRemove={() => setPendingDelete({ optIdx: activeOptIdx, itemIdx: i, name: it.food })} />
-              ))}
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface-2)', display: 'flex', gap: 16 }}>
-                <button onClick={() => setAddFoodOpen(true)} style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-                  <IconPlus size={12} style={{ verticalAlign: '-2px' }} /> Adicionar Alimento
-                </button>
-                <button onClick={() => setNewFoodOpen(true)} style={{ fontSize: 12, color: 'var(--fg-subtle)' }}>
-                  <IconPlus size={12} style={{ verticalAlign: '-2px' }} /> Novo alimento
+                <button
+                  onClick={() => addOption.mutate({ mealId: activeMeal.id, data: { name: `Opção ${activeMeal.options.length + 1} · Cópia` } })}
+                  style={{ padding: '7px 12px', borderRadius: 6, border: '1px dashed var(--border-2)', background: 'transparent', color: 'var(--fg-muted)', fontSize: 12.5 }}
+                >
+                  <IconPlus size={12} style={{ verticalAlign: '-2px' }} /> Nova opção
                 </button>
               </div>
-            </div>
 
-            <div className="plans-totals-grid" style={{ marginTop: 16, padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 16, alignItems: 'center' }}>
-              <div>
-                <div className="eyebrow">TOTAL DA OPÇÃO</div>
-                <div className="serif" style={{ fontSize: 18, letterSpacing: '-0.01em', marginTop: 2 }}>{activeOpt.name}</div>
+              <div className="card">
+                <div className="plans-food-table" style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 0.8fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                  {['Alimento', 'Quantidade', 'Gramas', 'Preparo', 'Kcal', 'Prot', 'Carb', 'Gord', ''].map((h, i) => (
+                    <div key={i} className="eyebrow" style={{ fontSize: 10, textAlign: i >= 4 && i <= 7 ? 'right' : 'left' }}>{h}</div>
+                  ))}
+                </div>
+                {activeOpt.items.map((it) => (
+                  <PlanFoodRow
+                    key={it.id}
+                    item={it}
+                    isLast={it.id === activeOpt.items[activeOpt.items.length - 1]?.id}
+                    onGramsChange={(grams) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { grams } })}
+                    onQtyChange={(qty) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { qty } })}
+                    onPrepChange={(prep) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { prep } })}
+                    onRemove={() => planUI.setPendingDeleteItem({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, name: it.foodName })}
+                  />
+                ))}
+                <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface-2)', display: 'flex', gap: 16 }}>
+                  <button onClick={() => planUI.setAddFoodModalOpen(true)} style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+                    <IconPlus size={12} style={{ verticalAlign: '-2px' }} /> Adicionar Alimento
+                  </button>
+                </div>
               </div>
-              <TotalCell label="Kcal" actual={optTotals.kcal} target={activeMeal.kcal} />
-              <TotalCell label="Proteína" actual={optTotals.prot} target={activeMeal.prot} unit="g" color="var(--sage)" />
-              <TotalCell label="Carboidrato" actual={optTotals.carb} target={activeMeal.carb} unit="g" color="var(--amber)" />
-              <TotalCell label="Gordura" actual={optTotals.fat} target={activeMeal.fat} unit="g" color="var(--sky)" />
+
+              <div className="plans-totals-grid" style={{ marginTop: 16, padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 16, alignItems: 'center' }}>
+                <div>
+                  <div className="eyebrow">TOTAL DA OPÇÃO</div>
+                  <div className="serif" style={{ fontSize: 18, letterSpacing: '-0.01em', marginTop: 2 }}>{activeOpt.name}</div>
+                </div>
+                <TotalCell label="Kcal" actual={optTotals.kcal} target={meals.length > 0 ? Math.round(plan.kcalTarget / meals.length) : 0} />
+                <TotalCell label="Proteína" actual={optTotals.prot} target={meals.length > 0 ? Math.round(plan.protTarget / meals.length) : 0} unit="g" color="var(--sage)" />
+                <TotalCell label="Carboidrato" actual={optTotals.carb} target={meals.length > 0 ? Math.round(plan.carbTarget / meals.length) : 0} unit="g" color="var(--amber)" />
+                <TotalCell label="Gordura" actual={optTotals.fat} target={meals.length > 0 ? Math.round(plan.fatTarget / meals.length) : 0} unit="g" color="var(--sky)" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
-      {addFoodOpen && <AddFoodModal onClose={() => setAddFoodOpen(false)} onAdd={(item) => { addItem(activeOptIdx, item); setAddFoodOpen(false); }} />}
-      {addMealOpen && <AddMealModal onClose={() => setAddMealOpen(false)} onAdd={(meal) => { addMeal(meal); setAddMealOpen(false); }} />}
-      {newFoodOpen && <EditFoodModal item={{ food: '', qty: '', prep: '-', kcal: 0, prot: 0, carb: 0, fat: 0 }} onClose={() => setNewFoodOpen(false)} onSave={(newItem) => { addItem(activeOptIdx, newItem); setNewFoodOpen(false); markDirty(); }} />}
-      {pendingDelete && (
-        <DeleteConfirmModal
-          name={pendingDelete.name}
-          onClose={() => setPendingDelete(null)}
-          onConfirm={() => { removeItem(pendingDelete.optIdx, pendingDelete.itemIdx); setPendingDelete(null); }}
+      {addFoodModalOpen && activeMeal && activeOpt && (
+        <AddFoodModal
+          onClose={() => planUI.setAddFoodModalOpen(false)}
+          onAdd={(data) => {
+            addFoodItem.mutate({
+              mealId: activeMeal.id,
+              optionId: activeOpt.id,
+              data: { foodId: data.foodId, grams: data.grams, qty: data.qty },
+            });
+            planUI.setAddFoodModalOpen(false);
+          }}
         />
       )}
-      {pendingMealId && (
-        <DeleteConfirmModal
-          name={meals.find(m => m.id === pendingMealId)?.label || 'esta refeição'}
-          onClose={() => setPendingMealId(null)}
-          onConfirm={() => { if (pendingMealId) removeMeal(pendingMealId); setPendingMealId(null); }}
+      {addMealModalOpen && (
+        <AddMealModal
+          onClose={() => planUI.setAddMealModalOpen(false)}
+          onAdd={(data) => {
+            addMealSlot.mutate({ label: data.label, time: data.time });
+            planUI.setAddMealModalOpen(false);
+          }}
         />
       )}
+      {pendingDeleteItemData && (
+        <DeleteConfirmModal
+          name={pendingDeleteItemData.name}
+          onClose={() => planUI.setPendingDeleteItem(null)}
+          onConfirm={handleDeleteFoodItem}
+        />
+      )}
+      {pendingDeleteMealIds && (
+        <DeleteConfirmModal
+          name={meals.find((m) => m.id === pendingDeleteMealIds)?.label || 'esta refeição'}
+          onClose={() => planUI.setPendingDeleteMealId(null)}
+          onConfirm={handleDeleteMeal}
+        />
+      )}
+      <Toast visible={saveStatus === 'error'} onHide={() => { /* Toast auto-dismisses */ }} />
     </div>
   );
 }

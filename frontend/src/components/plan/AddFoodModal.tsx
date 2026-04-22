@@ -1,36 +1,95 @@
-import { useState, useMemo } from 'react';
-import type { MealFood } from '../../types/plan';
-import { FOODS_CATALOG } from '../../data/foods';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Food } from '../../types/food';
+import { mapFoodFromApi } from '../../types/food';
+import { listFoods } from '../../api/foods';
 import { IconSearch, IconPlus, IconX } from '../icons';
+import { PortionChips } from './PortionChips';
 
 interface AddFoodModalProps {
   onClose: () => void;
-  onAdd: (item: MealFood) => void;
+  onAdd: (item: { foodId: string; grams: number; qty: string }) => void;
 }
 
 export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Food | null>(null);
   const [qty, setQty] = useState('');
+  const [grams, setGrams] = useState<number | ''>('');
+  const [results, setResults] = useState<Food[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const results = useMemo(() => {
-    if (!q) return [];
-    return FOODS_CATALOG.filter((f) => f.name.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
-  }, [q]);
+  // Debounced API search
+  const handleSearch = useCallback((val: string) => {
+    setQ(val);
+    setSelected(null);
+    setGrams('');
+    setQty('');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!val.trim()) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const response = await listFoods({ search: val, page: 0, size: 10 });
+        setResults(response.data.content.map(mapFoodFromApi));
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
+
+  const handleSelectFood = (food: Food) => {
+    setSelected(food);
+    if (food.type === 'preset') {
+      setGrams(food.grams ?? 0);
+      setQty(food.portionLabel ?? '');
+    } else {
+      setGrams('');
+      setQty('');
+    }
+  };
+
+  const handlePortionSelect = (name: string, portionGrams: number) => {
+    setQty(name);
+    setGrams(portionGrams);
+  };
+
+  // Approximate macro preview for display
+  const getMacroPreview = () => {
+    if (!selected || !grams) return null;
+    if (selected.type === 'preset') {
+      return selected.nutrition ?? null;
+    }
+    if (selected.per100) {
+      const g = Number(grams) || 0;
+      return {
+        kcal: Math.round((selected.per100.kcal * g) / 10) / 10,
+        prot: Math.round((selected.per100.prot * g) / 10) / 10,
+        carb: Math.round((selected.per100.carb * g) / 10) / 10,
+        fat: Math.round((selected.per100.fat * g) / 10) / 10,
+      };
+    }
+    return null;
+  };
+
+  const macroPreview = getMacroPreview();
 
   const handleAdd = () => {
-    if (!selected) return;
-    const nutrition =
-      selected.type === 'preset'
-        ? selected.nutrition!
-        : { kcal: selected.per100!.kcal, prot: selected.per100!.prot, carb: selected.per100!.carb, fat: selected.per100!.fat };
+    if (!selected || !grams) return;
     onAdd({
-      food: selected.name,
-      qty: qty || (selected.type === 'preset' ? selected.portionLabel! : '100g'),
-      prep: '-',
-      ...nutrition,
+      foodId: selected.id,
+      grams: Number(grams),
+      qty: qty || (selected.type === 'preset' ? selected.portionLabel! : `${grams}g`),
     });
+    onClose();
   };
 
   return (
@@ -44,14 +103,24 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="search" style={{ margin: 0 }}>
             <IconSearch size={13} />
-            <input autoFocus placeholder="Buscar no catálogo…" value={q} onChange={(e) => { setQ(e.target.value); setSelected(null); }} />
+            <input autoFocus placeholder="Buscar no catálogo…" value={q} onChange={(e) => handleSearch(e.target.value)} />
           </div>
-          {results.length > 0 && (
+          {searching && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} style={{ padding: '10px 14px', borderBottom: i < 3 ? '1px solid var(--border)' : 'none', display: 'flex', gap: 12 }}>
+                  <div style={{ width: '60%', height: 14, background: 'var(--surface-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+                  <div style={{ width: '20%', height: 14, background: 'var(--surface-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+                </div>
+              ))}
+            </div>
+          )}
+          {!searching && results.length > 0 && (
             <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
               {results.map((f) => (
                 <div
                   key={f.id}
-                  onClick={() => setSelected(f)}
+                  onClick={() => handleSelectFood(f)}
                   style={{
                     padding: '10px 14px', cursor: 'pointer',
                     background: selected?.id === f.id ? 'var(--surface-2)' : 'transparent',
@@ -72,35 +141,54 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
               ))}
             </div>
           )}
-          {q && results.length === 0 && (
+          {!searching && q && results.length === 0 && (
             <div style={{ fontSize: 12.5, color: 'var(--fg-subtle)', textAlign: 'center', padding: '12px 0' }}>Nenhum alimento encontrado.</div>
           )}
           {selected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div className="eyebrow">Quantidade / descrição</div>
-              <input
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                placeholder={selected.type === 'preset' ? selected.portionLabel : 'ex: 150g'}
-                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)' }}
-              />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6 }}>
-                {(['kcal', 'prot', 'carb', 'fat'] as const).map((k) => {
-                  const n = selected.type === 'preset' ? selected.nutrition! : selected.per100!;
-                  return (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div className="eyebrow">Quantidade / descrição</div>
+                  <input
+                    value={qty}
+                    onChange={(e) => setQty(e.target.value)}
+                    placeholder="ex: 1 unidade, 2 col. sopa"
+                    style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: '100%', boxSizing: 'border-box' }}
+                  />
+                  {selected.type === 'base' && selected.portions && (
+                    <PortionChips portions={selected.portions} onSelect={handlePortionSelect} />
+                  )}
+                </div>
+                <div>
+                  <div className="eyebrow">Gramas</div>
+                  <input
+                    type="number"
+                    value={grams}
+                    onChange={(e) => setGrams(Number(e.target.value) || '')}
+                    placeholder="0"
+                    style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-mono)' }}
+                  />
+                </div>
+              </div>
+              {macroPreview && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6 }}>
+                  {(['kcal', 'prot', 'carb', 'fat'] as const).map((k) => (
                     <div key={k}>
-                      <div className="eyebrow" style={{ fontSize: 9 }}>{k}</div>
-                      <div className="mono tnum" style={{ fontSize: 14, fontWeight: 600 }}>{n[k]}{k !== 'kcal' ? 'g' : ''}</div>
+                      <div className="eyebrow" style={{ fontSize: 9 }}>{k === 'kcal' ? 'kcal' : k === 'prot' ? 'prot' : k === 'carb' ? 'carb' : 'gord'}</div>
+                      <div className="mono tnum" style={{ fontSize: 14, fontWeight: 600 }}>{macroPreview[k]}{k !== 'kcal' ? 'g' : ''}</div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              )}
+              <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>
+                * Valores aproximados — o backend calcula os valores finais
               </div>
             </div>
           )}
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" disabled={!selected} onClick={handleAdd} style={{ opacity: selected ? 1 : 0.45 }}>
+          <button className="btn btn-primary" disabled={!selected || !grams} onClick={handleAdd} style={{ opacity: selected && grams ? 1 : 0.45 }}>
             <IconPlus size={13} /> Adicionar
           </button>
         </div>

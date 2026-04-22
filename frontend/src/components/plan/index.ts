@@ -4,3 +4,5 @@ export { AddFoodModal } from './AddFoodModal';
 export { EditFoodModal } from './EditFoodModal';
 export { AddMealModal } from './AddMealModal';
 export { ExtrasSection } from './ExtrasSection';
+export { SaveStatusIndicator } from './SaveStatusIndicator';
+export { PortionChips } from './PortionChips';
