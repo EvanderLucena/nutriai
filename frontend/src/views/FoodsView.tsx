@@ -1,9 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { FOODS_CATALOG, FOOD_CATEGORIES } from '../data/foods';
-import type { Food } from '../types/food';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { FOOD_CATEGORIES } from '../types/food';
+import type { Food, FoodCategory } from '../types/food';
+import { useFoodUIStore, useFoodCatalog, useCreateFood, useUpdateFood, useDeleteFood } from '../stores/foodStore';
 import { IconSearch, IconPlus, IconEdit, IconDots, IconX, IconCheck, IconTrash } from '../components/icons';
-
-const FOODS_PAGE_SIZE = 12;
 
 function MiniMacro({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
@@ -54,33 +53,45 @@ function FoodMenuDropdown({ onEdit, onDelete, onClose }: { onEdit: () => void; o
   );
 }
 
-function EditFoodCatalogModal({ food, onClose, onSave }: { food: Food; onClose: () => void; onSave: (updated: Food) => void }) {
+function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => void }) {
   const [name, setName] = useState(food.name);
   const [category, setCategory] = useState(food.category);
+  const updateFood = useUpdateFood();
 
   const isBase = food.type === 'base';
   const [kcal, setKcal] = useState(String(isBase ? food.per100!.kcal : food.nutrition!.kcal));
   const [prot, setProt] = useState(String(isBase ? food.per100!.prot : food.nutrition!.prot));
   const [carb, setCarb] = useState(String(isBase ? food.per100!.carb : food.nutrition!.carb));
   const [fat, setFat] = useState(String(isBase ? food.per100!.fat : food.nutrition!.fat));
-  const [portionLabel, setPortionLabel] = useState(food.portionLabel || '');
-  const [_grams, _setGrams] = useState(String(food.grams || ''));
 
   const handle = () => {
     if (!name.trim()) return;
-    const updated: Food = {
-      ...food,
-      name: name.trim(),
-      category,
-    };
-    if (isBase && updated.per100) {
-      updated.per100 = { ...updated.per100, kcal: Number(kcal) || 0, prot: Number(prot) || 0, carb: Number(carb) || 0, fat: Number(fat) || 0 };
-    } else if (updated.nutrition) {
-      updated.nutrition = { kcal: Number(kcal) || 0, prot: Number(prot) || 0, carb: Number(carb) || 0, fat: Number(fat) || 0 };
+    if (isBase) {
+      updateFood.mutate({
+        id: food.id,
+        data: {
+          name: name.trim(),
+          category,
+          per100Kcal: Number(kcal) || 0,
+          per100Prot: Number(prot) || 0,
+          per100Carb: Number(carb) || 0,
+          per100Fat: Number(fat) || 0,
+        },
+      });
+    } else {
+      updateFood.mutate({
+        id: food.id,
+        data: {
+          name: name.trim(),
+          category,
+          presetKcal: Number(kcal) || 0,
+          presetProt: Number(prot) || 0,
+          presetCarb: Number(carb) || 0,
+          presetFat: Number(fat) || 0,
+        },
+      });
     }
-    if (portionLabel) updated.portionLabel = portionLabel;
-    if (_grams) updated.grams = Number(_grams) || 0;
-    onSave(updated);
+    onClose();
   };
 
   const field = (label: string, val: string, set: (v: string) => void, opts: { mono?: boolean; type?: string } = {}) => (
@@ -122,7 +133,6 @@ function EditFoodCatalogModal({ food, onClose, onSave }: { food: Food; onClose: 
                 {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
-            {!isBase && field('Porção', portionLabel, setPortionLabel)}
           </div>
           <div className="divider"><span>{isBase ? 'Valores por 100g' : 'Valores da porção'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
@@ -158,6 +168,24 @@ function DeleteConfirmModal({ name, onClose, onConfirm }: { name: string; onClos
               <IconTrash size={13} /> Excluir
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ width: '60%', height: 14, background: 'var(--surface-2)', borderRadius: 4, marginBottom: 8, animation: 'pulse 1.5s infinite' }} />
+        <div style={{ width: '40%', height: 12, background: 'var(--surface-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+      </div>
+      <div style={{ padding: '12px 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} style={{ height: 28, background: 'var(--surface-2)', borderRadius: 4, animation: 'pulse 1.5s infinite' }} />
+          ))}
         </div>
       </div>
     </div>
@@ -272,7 +300,7 @@ function FoodsPagination({ page, pages, total, pageSize, onChange }: { page: num
   );
 }
 
-function CreateFoodModal({ onClose, onSave }: { onClose: () => void; onSave: (food: Food) => void }) {
+function CreateFoodModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Proteína');
   const [kcal, setKcal] = useState('');
@@ -280,21 +308,22 @@ function CreateFoodModal({ onClose, onSave }: { onClose: () => void; onSave: (fo
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [portionLabel, setPortionLabel] = useState('');
+  const createFood = useCreateFood();
 
   const handle = () => {
     if (!name.trim()) return;
-    const newFood: Food = {
-      id: `p_custom_${Date.now()}`,
+    createFood.mutate({
       type: 'preset',
       name: name.trim(),
       category,
       portionLabel: portionLabel || '1 porção',
-      grams: 100,
-      nutrition: { kcal: Number(kcal) || 0, prot: Number(prot) || 0, carb: Number(carb) || 0, fat: Number(fat) || 0 },
-      basedOn: 'Personalizado',
-      used: 0,
-    };
-    onSave(newFood);
+      presetGrams: 100,
+      presetKcal: Number(kcal) || 0,
+      presetProt: Number(prot) || 0,
+      presetCarb: Number(carb) || 0,
+      presetFat: Number(fat) || 0,
+    });
+    onClose();
   };
 
   const field = (label: string, val: string, set: (v: string) => void, opts: { mono?: boolean; placeholder?: string } = {}) => (
@@ -358,41 +387,34 @@ function CreateFoodModal({ onClose, onSave }: { onClose: () => void; onSave: (fo
 }
 
 export function FoodsView() {
-  const [foods, setFoods] = useState<Food[]>([...FOODS_CATALOG]);
-  const [cat, setCat] = useState('Todos');
-  const [q, setQ] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [page, setPage] = useState(0);
-  const [editingFood, setEditingFood] = useState<Food | null>(null);
+  const { searchQuery, categoryFilter, currentPage, pageSize, setSearchQuery, setCategoryFilter, setCurrentPage, createModalOpen, setCreateModalOpen, editingFoodId, setEditingFoodId } = useFoodUIStore();
+  const { data, isLoading } = useFoodCatalog();
+  const deleteFood = useDeleteFood();
   const [deletingFood, setDeletingFood] = useState<Food | null>(null);
 
-  const filtered = useMemo(() => {
-    return foods.filter((f) => {
-      if (cat !== 'Todos' && f.category !== cat) return false;
-      if (q && !f.name.toLowerCase().includes(q.toLowerCase())) return false;
-      return true;
-    });
-  }, [cat, q, foods]);
+  // Debounced search: 300ms
+  const [localQ, setLocalQ] = useState(searchQuery);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSearch = useCallback((val: string) => {
+    setLocalQ(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchQuery(val);
+    }, 300);
+  }, [setSearchQuery]);
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / FOODS_PAGE_SIZE));
-  const safePage = Math.min(page, pages - 1);
-  const slice = filtered.slice(safePage * FOODS_PAGE_SIZE, (safePage + 1) * FOODS_PAGE_SIZE);
+  const foods = data?.content ?? [];
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / pageSize)) : 1;
+  const total = data?.total ?? 0;
 
-  const handleSaveEdited = (updated: Food) => {
-    setFoods((prev) => prev.map((f) => f.id === updated.id ? updated : f));
-    setEditingFood(null);
-  };
+  const editingFood = editingFoodId ? foods.find((f) => f.id === editingFoodId) ?? null : null;
 
   const handleConfirmDelete = () => {
     if (deletingFood) {
-      setFoods((prev) => prev.filter((f) => f.id !== deletingFood.id));
+      deleteFood.mutate(deletingFood.id);
       setDeletingFood(null);
     }
-  };
-
-  const handleCreate = (newFood: Food) => {
-    setFoods((prev) => [...prev, newFood]);
-    setCreating(false);
   };
 
   return (
@@ -405,37 +427,41 @@ export function FoodsView() {
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <div className="search" style={{ margin: 0, flex: 1, maxWidth: 320 }}>
             <IconSearch size={13} />
-            <input placeholder="Buscar no catálogo…" value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} />
+            <input placeholder="Buscar no catálogo…" value={localQ} onChange={(e) => handleSearch(e.target.value)} />
           </div>
           <select
-            value={cat}
-            onChange={(e) => { setCat(e.target.value); setPage(0); }}
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value as FoodCategory)}
             style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--fg)', fontSize: 12.5, fontFamily: 'var(--font-ui)' }}
           >
             {FOOD_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <button className="btn btn-primary" onClick={() => setCreating(true)}><IconPlus size={13} /> Novo alimento</button>
+          <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}><IconPlus size={13} /> Novo alimento</button>
         </div>
       </div>
 
       <div style={{ padding: '20px 28px 40px' }}>
         <div className="foods-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
-          {slice.map((f) =>
-            f.type === 'base'
-              ? <FoodBaseCard key={f.id} food={f} onEdit={() => setEditingFood(f)} onDelete={() => setDeletingFood(f)} />
-              : <FoodPresetCard key={f.id} food={f} onEdit={() => setEditingFood(f)} onDelete={() => setDeletingFood(f)} />,
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+          ) : (
+            foods.map((f) =>
+              f.type === 'base'
+                ? <FoodBaseCard key={f.id} food={f} onEdit={() => setEditingFoodId(f.id)} onDelete={() => setDeletingFood(f)} />
+                : <FoodPresetCard key={f.id} food={f} onEdit={() => setEditingFoodId(f.id)} onDelete={() => setDeletingFood(f)} />,
+            )
           )}
-          {filtered.length === 0 && (
+          {!isLoading && foods.length === 0 && (
             <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--fg-subtle)', fontSize: 13 }}>
-              Nenhum alimento bate com esse filtro.
+              Nenhum alimento encontrado.
             </div>
           )}
         </div>
-        <FoodsPagination page={safePage} pages={pages} total={filtered.length} pageSize={FOODS_PAGE_SIZE} onChange={setPage} />
+        <FoodsPagination page={currentPage} pages={totalPages} total={total} pageSize={pageSize} onChange={setCurrentPage} />
       </div>
 
-      {creating && <CreateFoodModal onClose={() => setCreating(false)} onSave={handleCreate} />}
-      {editingFood && <EditFoodCatalogModal food={editingFood} onClose={() => setEditingFood(null)} onSave={handleSaveEdited} />}
+      {createModalOpen && <CreateFoodModal onClose={() => setCreateModalOpen(false)} />}
+      {editingFood && <EditFoodCatalogModal food={editingFood} onClose={() => setEditingFoodId(null)} />}
       {deletingFood && <DeleteConfirmModal name={deletingFood.name} onClose={() => setDeletingFood(null)} onConfirm={handleConfirmDelete} />}
     </div>
   );
