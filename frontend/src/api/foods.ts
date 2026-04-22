@@ -29,18 +29,18 @@ export interface CreateFoodRequest {
 export interface UpdateFoodRequest extends Partial<CreateFoodRequest> {}
 
 export async function listFoods(params: ListFoodsParams = {}): Promise<FoodListApiResponse> {
-  const response = await apiClient.get<FoodListApiResponse>('/foods', { params });
-  return response.data;
+  const response = await apiClient.get<{ success: boolean; data: FoodListApiResponse }>('/foods', { params });
+  return response.data.data;
 }
 
 export async function createFood(data: CreateFoodRequest): Promise<FoodApiResponse> {
-  const response = await apiClient.post<FoodApiResponse>('/foods', data);
-  return response.data;
+  const response = await apiClient.post<{ success: boolean; data: FoodApiResponse }>('/foods', data);
+  return response.data.data;
 }
 
 export async function updateFood(id: string, data: UpdateFoodRequest): Promise<FoodApiResponse> {
-  const response = await apiClient.patch<FoodApiResponse>(`/foods/${id}`, data);
-  return response.data;
+  const response = await apiClient.patch<{ success: boolean; data: FoodApiResponse }>(`/foods/${id}`, data);
+  return response.data.data;
 }
 
 export async function deleteFood(id: string): Promise<void> {

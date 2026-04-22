@@ -443,8 +443,16 @@ Every phase must include tests as part of the "Done" criteria. No phase is compl
 - **Unit tests** for services and controllers — business logic, validation, auth
 - Run: `./gradlew test` (from backend/)
 
-### E2E (Playwright)
-- **End-to-end tests** for critical user flows (`e2e/*.spec.ts`)
+### E2E (Playwright) — REGRA DE QUALIDADE
+E2E tests MUST be written with the critical eye of a SENIOR QA engineer. Every spec must:
+1. **Validate page renders without crashes** — every page must load without React errors; no `if (isVisible)` guards that silently skip assertions
+2. **Assert API contract** — verify response shape matches frontend types (no envelope mismatch like `response.data` vs `response.data.data`)
+3. **Test all form validations** — required fields, min/max lengths, invalid inputs, error messages
+4. **Test auth guards** — unauthenticated users redirected, unauthorized resources blocked
+5. **Test CRUD flows** — create, read, update, delete with real API calls
+6. **Test edge cases** — empty states, pagination boundaries, concurrent actions, network errors
+7. **Test accessibility basics** — visible labels, focusable elements, no layout breaks
+8. **Never skip assertions** — use `expect` not `if+skip`; fail fast on unexpected states
 - Requires backend + frontend running
 - Run: `npm run test:e2e` (from frontend/)
 
