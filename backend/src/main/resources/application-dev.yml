@@ -21,3 +21,8 @@ nutriai:
     cookie:
       secure: false
       same-site: Lax
+  seed:
+    admin:
+      email: admin@nutriai.com
+      password: Admin123!
+      name: Admin NutriAI
