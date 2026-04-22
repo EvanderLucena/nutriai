@@ -25,6 +25,8 @@ public record UpdateFoodRequest(
         BigDecimal presetFat,
         String portionLabel,
 
+        String basedOn,
+
         // Replaces all portions if provided
         List<FoodPortionDto> portions
 ) {}

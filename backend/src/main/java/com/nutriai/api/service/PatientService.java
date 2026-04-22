@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -52,7 +54,11 @@ public class PatientService {
                 .nutritionistId(nutritionistId)
                 .name(req.name())
                 .initials(computeInitials(req.name()))
-                .age(req.age())
+                .birthDate(req.birthDate())
+                .age(computeAge(req.birthDate()))
+                .sex(req.sex())
+                .heightCm(req.heightCm())
+                .whatsapp(req.whatsapp())
                 .objective(objective)
                 .weight(req.weight())
                 .build();
@@ -108,7 +114,13 @@ public class PatientService {
             patient.setName(req.name());
             patient.setInitials(patient.getName() != null ? computeInitials(req.name()) : null);
         }
-        if (req.age() != null) patient.setAge(req.age());
+        if (req.birthDate() != null) {
+            patient.setBirthDate(req.birthDate());
+            patient.setAge(computeAge(req.birthDate()));
+        }
+        if (req.sex() != null) patient.setSex(req.sex());
+        if (req.heightCm() != null) patient.setHeightCm(req.heightCm());
+        if (req.whatsapp() != null) patient.setWhatsapp(req.whatsapp());
         if (req.objective() != null) patient.setObjective(parseObjective(req.objective()));
         if (req.status() != null) patient.setStatus(parseStatus(req.status()));
         if (req.weight() != null) patient.setWeight(req.weight());
@@ -155,6 +167,14 @@ public class PatientService {
         Patient updated = patientRepository.save(patient);
         logger.info("Patient reactivated: id={}, nutritionistId={}", id, nutritionistId);
         return PatientResponse.from(updated);
+    }
+
+    /**
+     * Computes age from birthDate. Returns null if birthDate is null.
+     */
+    private Integer computeAge(LocalDate birthDate) {
+        if (birthDate == null) return null;
+        return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
     private String computeInitials(String name) {

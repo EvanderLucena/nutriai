@@ -25,6 +25,7 @@ export interface CreateFoodRequest {
   presetCarb?: number | null;
   presetFat?: number | null;
   portionLabel?: string | null;
+  basedOn?: string | null;
   portions?: Array<{ name: string; grams: number }> | null;
 }
 

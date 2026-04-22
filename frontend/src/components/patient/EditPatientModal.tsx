@@ -1,37 +1,56 @@
 import { useState } from 'react';
-import type { DetailedPatient } from '../../types/patient';
+import { useUpdatePatient } from '../../stores/patientStore';
+import { useToastStore } from '../../stores/toastStore';
+import type { Patient } from '../../types/patient';
 import { IconX, IconCheck } from '../icons';
 
 interface EditPatientModalProps {
-  patient: DetailedPatient;
+  patient: Patient;
   onClose: () => void;
-  onSave: (updated: Partial<DetailedPatient>) => void;
 }
 
-export function EditPatientModal({ patient, onClose, onSave }: EditPatientModalProps) {
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
+function stripPhone(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 11);
+}
+
+export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
+  const updateMutation = useUpdatePatient();
   const [name, setName] = useState(patient.name);
-  const [age, setAge] = useState(String(patient.age));
+  const [birthDate, setBirthDate] = useState(patient.birthDate ?? '');
   const [sex, setSex] = useState(patient.sex || 'F');
-  const [height, setHeight] = useState(String(patient.height));
+  const [heightCm, setHeightCm] = useState(patient.heightCm != null ? String(patient.heightCm) : '');
+  const [whatsapp, setWhatsapp] = useState(formatPhone(patient.whatsapp ?? ''));
   const [objective, setObjective] = useState(patient.objective);
-  const [whatsapp, setWhatsapp] = useState('');
 
   const handle = () => {
     if (!name.trim()) return;
-    onSave({
-      name: name.trim(),
-      initials: name
-        .trim()
-        .split(' ')
-        .filter(Boolean)
-        .map((w) => w[0].toUpperCase())
-        .slice(0, 2)
-        .join(''),
-      age: Number(age) || patient.age,
-      sex,
-      height: Number(height) || patient.height,
-      objective: objective.trim(),
-    });
+    updateMutation.mutate(
+      {
+        id: patient.id,
+        data: {
+          name: name.trim(),
+          ...(birthDate ? { birthDate } : {}),
+          sex,
+          ...(heightCm ? { heightCm: Number(heightCm) } : {}),
+          ...(stripPhone(whatsapp) ? { whatsapp: stripPhone(whatsapp) } : {}),
+          objective: objective.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          useToastStore.getState().showSuccess('Paciente atualizado com sucesso');
+          onClose();
+        },
+      },
+    );
   };
 
   const field = (label: string, val: string, set: (v: string) => void, opts: { type?: string; mono?: boolean; placeholder?: string } = {}) => (
@@ -76,7 +95,7 @@ export function EditPatientModal({ patient, onClose, onSave }: EditPatientModalP
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {field('Nome completo', name, setName, { placeholder: 'Ana Beatriz Lopes' })}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {field('Idade', age, setAge, { type: 'number', mono: true, placeholder: '34' })}
+            {field('Data de nascimento', birthDate, setBirthDate, { type: 'date' })}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="eyebrow">Sexo</div>
               <div className="seg" style={{ height: 36 }}>
@@ -90,8 +109,30 @@ export function EditPatientModal({ patient, onClose, onSave }: EditPatientModalP
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {field('Altura (cm)', height, setHeight, { type: 'number', mono: true, placeholder: '168' })}
-            {field('WhatsApp', whatsapp, setWhatsapp, { placeholder: '+55 11 9 0000-0000' })}
+            {field('Altura (cm)', heightCm, setHeightCm, { type: 'number', mono: true, placeholder: '168' })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="eyebrow">WhatsApp</div>
+              <input
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(formatPhone(stripPhone(e.target.value)))}
+                type="tel"
+                placeholder="(11) 99999-9999"
+                style={{
+                  padding: '8px 10px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  background: 'var(--surface)',
+                  outline: 'none',
+                  color: 'var(--fg)',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  fontFamily: 'var(--font-mono)',
+                }}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+              />
+            </div>
           </div>
           {field('Objetivo clínico', objective, setObjective, { placeholder: 'Hipertrofia com manutenção de % gordura' })}
         </div>
@@ -108,7 +149,7 @@ export function EditPatientModal({ patient, onClose, onSave }: EditPatientModalP
           <button className="btn btn-ghost" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn btn-primary" onClick={handle} disabled={!name.trim()} style={{ opacity: name.trim() ? 1 : 0.45 }}>
+          <button className="btn btn-primary" onClick={handle} disabled={!name.trim() || updateMutation.isPending} style={{ opacity: name.trim() ? 1 : 0.45 }}>
             <IconCheck size={13} /> Salvar
           </button>
         </div>

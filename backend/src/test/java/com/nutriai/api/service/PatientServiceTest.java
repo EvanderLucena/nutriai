@@ -80,7 +80,7 @@ class PatientServiceTest {
         });
         when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", 30, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertNotNull(resp);
@@ -94,7 +94,7 @@ class PatientServiceTest {
     void createPatient_throwsWhenNutritionistNotFound() {
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.empty());
 
-        CreatePatientRequest req = new CreatePatientRequest("Test", 30, "EMAGRECIMENTO", null);
+        CreatePatientRequest req = new CreatePatientRequest("Test", null, null, null, null, "EMAGRECIMENTO", null);
         assertThrows(ResourceNotFoundException.class, () -> patientService.createPatient(nutritionistId, req));
     }
 
@@ -143,14 +143,14 @@ class PatientServiceTest {
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdatePatientRequest req = new UpdatePatientRequest("Ana Costa", null, null, "WARNING", null, null, null, null);
+        UpdatePatientRequest req = new UpdatePatientRequest("Ana Costa", null, null, null, null, null, "WARNING", null, null, null, null);
         patientService.updatePatient(samplePatient.getId(), nutritionistId, req);
 
         verify(patientRepository).save(argThat(p ->
                 "Ana Costa".equals(p.getName()) &&
                         p.getStatus() == PatientStatus.WARNING &&
                         p.getAge() == 30
-        ));
+        ));;
     }
 
     @Test
@@ -191,7 +191,7 @@ class PatientServiceTest {
         UUID wrongId = UUID.randomUUID();
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), wrongId)).thenReturn(Optional.empty());
 
-        UpdatePatientRequest req = new UpdatePatientRequest("New Name", null, null, null, null, null, null, null);
+        UpdatePatientRequest req = new UpdatePatientRequest("New Name", null, null, null, null, null, null, null, null, null, null);
         assertThrows(ResourceNotFoundException.class,
                 () -> patientService.updatePatient(samplePatient.getId(), wrongId, req));
     }
@@ -243,7 +243,7 @@ class PatientServiceTest {
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
         when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CreatePatientRequest req = new CreatePatientRequest("João Pedro", 28, "HIPERTROFIA", null);
+        CreatePatientRequest req = new CreatePatientRequest("João Pedro", null, null, null, null, "HIPERTROFIA", null);
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertEquals("JP", resp.initials());

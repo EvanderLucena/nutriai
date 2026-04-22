@@ -3,14 +3,20 @@ import type { PatientApiResponse, PatientListApiResponse } from '../types/patien
 
 export interface CreatePatientRequest {
   name: string;
-  age?: number;
+  birthDate?: string;
+  sex?: string;
+  heightCm?: number;
+  whatsapp?: string;
   objective: string;
   weight?: number;
 }
 
 export interface UpdatePatientRequest {
   name?: string;
-  age?: number;
+  birthDate?: string;
+  sex?: string;
+  heightCm?: number;
+  whatsapp?: string;
   objective?: string;
   status?: string;
   weight?: number;

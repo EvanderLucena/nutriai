@@ -5,19 +5,53 @@ import { Button } from '../ui/Button';
 import { OBJECTIVE_LABELS, OBJECTIVE_KEYS } from '../../types/patient';
 import type { ObjectiveOption } from '../../types/patient';
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+}
+
+function stripPhone(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 11);
+}
+
 interface NewPatientModalProps {
   open: boolean;
   onClose: () => void;
-  onSave?: (data: { name: string; objective: ObjectiveOption; phone: string }) => void;
+  onSave?: (data: {
+    name: string;
+    objective: ObjectiveOption;
+    birthDate?: string;
+    sex?: string;
+    heightCm?: number;
+    whatsapp?: string;
+  }) => void;
 }
 
 export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps) {
-  const [form, setForm] = useState({ name: '', objective: '' as ObjectiveOption | '', phone: '', birthDate: '', sex: '', height: '', notes: '' });
+  const [form, setForm] = useState({
+    name: '',
+    objective: '' as ObjectiveOption | '',
+    birthDate: '',
+    sex: 'F' as 'F' | 'M',
+    heightCm: '',
+    whatsapp: '',
+    notes: '',
+  });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = () => {
     if (!form.name.trim() || !form.objective) return;
-    onSave?.({ name: form.name, objective: form.objective, phone: form.phone });
+    onSave?.({
+      name: form.name,
+      objective: form.objective as ObjectiveOption,
+      ...(form.birthDate ? { birthDate: form.birthDate } : {}),
+      sex: form.sex,
+      ...(form.heightCm ? { heightCm: Number(form.heightCm) } : {}),
+      ...(stripPhone(form.whatsapp) ? { whatsapp: stripPhone(form.whatsapp) } : {}),
+    });
     onClose();
   };
 
@@ -30,25 +64,15 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           <Input label="Data de nascimento" type="date" value={form.birthDate} onChange={(e) => set('birthDate', e.target.value)} />
           <div className="flex flex-col gap-1.5">
             <label className="eyebrow">Sexo</label>
-            <select
-              value={form.sex}
-              onChange={(e) => set('sex', e.target.value)}
-              style={{
-                padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6,
-                fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', fontFamily: 'var(--font-ui)',
-                width: '100%',
-              }}
-            >
-              <option value="">Selecione…</option>
-              <option value="F">Feminino</option>
-              <option value="M">Masculino</option>
-              <option value="O">Outro</option>
-            </select>
+            <div className="seg" style={{ height: 36 }}>
+              <button className={form.sex === 'F' ? 'active' : ''} onClick={() => set('sex', 'F')}>Feminino</button>
+              <button className={form.sex === 'M' ? 'active' : ''} onClick={() => set('sex', 'M')}>Masculino</button>
+            </div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Input label="Altura (cm)" placeholder="165" value={form.height} onChange={(e) => set('height', e.target.value)} />
+          <Input label="Altura (cm)" placeholder="168" value={form.heightCm} onChange={(e) => set('heightCm', e.target.value)} />
           <div className="flex flex-col gap-1.5">
             <label className="eyebrow">Objetivo</label>
             <select
@@ -68,7 +92,22 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
 
         <div className="divider"><span>Contato</span></div>
 
-        <Input label="WhatsApp" placeholder="+55 11 9 0000-0000" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        <div className="flex flex-col gap-1.5">
+          <label className="eyebrow">WhatsApp</label>
+          <input
+            value={form.whatsapp}
+            onChange={(e) => set('whatsapp', formatPhone(stripPhone(e.target.value)))}
+            type="tel"
+            placeholder="(11) 99999-9999"
+            style={{
+              padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6,
+              fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', fontFamily: 'var(--font-mono)',
+              width: '100%', boxSizing: 'border-box', outline: 'none',
+            }}
+            onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
+            onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+          />
+        </div>
         <div style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6, fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
           <span className="mono" style={{ fontSize: 10, color: 'var(--lime-dim)', marginRight: 6 }}>IA</span>
           O paciente vai receber a IA por este número. Certifique que está correto antes de salvar.

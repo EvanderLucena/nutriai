@@ -8,6 +8,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -36,6 +37,18 @@ public class Patient {
 
     @Column(length = 5)
     private String initials;
+
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    @Column(length = 1)
+    private String sex;
+
+    @Column(name = "height_cm")
+    private Integer heightCm;
+
+    @Column(length = 30)
+    private String whatsapp;
 
     private Integer age;
 

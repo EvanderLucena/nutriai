@@ -3,7 +3,7 @@ spring:
     name: nutriai-api
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/nutriai
+    url: jdbc:postgresql://127.0.0.1:5432/nutriai
     username: nutriai
     password: changeme
 

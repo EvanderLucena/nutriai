@@ -32,6 +32,8 @@ public record CreateFoodRequest(
         BigDecimal presetFat,
         String portionLabel,
 
+        String basedOn,
+
         // Portions for BASE foods
         List<FoodPortionDto> portions
 ) {}

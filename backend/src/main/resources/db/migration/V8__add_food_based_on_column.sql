@@ -1,0 +1,1 @@
+ALTER TABLE food_catalog ADD COLUMN based_on VARCHAR(200);

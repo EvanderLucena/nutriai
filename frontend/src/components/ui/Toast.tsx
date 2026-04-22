@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useToastStore } from '../../stores/toastStore';
 
 export function Toast() {
-  const { visible, message, hideToast } = useToastStore();
+  const { visible, message, type, hideToast } = useToastStore();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -20,6 +20,8 @@ export function Toast() {
 
   if (!visible && !show) return null;
 
+  const isSuccess = type === 'success';
+
   return (
     <div
       style={{
@@ -28,7 +30,7 @@ export function Toast() {
         right: 24,
         zIndex: 1000,
         background: 'var(--surface)',
-        border: '1px solid var(--coral)',
+        border: `1px solid ${isSuccess ? 'var(--sage)' : 'var(--coral)'}`,
         padding: '12px 16px',
         borderRadius: 8,
         fontSize: 13,
@@ -38,7 +40,7 @@ export function Toast() {
         fontFamily: 'var(--font-ui)',
       }}
     >
-      {message || 'Erro ao salvar — tente novamente'}
+      {message || (isSuccess ? 'Salvo com sucesso' : 'Erro ao salvar — tente novamente')}
     </div>
   );
 }

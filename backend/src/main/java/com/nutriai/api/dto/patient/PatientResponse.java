@@ -3,6 +3,7 @@ package com.nutriai.api.dto.patient;
 import com.nutriai.api.model.Patient;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record PatientResponse(
@@ -10,6 +11,10 @@ public record PatientResponse(
         String name,
         String initials,
         Integer age,
+        LocalDate birthDate,
+        String sex,
+        Integer heightCm,
+        String whatsapp,
         String objective,
         String status,
         Integer adherence,
@@ -24,6 +29,10 @@ public record PatientResponse(
                 p.getName(),
                 p.getInitials(),
                 p.getAge(),
+                p.getBirthDate(),
+                p.getSex(),
+                p.getHeightCm(),
+                p.getWhatsapp(),
                 p.getObjective().name(),
                 p.getStatus().name(),
                 p.getAdherence(),

@@ -65,6 +65,7 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
   const [prot, setProt] = useState(String(isBase ? food.per100!.prot : food.nutrition!.prot));
   const [carb, setCarb] = useState(String(isBase ? food.per100!.carb : food.nutrition!.carb));
   const [fat, setFat] = useState(String(isBase ? food.per100!.fat : food.nutrition!.fat));
+  const [basedOn, setBasedOn] = useState(food.basedOn || '');
 
   const handle = () => {
     if (!name.trim()) return;
@@ -90,19 +91,21 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
           presetProt: Number(prot) || 0,
           presetCarb: Number(carb) || 0,
           presetFat: Number(fat) || 0,
+          basedOn: basedOn.trim() || null,
         },
       });
     }
     onClose();
   };
 
-  const field = (label: string, val: string, set: (v: string) => void, opts: { mono?: boolean; type?: string } = {}) => (
+  const field = (label: string, val: string, set: (v: string) => void, opts: { mono?: boolean; type?: string; placeholder?: string } = {}) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div className="eyebrow">{label}</div>
       <input
         value={val}
         onChange={(e) => set(e.target.value)}
         type={opts.type || 'text'}
+        placeholder={opts.placeholder || ''}
         style={{
           padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13,
           background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: '100%', boxSizing: 'border-box',
@@ -143,6 +146,7 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
             {field('Carb (g)', carb, setCarb, { mono: true })}
             {field('Gord (g)', fat, setFat, { mono: true })}
           </div>
+          {!isBase && field('Baseado em (opcional)', basedOn, setBasedOn, { placeholder: 'ex: Frango desfiado cozido' })}
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
@@ -311,6 +315,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [portionLabel, setPortionLabel] = useState('');
+  const [basedOn, setBasedOn] = useState('');
   const [grams, setGrams] = useState('');
   const [fiber, setFiber] = useState('');
   const createFood = useCreateFood();
@@ -324,6 +329,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
         name: name.trim(),
         category,
         portionLabel: portionLabel || '1 porção',
+        basedOn: basedOn.trim() || null,
         presetGrams: Number(grams) || 100,
         presetKcal: Number(kcal) || 0,
         presetProt: Number(prot) || 0,
@@ -398,6 +404,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           </div>
           {foodType === 'PRESET' && field('Descrição da porção', portionLabel, setPortionLabel, { placeholder: 'ex: 1 unidade · 100g' })}
           {foodType === 'PRESET' && field('Gramas da porção', grams, setGrams, { mono: true, placeholder: '100' })}
+          {foodType === 'PRESET' && field('Baseado em (opcional)', basedOn, setBasedOn, { placeholder: 'ex: Frango desfiado cozido' })}
           <div className="divider"><span>{foodType === 'BASE' ? 'Valores por 100g' : 'Macros da porção'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {field('Kcal', kcal, setKcal, { mono: true, placeholder: '0' })}

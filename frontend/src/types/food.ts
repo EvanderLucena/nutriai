@@ -88,6 +88,7 @@ export interface FoodApiResponse {
   presetCarb: number | null;
   presetFat: number | null;
   portionLabel: string | null;
+  basedOn: string | null;
   portions: FoodPortionResponse[];
   usedCount: number;
   createdAt: string;
@@ -95,13 +96,11 @@ export interface FoodApiResponse {
 }
 
 export interface FoodListApiResponse {
-  success: boolean;
-  data: {
-    content: FoodApiResponse[];
-    page: number;
-    size: number;
-    total: number;
-  };
+  content: FoodApiResponse[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
 }
 
 function normalizeType(raw: string): FoodType {
@@ -145,7 +144,7 @@ export function mapFoodFromApi(api: FoodApiResponse): Food {
         carb: api.presetCarb ?? 0,
         fat: api.presetFat ?? 0,
       },
-      basedOn: api.portionLabel ?? '',
+      basedOn: api.basedOn ?? '',
       used: api.usedCount,
     };
   }

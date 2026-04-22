@@ -59,6 +59,7 @@ public class FoodService {
                 .presetCarb(req.presetCarb())
                 .presetFat(req.presetFat())
                 .portionLabel(req.portionLabel())
+                .basedOn(req.basedOn())
                 .build();
 
         Food saved = foodRepository.save(food);
@@ -132,6 +133,7 @@ public class FoodService {
         if (req.presetCarb() != null) food.setPresetCarb(req.presetCarb());
         if (req.presetFat() != null) food.setPresetFat(req.presetFat());
         if (req.portionLabel() != null) food.setPortionLabel(req.portionLabel());
+        if (req.basedOn() != null) food.setBasedOn(req.basedOn());
 
         Food saved = foodRepository.save(food);
 

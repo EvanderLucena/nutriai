@@ -48,32 +48,14 @@ export function useFoodCatalog() {
         category: categoryFilter !== 'Todos' ? (categoryFilter as FoodCategoryKey) : undefined,
       });
       return {
-        content: response.data.content.map(mapFoodFromApi),
-        page: response.data.page,
-        size: response.data.size,
-        total: response.data.total,
+        content: response.content.map(mapFoodFromApi),
+        page: response.page,
+        size: response.size,
+        total: response.totalElements,
       };
     },
-    retry: 2,
-    staleTime: 30_000,
-  });
-}
-
-// TanStack Query hook for food search (used in AddFoodModal)
-export function useFoodSearch(query: string) {
-  return useQuery({
-    queryKey: ['foods', 'search', query],
-    queryFn: async () => {
-      if (!query) return [];
-      const response = await foodApi.listFoods({
-        search: query,
-        page: 0,
-        size: 10,
-      });
-      return response.data.content.map(mapFoodFromApi);
-    },
-    enabled: !!query,
-    staleTime: 10_000,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
   });
 }
 

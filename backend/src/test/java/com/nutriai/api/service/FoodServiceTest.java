@@ -54,7 +54,7 @@ class FoodServiceTest {
                 "BASE", "Arroz branco", "CARBOIDRATO",
                 new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
                 new BigDecimal("0.3"), new BigDecimal("0.4"),
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 List.of(new FoodPortionDto(null, "1 colher", new BigDecimal("15.0")))
         );
 
@@ -80,7 +80,7 @@ class FoodServiceTest {
                 null, null, null, null, null,
                 new BigDecimal("30.0"), new BigDecimal("70.0"), new BigDecimal("2.5"),
                 new BigDecimal("12.0"), new BigDecimal("1.0"), "1 fatia",
-                null
+                null, null
         );
 
         FoodResponse resp = foodService.createFood(nutritionistId, req);
@@ -149,7 +149,7 @@ class FoodServiceTest {
         when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
         when(foodPortionRepository.findByFoodIdOrderBySortOrder(foodId)).thenReturn(List.of());
 
-        UpdateFoodRequest req = new UpdateFoodRequest("Arroz integral", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        UpdateFoodRequest req = new UpdateFoodRequest("Arroz integral", null, null, null, null, null, null, null, null, null, null, null, null, null, null);
         FoodResponse resp = foodService.updateFood(nutritionistId, foodId, req);
 
         assertEquals("Arroz integral", resp.name());
@@ -187,7 +187,7 @@ class FoodServiceTest {
                 FoodPortion.builder().id(UUID.randomUUID()).foodId(foodId).name("1 xícara").grams(new BigDecimal("80")).sortOrder(0).build()
         ));
 
-        UpdateFoodRequest req = new UpdateFoodRequest(null, null, null, null, null, null, null, null, null, null, null, null, null,
+        UpdateFoodRequest req = new UpdateFoodRequest(null, null, null, null, null, null, null, null, null, null, null, null, null, null,
                 List.of(new FoodPortionDto(null, "1 colher", new BigDecimal("15"))));
 
         FoodResponse resp = foodService.updateFood(nutritionistId, foodId, req);

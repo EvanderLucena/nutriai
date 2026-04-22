@@ -35,7 +35,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
     debounceRef.current = setTimeout(async () => {
       try {
         const response = await listFoods({ search: val, page: 0, size: 10 });
-        setResults(response.data.content.map(mapFoodFromApi));
+        setResults(response.content.map(mapFoodFromApi));
       } catch {
         setResults([]);
       } finally {

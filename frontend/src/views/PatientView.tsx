@@ -26,6 +26,10 @@ export function PatientView() {
       name: mappedApiData.name,
       initials: mappedApiData.initials,
       age: mappedApiData.age,
+      birthDate: mappedApiData.birthDate ?? ANA.birthDate,
+      sex: mappedApiData.sex ?? ANA.sex,
+      heightCm: mappedApiData.heightCm ?? ANA.height,
+      whatsapp: mappedApiData.whatsapp ?? ANA.whatsapp,
       objective: mappedApiData.objective,
       status: mappedApiData.status,
       adherence: mappedApiData.adherence,
@@ -69,9 +73,9 @@ export function PatientView() {
               {patient.name}
             </h1>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--fg-muted)', alignItems: 'center' }}>
-              <span>{patient.age} anos · {patient.sex}</span>
+              <span>{patient.age} anos · {patient.sex === 'F' ? 'Feminino' : 'Masculino'}</span>
               <span>·</span>
-              <span>{patient.height} cm · {patient.biometry[patient.biometry.length - 1].weight} kg</span>
+              <span>{patient.heightCm ?? patient.height} cm · {patient.biometry[patient.biometry.length - 1].weight} kg</span>
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>
               <button
@@ -129,7 +133,6 @@ export function PatientView() {
         <EditPatientModal
           patient={patient}
           onClose={() => setEditOpen(false)}
-          onSave={() => { setEditOpen(false); }}
         />
       )}
     </div>

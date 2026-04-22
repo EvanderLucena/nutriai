@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { usePatientUIStore, usePatients, useCreatePatient, useUpdatePatient, useDeactivatePatient, useReactivatePatient } from '../stores/patientStore';
+import { usePatientUIStore, usePatients, useCreatePatient, useDeactivatePatient, useReactivatePatient } from '../stores/patientStore';
 import { useNavigationStore } from '../stores/navigationStore';
 import { IconSearch, IconPlus, IconFilter, IconArchive } from '../components/icons';
 import { PatientTable, PatientGrid, NewPatientModal, EditPatientModal, Pagination } from '../components/patients';
 import { mapPatientFromApi, STATUS_LABELS, STATUS_COLORS } from '../types/patient';
 import type { Patient } from '../types/patient';
-import type { CreatePatientRequest, UpdatePatientRequest } from '../api/patients';
 
 function MiniStat({ label, value, dot }: { label: string; value: string; dot?: string }) {
   return (
@@ -58,7 +57,6 @@ export function PatientsView() {
 
   const { data, isLoading, isError } = usePatients();
   const createMutation = useCreatePatient();
-  const updateMutation = useUpdatePatient();
   const deactivateMutation = useDeactivatePatient();
   const reactivateMutation = useReactivatePatient();
 
@@ -86,19 +84,6 @@ export function PatientsView() {
       reactivateMutation.mutate(togglingPatientId, { onSuccess: () => setTogglingPatientId(null) });
     }
   }, [togglingPatientId, patientsList, deactivateMutation, reactivateMutation, setTogglingPatientId]);
-
-  const saveEdit = useCallback((id: string, updated: Partial<Patient>) => {
-    const updateData: UpdatePatientRequest = {};
-    if (updated.name !== undefined) updateData.name = updated.name;
-    if (updated.age !== undefined) updateData.age = updated.age;
-    if (updated.objective !== undefined) updateData.objective = updated.objective;
-    if (updated.status !== undefined) updateData.status = updated.status.toUpperCase();
-    if (updated.weight !== undefined) updateData.weight = updated.weight;
-    if (updated.weightDelta !== undefined) updateData.weightDelta = updated.weightDelta;
-    if (updated.adherence !== undefined) updateData.adherence = updated.adherence;
-    if (updated.tag !== undefined) updateData.tag = updated.tag;
-    updateMutation.mutate({ id, data: updateData }, { onSuccess: () => setEditingPatientId(null) });
-  }, [updateMutation, setEditingPatientId]);
 
   const handleOpen = useCallback((id: string) => {
     setActivePatientId(id);
@@ -206,11 +191,7 @@ export function PatientsView() {
         open={newPatientModalOpen}
         onClose={() => setNewPatientModalOpen(false)}
         onSave={(data) => {
-          const payload: CreatePatientRequest = {
-            name: data.name,
-            objective: data.objective,
-          };
-          createMutation.mutate(payload, {
+          createMutation.mutate(data, {
             onSuccess: () => setNewPatientModalOpen(false),
             onError: () => {},
           });
@@ -225,7 +206,6 @@ export function PatientsView() {
               patient={patient}
               open={!!editingPatientId}
               onClose={() => setEditingPatientId(null)}
-              onSave={saveEdit}
             />
           );
         })()

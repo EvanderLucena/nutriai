@@ -61,8 +61,8 @@ export function usePatients() {
         objective: objectiveFilter !== 'all' ? objectiveFilter : undefined,
         active,
       }),
-    retry: 2,
-    staleTime: 30_000,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
   });
 }
 

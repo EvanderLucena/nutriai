@@ -29,6 +29,7 @@ public record FoodResponse(
         BigDecimal presetCarb,
         BigDecimal presetFat,
         String portionLabel,
+        String basedOn,
         List<FoodPortionDto> portions,
         Integer usedCount,
         LocalDateTime createdAt,
@@ -51,6 +52,7 @@ public record FoodResponse(
                 food.getPresetCarb(),
                 food.getPresetFat(),
                 food.getPortionLabel(),
+                food.getBasedOn(),
                 portions.stream()
                         .map(p -> new FoodPortionDto(p.getId(), p.getName(), p.getGrams()))
                         .toList(),

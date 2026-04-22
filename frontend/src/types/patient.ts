@@ -46,6 +46,10 @@ export interface Patient {
   name: string;
   initials: string;
   age: number;
+  birthDate: string | null;
+  sex: string;
+  heightCm: number | null;
+  whatsapp: string | null;
   objective: string;
   status: PatientStatus;
   adherence: number;
@@ -60,6 +64,10 @@ export interface PatientApiResponse {
   name: string;
   initials: string;
   age: number;
+  birthDate: string | null;
+  sex: string | null;
+  heightCm: number | null;
+  whatsapp: string | null;
   objective: string;
   status: 'ONTRACK' | 'WARNING' | 'DANGER';
   adherence: number;
@@ -83,6 +91,10 @@ export function mapPatientFromApi(p: PatientApiResponse): Patient {
     name: p.name,
     initials: p.initials,
     age: p.age,
+    birthDate: p.birthDate,
+    sex: p.sex ?? 'F',
+    heightCm: p.heightCm,
+    whatsapp: p.whatsapp,
     objective: OBJECTIVE_LABELS[p.objective] || p.objective,
     status: p.status.toLowerCase() as PatientStatus,
     adherence: p.adherence,
@@ -149,7 +161,6 @@ export interface TimelineEvent {
 }
 
 export interface DetailedPatient extends Patient {
-  sex: string;
   height: number;
   since: string;
   macrosToday: MacroTarget;

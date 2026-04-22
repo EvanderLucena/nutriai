@@ -99,4 +99,13 @@ export function App() {
   );
 }
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 2,
+      staleTime: 2 * 60_000,
+    },
+  },
+});

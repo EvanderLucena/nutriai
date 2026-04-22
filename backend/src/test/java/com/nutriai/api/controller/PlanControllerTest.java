@@ -100,7 +100,7 @@ class PlanControllerTest {
         accessToken = result.accessToken();
 
         // Create a patient — this auto-creates a plan (D-13/D-14)
-        CreatePatientRequest patientReq = new CreatePatientRequest("Maria Silva", 30, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest patientReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
         try {
             String patientResponse = mockMvc.perform(post("/api/v1/patients")
                             .header("Authorization", "Bearer " + accessToken)
@@ -118,7 +118,7 @@ class PlanControllerTest {
                 "BASE", "Arroz branco", "CARBOIDRATO",
                 new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
                 new BigDecimal("0.3"), new BigDecimal("0.4"),
-                null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
         );
         try {
             String foodResponse = mockMvc.perform(post("/api/v1/foods")

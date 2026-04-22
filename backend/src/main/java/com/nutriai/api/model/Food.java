@@ -76,6 +76,9 @@ public class Food {
     @Column(name = "portion_label", length = 200)
     private String portionLabel;
 
+    @Column(name = "based_on", length = 200)
+    private String basedOn;
+
     @Column(name = "used_count")
     @Builder.Default
     private Integer usedCount = 0;
