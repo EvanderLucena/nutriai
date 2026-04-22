@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-04-21T23:23:44.195Z"
+stopped_at: Phase 4 complete
+last_updated: "2026-04-22T00:30:00.000Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 10
@@ -25,9 +25,9 @@ See: .planning/PROJECT.md (updated 2026-04-19)
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Executing Phase 04
+Phase: 4
+Plan: All tasks complete
+Status: Phase 4 complete — ready for Phase 5
 Last activity: 2026-04-21
 
 Progress: ██████████ 100%
@@ -90,6 +90,35 @@ Auth & Onboarding fully implemented and tested:
 4. Frontend not extracting field-level errors from API
 
 **Next:** Phase 4 — Patient Management
+
+## Phase 4 Completion Summary
+
+Patient Management fully implemented and wired to real API:
+
+**Backend (code review: 9 findings, 8 fixed):**
+- Patient CRUD (create, list, get, update, deactivate, reactivate)
+- Episode lifecycle (create on creation, close on deactivate, new episode on reactivate)
+- Data isolation (nutritionist-scoped queries, 404 not 403)
+- Server-side pagination with filters (search, status, objective, active)
+- Enum validation moved from controller to service (500→400)
+- @Valid annotation on PATCH endpoint
+- @Min bounds on page/size params
+- SLF4J logging on PatientService and AuthService
+- @Getter/@Setter replacing @Data on entities
+- GlobalExceptionHandler: IllegalArgumentException + DataIntegrityViolation handling
+
+**Frontend (all 3 views wired to real API):**
+- PatientsView → usePatients(), useCreatePatient(), useUpdatePatient(), useDeactivatePatient(), useReactivatePatient()
+- HomeView → usePatients() for patient cards and stats (removed PATIENTS mock import)
+- PatientView → usePatient(id) with mapPatientFromApi(), ANA as fallback for rich detail fields (biometry, skinfolds, perimetry, timeline)
+- patientStore.ts: Zustand UI store + TanStack Query hooks (usePatients, usePatient, useCreatePatient, useUpdatePatient, useDeactivatePatient, useReactivatePatient)
+
+**Tests (45 unit + 7 E2E):**
+- patientStore.test.ts: 12 tests (UI store state transitions, filter resets, modal state)
+- Auth tests: 12 unit + 8 LoginView + 8 SignupView + 3 PlansView = 31 existing
+- e2e/patient-management.spec.ts: 7 E2E tests (page load, search, filter, new patient modal, inactive toggle, patient navigation, home KPIs)
+
+**Next:** Phase 5 — Meal Plans
 
 ## Performance Metrics
 

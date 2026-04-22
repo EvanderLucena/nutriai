@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams } from 'react-router';
 import { ANA } from '../data/ana';
 import { usePatient } from '../stores/patientStore';
+import { mapPatientFromApi } from '../types/patient';
 import type { DetailedPatient, MacroTarget } from '../types/patient';
 import { IconEdit, IconPlus } from '../components/icons';
 import { EditPatientModal, Timeline, NewBiometryModal, MultiLineChart } from '../components/patient';
@@ -16,20 +17,22 @@ export function PatientView() {
   const [tab, setTab] = useState<Tab>('today');
   const [editOpen, setEditOpen] = useState(false);
 
+  const mappedApiData = apiData ? mapPatientFromApi(apiData) : null;
+
   const patient: DetailedPatient = {
     ...ANA,
-    ...(apiData ? {
-      id: apiData.id,
-      name: apiData.name,
-      initials: apiData.initials,
-      age: apiData.age,
-      objective: apiData.objective,
-      status: apiData.status.toLowerCase() as DetailedPatient['status'],
-      adherence: apiData.adherence,
-      weight: apiData.weight,
-      weightDelta: apiData.weightDelta,
-      tag: apiData.tag,
-      active: apiData.active,
+    ...(mappedApiData ? {
+      id: mappedApiData.id,
+      name: mappedApiData.name,
+      initials: mappedApiData.initials,
+      age: mappedApiData.age,
+      objective: mappedApiData.objective,
+      status: mappedApiData.status,
+      adherence: mappedApiData.adherence,
+      weight: mappedApiData.weight,
+      weightDelta: mappedApiData.weightDelta,
+      tag: mappedApiData.tag,
+      active: mappedApiData.active,
     } : {}),
   };
 

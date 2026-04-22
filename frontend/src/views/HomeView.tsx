@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { PATIENTS } from '../data/patients';
+import { usePatients } from '../stores/patientStore';
+import { mapPatientFromApi } from '../types/patient';
 import { AGGREGATE } from '../data/aggregate';
 import { KPI } from '../components/KPI';
 import { IconPlus, IconChevronR } from '../components/icons';
 import { useNavigationStore } from '../stores/navigationStore';
-import type { PatientStatus } from '../types/patient';
+import type { Patient } from '../types/patient';
 
-function PatientCard({ p, onNavigate }: { p: typeof PATIENTS[number]; onNavigate: (id: string) => void }) {
+function PatientCard({ p, onNavigate }: { p: Patient; onNavigate: (id: string) => void }) {
   const statusColors: Record<string, string> = { ontrack: 'var(--sage)', warning: 'var(--amber)', danger: 'var(--coral)' };
   const statusLabels: Record<string, string> = { ontrack: 'No caminho', warning: 'Atenção', danger: 'Crítico' };
 
@@ -74,9 +75,9 @@ const PAGE_SIZE = 8;
 export function HomeView() {
   const { setActivePatientId, setView } = useNavigationStore();
   const navigate = useNavigate();
-  const activePats = useMemo(() => PATIENTS.filter(p => p.active !== false), []);
-  const [page] = useMemo(() => [0], []);
-  const patientSlice = activePats.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const { data, isLoading } = usePatients();
+  const activePats = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
+  const patientSlice = activePats.slice(0, PAGE_SIZE);
 
   const handleNavigate = (id: string) => {
     setActivePatientId(id);
@@ -86,14 +87,14 @@ export function HomeView() {
 
   const statusColors: Record<string, string> = { ontrack: 'var(--sage)', warning: 'var(--amber)', danger: 'var(--coral)' };
 
-  const events = [
-    { time: '14:28', who: 'Ana Beatriz L.', whoId: 'p1', status: 'ontrack' as PatientStatus, text: 'Almoço', tag: '620 kcal · P45 C62 G20' },
-    { time: '13:50', who: 'Carla Mendonça', whoId: 'p3', status: 'ontrack' as PatientStatus, text: 'Almoço', tag: '540 kcal · P38 C55 G18' },
-    { time: '12:05', who: 'Diogo Campos', whoId: 'p6', status: 'warning' as PatientStatus, text: 'Almoço', tag: '1.100 kcal · P32 C88 G55' },
-    { time: '10:40', who: 'Isabela Nunes', whoId: 'p7', status: 'ontrack' as PatientStatus, text: 'Lanche manhã', tag: '210 kcal · P8 C28 G8' },
-    { time: '09:14', who: 'Rafael Tonioli', whoId: 'p4', status: 'ontrack' as PatientStatus, text: 'Café da manhã', tag: '380 kcal · P26 C28 G16' },
-    { time: '08:02', who: 'Ana Beatriz L.', whoId: 'p1', status: 'ontrack' as PatientStatus, text: 'Café da manhã', tag: '410 kcal · P28 C32 G18' },
-  ];
+  const events = activePats.slice(0, 6).map((p, i) => ({
+    time: ['14:28', '13:50', '12:05', '10:40', '09:14', '08:02'][i] || '07:30',
+    who: p.name,
+    whoId: p.id,
+    status: p.status,
+    text: 'Refeição',
+    tag: `${p.adherence}% adesão`,
+  }));
 
   return (
     <div>
@@ -119,7 +120,7 @@ export function HomeView() {
       <div className="home-kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
         <KPI
           label="Pacientes ativos"
-          value={String(AGGREGATE.active)}
+          value={String(data?.totalElements ?? 0)}
           sub="+2 esta semana"
           sparklineData={[44, 45, 46, 47, 46, 48, 48]}
           trend="up"
@@ -182,7 +183,7 @@ export function HomeView() {
       </div>
 
       {/* Patient grid */}
-      <div className="divider"><span>Sua carteira · {activePats.length} pacientes</span></div>
+      <div className="divider"><span>Sua carteira · {isLoading ? '...' : `${activePats.length} pacientes`}</span></div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {patientSlice.map(p => (
           <PatientCard key={p.id} p={p} onNavigate={handleNavigate} />
