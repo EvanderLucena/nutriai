@@ -47,14 +47,30 @@ public class GlobalExceptionHandler {
 
     /**
      * Handle DataIntegrityViolationException — returns 409 for duplicate records.
+     * Detects specific constraint for duplicate patient names.
      */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("success", false);
-        body.put("message", "Conflito de dados — registro duplicado");
+        String message = ex.getMessage() != null && ex.getMessage().contains("uk_patient_name_nutri")
+                ? "Você já tem um paciente com esse nome."
+                : "Conflito de dados — registro duplicado";
+        body.put("message", message);
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    /**
+     * Handle IllegalArgumentException — safety net for invalid enum values (400).
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", false);
+        body.put("message", ex.getMessage() != null ? ex.getMessage() : "Valor inválido");
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     /**

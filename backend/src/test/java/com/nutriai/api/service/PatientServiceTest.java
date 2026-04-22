@@ -112,7 +112,7 @@ class PatientServiceTest {
         when(patientRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("maria"), eq(PatientStatus.ONTRACK), isNull(), eq(true), any(PageRequest.class)))
                 .thenReturn(page);
 
-        PatientListResponse resp = patientService.listPatients(nutritionistId, "maria", PatientStatus.ONTRACK, null, true, 0, 10);
+        PatientListResponse resp = patientService.listPatients(nutritionistId, "maria", "ONTRACK", null, true, 0, 10);
 
         assertEquals(1, resp.content().size());
     }

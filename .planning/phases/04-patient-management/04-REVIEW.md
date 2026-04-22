@@ -145,3 +145,39 @@ The `enabled: !!id` guard prevents execution when `id` is null, but the non-null
 ## Self-Check: PASSED
 
 All must-have artifacts exist. Decision coverage validated.
+
+---
+
+## Additional Manual Review — 2026-04-21
+
+After the initial automated code review above, a **manual Spring Boot Best Practices review** was conducted. This revealed **9 additional findings** (2 CRITICAL, 1 HIGH, 2 MEDIUM, 3 LOW, 1 INFO). 8 were fixed, 3 skipped (infra/config).
+
+**Full fix report:** [`04-REVIEW-FIX.md`](04-REVIEW-FIX.md)
+
+### New Critical Findings Fixed
+
+| # | Finding | Fix |
+|---|---------|-----|
+| CR-01 | `PatientController.list()` still had `valueOf()` directly in controller (bypassing service validation) — would throw 500 for invalid enums | Moved conversion to `PatientService.listPatients()` with proper `parseStatus()`/`parseObjective()` |
+| CR-02 | `PATCH /patients/{id}` missing `@Valid` on `UpdatePatientRequest` — all validation annotations never fired | Added `@Valid` to `@RequestBody` |
+
+### New High Findings Fixed
+
+| # | Finding | Fix |
+|---|---------|-----|
+| HI-01 | Param `page` accepts negative values (`page=-1` → 500); `size` had `@Max(100)` but no `@Min` | Added `@Min(0)` on `page` and `@Min(1)` on `size` |
+
+### Other Fixes Applied
+
+- **SLF4J logging** added to `PatientService` and `AuthService`
+- **Replaced `@Data` with `@Getter/@Setter`** in `Patient`, `Episode`, `Nutritionist` entities (security)
+- **Improved error message** for duplicate patient name (`uk_patient_name_nutri` constraint)
+- **Added `@ExceptionHandler(IllegalArgumentException.class)`** as safety net
+
+### Skipped Items (Infra / Config)
+
+- JWT secret fallback in `application.yml` — requires CI/CD update to set `NUTRIAI_JWT_SECRET` env var
+- DB password in `application.yml` — dev-only; production uses Docker secrets
+- CORS config for `prod` profile — handled by nginx/traefik in production
+
+All code changes: **compiled and tested successfully** (`./gradlew compileJava && ./gradlew test` — all green).

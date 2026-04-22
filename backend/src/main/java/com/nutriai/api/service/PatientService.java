@@ -9,6 +9,8 @@ import com.nutriai.api.model.PatientStatus;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 @Service
 public class PatientService {
+
+    private static final Logger logger = LoggerFactory.getLogger(PatientService.class);
 
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
@@ -51,6 +55,7 @@ public class PatientService {
                 .build();
 
         Patient saved = patientRepository.save(patient);
+        logger.info("Patient created: id={}, name={}, nutritionistId={}", saved.getId(), saved.getName(), nutritionistId);
 
         Episode episode = Episode.builder()
                 .patientId(saved.getId())
@@ -61,16 +66,19 @@ public class PatientService {
     }
 
     @Transactional(readOnly = true)
-    public PatientListResponse listPatients(UUID nutritionistId, String search, PatientStatus status,
-                                              PatientObjective objective, Boolean active, int page, int size) {
+    public PatientListResponse listPatients(UUID nutritionistId, String search, String status,
+                                              String objective, Boolean active, int page, int size) {
         PageRequest pageRequest = PageRequest.of(page, size);
 
+        PatientStatus statusEnum = status != null ? parseStatus(status) : null;
+        PatientObjective objectiveEnum = objective != null ? parseObjective(objective) : null;
+
         String escapedSearch = search != null ? escapeLike(search) : null;
-        boolean hasFilter = escapedSearch != null || status != null || objective != null || active != null;
+        boolean hasFilter = escapedSearch != null || statusEnum != null || objectiveEnum != null || active != null;
 
         if (hasFilter) {
             Page<Patient> result = patientRepository.findByNutritionistIdWithFilters(
-                    nutritionistId, escapedSearch, status, objective, active, pageRequest);
+                    nutritionistId, escapedSearch, statusEnum, objectiveEnum, active, pageRequest);
             return PatientListResponse.from(result);
         }
 
@@ -103,6 +111,7 @@ public class PatientService {
         if (req.tag() != null) patient.setTag(req.tag());
 
         Patient updated = patientRepository.save(patient);
+        logger.info("Patient updated: id={}, fields={}", updated.getId(), req);
         return PatientResponse.from(updated);
     }
 
@@ -113,9 +122,13 @@ public class PatientService {
 
         patient.softDelete();
         episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patient.getId())
-                .ifPresent(Episode::close);
+                .ifPresent(e -> {
+                    e.close();
+                    logger.info("Episode closed: id={}, patientId={}", e.getId(), id);
+                });
 
         Patient updated = patientRepository.save(patient);
+        logger.info("Patient deactivated: id={}, nutritionistId={}", id, nutritionistId);
         return PatientResponse.from(updated);
     }
 
@@ -130,6 +143,7 @@ public class PatientService {
                 .patientId(patient.getId())
                 .build();
         episodeRepository.save(episode);
+        logger.info("Patient reactivated: id={}, nutritionistId={}", id, nutritionistId);
 
         Patient updated = patientRepository.save(patient);
         return PatientResponse.from(updated);
