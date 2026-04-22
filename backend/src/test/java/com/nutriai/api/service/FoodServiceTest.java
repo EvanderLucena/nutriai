@@ -51,7 +51,7 @@ class FoodServiceTest {
         when(foodPortionRepository.findByFoodIdOrderBySortOrder(any(UUID.class))).thenReturn(List.of());
 
         CreateFoodRequest req = new CreateFoodRequest(
-                "BASE", "Arroz branco", "Cereais",
+                "BASE", "Arroz branco", "CARBOIDRATO",
                 new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
                 new BigDecimal("0.3"), new BigDecimal("0.4"),
                 null, null, null, null, null, null,
@@ -76,7 +76,7 @@ class FoodServiceTest {
         });
 
         CreateFoodRequest req = new CreateFoodRequest(
-                "PRESET", "Pão integral", "Pães",
+                "PRESET", "Pão integral", "CARBOIDRATO",
                 null, null, null, null, null,
                 new BigDecimal("30.0"), new BigDecimal("70.0"), new BigDecimal("2.5"),
                 new BigDecimal("12.0"), new BigDecimal("1.0"), "1 fatia",
@@ -107,15 +107,15 @@ class FoodServiceTest {
 
     @Test
     void listFoods_withSearchAndCategory_usesFilteredQuery() {
-        Food food = Food.builder().id(UUID.randomUUID()).nutritionistId(nutritionistId).type("BASE").name("Arroz").category("Cereais").build();
+        Food food = Food.builder().id(UUID.randomUUID()).nutritionistId(nutritionistId).type("BASE").name("Arroz").category("CARBOIDRATO").build();
         Page<Food> page = new PageImpl<>(List.of(food));
-        when(foodRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("arroz"), eq("Cereais"), any(PageRequest.class))).thenReturn(page);
+        when(foodRepository.findByNutritionistIdWithFilters(eq(nutritionistId), eq("arroz"), eq("CARBOIDRATO"), any(PageRequest.class))).thenReturn(page);
         when(foodPortionRepository.findByFoodIdOrderBySortOrder(food.getId())).thenReturn(List.of());
 
-        FoodService.FoodListResponse resp = foodService.listFoods(nutritionistId, 0, 12, "arroz", "Cereais");
+        FoodService.FoodListResponse resp = foodService.listFoods(nutritionistId, 0, 12, "arroz", "CARBOIDRATO");
 
         assertEquals(1, resp.content().size());
-        verify(foodRepository).findByNutritionistIdWithFilters(eq(nutritionistId), eq("arroz"), eq("Cereais"), any(PageRequest.class));
+        verify(foodRepository).findByNutritionistIdWithFilters(eq(nutritionistId), eq("arroz"), eq("CARBOIDRATO"), any(PageRequest.class));
         verify(foodRepository, never()).findByNutritionistId(any(), any());
     }
 

@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
-import { AGGREGATE } from '../data/aggregate';
+import { useState, useRef, useMemo } from 'react';
+import { usePatients } from '../stores/patientStore';
+import { mapPatientFromApi } from '../types/patient';
 
 function AggStat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -120,10 +121,16 @@ function CarteiraChart() {
 }
 
 export function InsightsView() {
+  const { data } = usePatients();
+  const activePats = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
+  const onTrack = activePats.filter(p => p.status === 'ontrack').length;
+  const warning = activePats.filter(p => p.status === 'warning').length;
+  const danger = activePats.filter(p => p.status === 'danger').length;
+
   return (
     <div className="page">
       <div style={{ marginBottom: 20 }}>
-        <div className="eyebrow">Análise agregada · {AGGREGATE.active} pacientes</div>
+        <div className="eyebrow">Análise agregada · {activePats.length} pacientes</div>
         <h1 className="serif" style={{ fontSize: 38, margin: '4px 0 6px', fontWeight: 400, letterSpacing: '-0.02em' }}>
           Panorama da sua carteira.
         </h1>
@@ -165,9 +172,9 @@ export function InsightsView() {
           <div className="insights-chart-layout" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 32, alignItems: 'center' }}>
             <CarteiraChart />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <LegendItem color="var(--sage)" label="On-track" value={`${AGGREGATE.onTrack} pacientes`} delta="+4 vs. mês anterior" />
-              <LegendItem color="var(--amber)" label="Atenção" value={`${AGGREGATE.warning} pacientes`} delta="-1 vs. mês anterior" />
-              <LegendItem color="var(--coral)" label="Crítico" value={`${AGGREGATE.danger} pacientes`} delta="+2 vs. mês anterior" />
+              <LegendItem color="var(--sage)" label="On-track" value={`${onTrack} pacientes`} delta="+4 vs. mês anterior" />
+              <LegendItem color="var(--amber)" label="Atenção" value={`${warning} pacientes`} delta="-1 vs. mês anterior" />
+              <LegendItem color="var(--coral)" label="Crítico" value={`${danger} pacientes`} delta="+2 vs. mês anterior" />
             </div>
           </div>
         </div>

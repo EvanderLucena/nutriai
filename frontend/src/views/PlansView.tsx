@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { IconPlus, IconDownload, IconX, IconTrash } from '../components/icons';
 import { PlanFoodRow, OptionTab, AddFoodModal, AddMealModal, ExtrasSection, SaveStatusIndicator } from '../components/plan';
-import { Toast } from '../components/ui/Toast';
 import {
   usePlan,
   usePlanUIStore,
@@ -509,7 +508,6 @@ export function PlansView({ patientId }: PlansViewProps) {
           onConfirm={handleDeleteMeal}
         />
       )}
-      <Toast visible={saveStatus === 'error'} onHide={() => { /* Toast auto-dismisses */ }} />
     </div>
   );
 }

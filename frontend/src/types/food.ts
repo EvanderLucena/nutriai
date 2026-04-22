@@ -1,14 +1,39 @@
+export type FoodTypeKey = 'BASE' | 'PRESET';
 export type FoodType = 'base' | 'preset';
 
-export type FoodCategory =
-  | 'Todos'
-  | 'Proteína'
-  | 'Carboidrato'
-  | 'Gordura'
-  | 'Vegetal'
-  | 'Fruta'
-  | 'Bebida'
-  | 'Outro';
+export const FOOD_TYPE_KEYS: FoodTypeKey[] = ['BASE', 'PRESET'];
+
+export const FOOD_TYPE_LABELS: Record<FoodTypeKey, string> = {
+  BASE: 'Base (por 100g)',
+  PRESET: 'Preset (porção pronta)',
+};
+
+export type FoodCategoryKey = 'PROTEINA' | 'CARBOIDRATO' | 'GORDURA' | 'VEGETAL' | 'FRUTA' | 'BEBIDA' | 'OUTRO';
+export type FoodCategory = 'Todos' | FoodCategoryKey;
+
+export const FOOD_CATEGORY_KEYS: FoodCategoryKey[] = [
+  'PROTEINA',
+  'CARBOIDRATO',
+  'GORDURA',
+  'VEGETAL',
+  'FRUTA',
+  'BEBIDA',
+  'OUTRO',
+];
+
+export const FOOD_CATEGORY_LABELS: Record<FoodCategoryKey, string> = {
+  PROTEINA: 'Proteína',
+  CARBOIDRATO: 'Carboidrato',
+  GORDURA: 'Gordura',
+  VEGETAL: 'Vegetal',
+  FRUTA: 'Fruta',
+  BEBIDA: 'Bebida',
+  OUTRO: 'Outro',
+};
+
+export const REVERSE_CATEGORY_LABELS: Record<string, FoodCategoryKey> = Object.fromEntries(
+  Object.entries(FOOD_CATEGORY_LABELS).map(([k, v]) => [v, k as FoodCategoryKey])
+) as Record<string, FoodCategoryKey>;
 
 export interface FoodPer100 {
   kcal: number;
@@ -37,16 +62,7 @@ export interface Food {
   used: number;
 }
 
-export const FOOD_CATEGORIES: FoodCategory[] = [
-  'Todos',
-  'Proteína',
-  'Carboidrato',
-  'Gordura',
-  'Vegetal',
-  'Fruta',
-  'Bebida',
-  'Outro',
-];
+export const FOOD_CATEGORIES: FoodCategory[] = ['Todos', ...FOOD_CATEGORY_KEYS];
 
 // API response types
 
@@ -58,7 +74,7 @@ export interface FoodPortionResponse {
 
 export interface FoodApiResponse {
   id: string;
-  type: FoodType;
+  type: string;
   name: string;
   category: string;
   per100Kcal: number | null;
@@ -88,13 +104,23 @@ export interface FoodListApiResponse {
   };
 }
 
+function normalizeType(raw: string): FoodType {
+  return raw.toUpperCase() === 'BASE' ? 'base' : 'preset';
+}
+
+function normalizeCategoryLabel(raw: string): string {
+  return FOOD_CATEGORY_LABELS[raw as FoodCategoryKey] || raw;
+}
+
 export function mapFoodFromApi(api: FoodApiResponse): Food {
-  if (api.type === 'base') {
+  const foodType = normalizeType(api.type);
+  const categoryLabel = normalizeCategoryLabel(api.category);
+  if (foodType === 'base') {
     return {
       id: api.id,
       type: 'base',
       name: api.name,
-      category: api.category,
+      category: categoryLabel,
       per100: {
         kcal: api.per100Kcal ?? 0,
         prot: api.per100Prot ?? 0,
@@ -110,7 +136,7 @@ export function mapFoodFromApi(api: FoodApiResponse): Food {
       id: api.id,
       type: 'preset',
       name: api.name,
-      category: api.category,
+      category: categoryLabel,
       portionLabel: api.portionLabel ?? '',
       grams: api.presetGrams ?? 0,
       nutrition: {

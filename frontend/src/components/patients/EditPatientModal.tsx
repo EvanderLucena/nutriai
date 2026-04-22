@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import type { Patient } from '../../types/patient';
-
-const OBJECTIVES = ['Emagrecimento', 'Hipertrofia', 'Manutenção', 'Recomposição corporal', 'Saúde geral', 'Controle glicêmico', 'Controle pressão', 'Performance esportiva', 'Reeducação alimentar'];
+import { OBJECTIVE_LABELS, OBJECTIVE_KEYS, REVERSE_OBJECTIVE_LABELS } from '../../types/patient';
+import type { Patient, ObjectiveOption } from '../../types/patient';
 
 interface EditPatientModalProps {
   patient: Patient;
@@ -16,7 +15,7 @@ interface EditPatientModalProps {
 export function EditPatientModal({ patient, open, onClose, onSave }: EditPatientModalProps) {
   const [form, setForm] = useState({
     name: patient.name,
-    objective: patient.objective,
+    objective: (REVERSE_OBJECTIVE_LABELS[patient.objective] ?? patient.objective) as ObjectiveOption,
     phone: '',
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -43,7 +42,7 @@ export function EditPatientModal({ patient, open, onClose, onSave }: EditPatient
               width: '100%',
             }}
           >
-            {OBJECTIVES.map(o => <option key={o} value={o}>{o}</option>)}
+            {OBJECTIVE_KEYS.map(o => <option key={o} value={o}>{OBJECTIVE_LABELS[o]}</option>)}
           </select>
         </div>
 

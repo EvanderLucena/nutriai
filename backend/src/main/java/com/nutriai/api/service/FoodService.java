@@ -10,16 +10,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class FoodService {
 
     private static final Logger logger = LoggerFactory.getLogger(FoodService.class);
+
+    private static final Set<String> VALID_TYPES = Set.of("BASE", "PRESET");
+    private static final Set<String> VALID_CATEGORIES = Set.of(
+            "PROTEINA", "CARBOIDRATO", "GORDURA", "VEGETAL", "FRUTA", "BEBIDA", "OUTRO"
+    );
 
     private final FoodRepository foodRepository;
     private final FoodPortionRepository foodPortionRepository;
@@ -31,6 +40,9 @@ public class FoodService {
 
     @Transactional
     public FoodResponse createFood(UUID nutritionistId, CreateFoodRequest req) {
+        validateType(req.type());
+        validateCategory(req.category());
+
         Food food = Food.builder()
                 .nutritionistId(nutritionistId)
                 .type(req.type())
@@ -101,7 +113,10 @@ public class FoodService {
                 .orElseThrow(() -> new ResourceNotFoundException("Alimento", foodId));
 
         if (req.name() != null) food.setName(req.name());
-        if (req.category() != null) food.setCategory(req.category());
+        if (req.category() != null) {
+            validateCategory(req.category());
+            food.setCategory(req.category());
+        }
 
         // BASE-only fields
         if (req.per100Kcal() != null) food.setPer100Kcal(req.per100Kcal());
@@ -154,6 +169,20 @@ public class FoodService {
     /**
      * Escape SQL LIKE special characters (% and _) for safe wildcard search.
      */
+    private void validateType(String type) {
+        if (type == null || !VALID_TYPES.contains(type.toUpperCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Tipo inválido. Valores permitidos: " + VALID_TYPES);
+        }
+    }
+
+    private void validateCategory(String category) {
+        if (category != null && !VALID_CATEGORIES.contains(category.toUpperCase())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Categoria inválida. Valores permitidos: " + VALID_CATEGORIES);
+        }
+    }
+
     private String escapeLike(String search) {
         if (search == null) return null;
         return search.replace("!", "!!")

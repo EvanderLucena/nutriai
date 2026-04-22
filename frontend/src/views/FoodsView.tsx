@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FOOD_CATEGORIES } from '../types/food';
-import type { Food, FoodCategory } from '../types/food';
+import { FOOD_CATEGORIES, FOOD_CATEGORY_LABELS, FOOD_TYPE_KEYS, FOOD_TYPE_LABELS, REVERSE_CATEGORY_LABELS } from '../types/food';
+import type { Food, FoodCategory, FoodCategoryKey, FoodTypeKey } from '../types/food';
 import { useFoodUIStore, useFoodCatalog, useCreateFood, useUpdateFood, useDeleteFood } from '../stores/foodStore';
 import { IconSearch, IconPlus, IconEdit, IconDots, IconX, IconCheck, IconTrash } from '../components/icons';
 
@@ -55,7 +55,9 @@ function FoodMenuDropdown({ onEdit, onDelete, onClose }: { onEdit: () => void; o
 
 function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => void }) {
   const [name, setName] = useState(food.name);
-  const [category, setCategory] = useState(food.category);
+  const [category, setCategory] = useState<FoodCategoryKey>(
+    REVERSE_CATEGORY_LABELS[food.category] || (food.category as FoodCategoryKey)
+  );
   const updateFood = useUpdateFood();
 
   const isBase = food.type === 'base';
@@ -127,10 +129,10 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
               <div className="eyebrow">Categoria</div>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => setCategory(e.target.value as FoodCategoryKey)}
                 style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
               >
-                {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c}>{c}</option>)}
+                {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c} value={c}>{FOOD_CATEGORY_LABELS[c as FoodCategoryKey]}</option>)}
               </select>
             </div>
           </div>
@@ -302,27 +304,45 @@ function FoodsPagination({ page, pages, total, pageSize, onChange }: { page: num
 
 function CreateFoodModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('Proteína');
+  const [foodType, setFoodType] = useState<FoodTypeKey>('PRESET');
+  const [category, setCategory] = useState<FoodCategoryKey>('PROTEINA');
   const [kcal, setKcal] = useState('');
   const [prot, setProt] = useState('');
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [portionLabel, setPortionLabel] = useState('');
+  const [grams, setGrams] = useState('');
+  const [fiber, setFiber] = useState('');
   const createFood = useCreateFood();
+  const [portions] = useState<Array<{ name: string; grams: number }>>([]);
 
   const handle = () => {
     if (!name.trim()) return;
-    createFood.mutate({
-      type: 'preset',
-      name: name.trim(),
-      category,
-      portionLabel: portionLabel || '1 porção',
-      presetGrams: 100,
-      presetKcal: Number(kcal) || 0,
-      presetProt: Number(prot) || 0,
-      presetCarb: Number(carb) || 0,
-      presetFat: Number(fat) || 0,
-    });
+    if (foodType === 'PRESET') {
+      createFood.mutate({
+        type: 'PRESET',
+        name: name.trim(),
+        category,
+        portionLabel: portionLabel || '1 porção',
+        presetGrams: Number(grams) || 100,
+        presetKcal: Number(kcal) || 0,
+        presetProt: Number(prot) || 0,
+        presetCarb: Number(carb) || 0,
+        presetFat: Number(fat) || 0,
+      });
+    } else {
+      createFood.mutate({
+        type: 'BASE',
+        name: name.trim(),
+        category,
+        per100Kcal: Number(kcal) || 0,
+        per100Prot: Number(prot) || 0,
+        per100Carb: Number(carb) || 0,
+        per100Fat: Number(fat) || 0,
+        per100Fiber: Number(fiber) || 0,
+        portions: portions.length > 0 ? portions : null,
+      });
+    }
     onClose();
   };
 
@@ -348,7 +368,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }} onClick={onClose}>
       <div className="card" style={{ width: 'min(520px, 100%)', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
         <div className="card-h">
-          <div className="title">Novo alimento · porção pronta</div>
+          <div className="title">Novo alimento</div>
           <div className="spacer" />
           <button onClick={onClose} className="btn btn-ghost" style={{ padding: '4px 6px' }}><IconX size={14} /></button>
         </div>
@@ -356,24 +376,36 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           {field('Nome do alimento', name, setName, { placeholder: 'ex: Frango desfiado 100g' })}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="eyebrow">Tipo</div>
+              <select
+                value={foodType}
+                onChange={(e) => setFoodType(e.target.value as FoodTypeKey)}
+                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
+              >
+                {FOOD_TYPE_KEYS.map((t) => <option key={t} value={t}>{FOOD_TYPE_LABELS[t]}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="eyebrow">Categoria</div>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => setCategory(e.target.value as FoodCategoryKey)}
                 style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
               >
-                {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c}>{c}</option>)}
+                {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c} value={c}>{FOOD_CATEGORY_LABELS[c as FoodCategoryKey]}</option>)}
               </select>
             </div>
-            {field('Descrição da porção', portionLabel, setPortionLabel, { placeholder: 'ex: 1 unidade · 100g' })}
           </div>
-          <div className="divider"><span>Macros da porção</span></div>
+          {foodType === 'PRESET' && field('Descrição da porção', portionLabel, setPortionLabel, { placeholder: 'ex: 1 unidade · 100g' })}
+          {foodType === 'PRESET' && field('Gramas da porção', grams, setGrams, { mono: true, placeholder: '100' })}
+          <div className="divider"><span>{foodType === 'BASE' ? 'Valores por 100g' : 'Macros da porção'}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {field('Kcal', kcal, setKcal, { mono: true, placeholder: '0' })}
             {field('Proteína (g)', prot, setProt, { mono: true, placeholder: '0' })}
             {field('Carboidrato (g)', carb, setCarb, { mono: true, placeholder: '0' })}
             {field('Gordura (g)', fat, setFat, { mono: true, placeholder: '0' })}
           </div>
+          {foodType === 'BASE' && field('Fibra (g)', fiber, setFiber, { mono: true, placeholder: '0' })}
         </div>
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
@@ -434,7 +466,11 @@ export function FoodsView() {
             onChange={(e) => setCategoryFilter(e.target.value as FoodCategory)}
             style={{ padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--fg)', fontSize: 12.5, fontFamily: 'var(--font-ui)' }}
           >
-            {FOOD_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            {FOOD_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c === 'Todos' ? 'Todos' : FOOD_CATEGORY_LABELS[c as FoodCategoryKey]}
+              </option>
+            ))}
           </select>
           <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}><IconPlus size={13} /> Novo alimento</button>
         </div>

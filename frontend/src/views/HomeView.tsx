@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { usePatients } from '../stores/patientStore';
+import { useAuthStore } from '../stores/authStore';
 import { mapPatientFromApi } from '../types/patient';
-import { AGGREGATE } from '../data/aggregate';
 import { KPI } from '../components/KPI';
-import { IconPlus, IconChevronR } from '../components/icons';
+import { IconChevronR } from '../components/icons';
 import { useNavigationStore } from '../stores/navigationStore';
 import type { Patient } from '../types/patient';
 
@@ -75,6 +75,7 @@ const PAGE_SIZE = 8;
 export function HomeView() {
   const { setActivePatientId, setView } = useNavigationStore();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
   const { data, isLoading } = usePatients();
   const activePats = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const patientSlice = activePats.slice(0, PAGE_SIZE);
@@ -86,6 +87,13 @@ export function HomeView() {
   };
 
   const statusColors: Record<string, string> = { ontrack: 'var(--sage)', warning: 'var(--amber)', danger: 'var(--coral)' };
+
+  const onTrack = activePats.filter(p => p.status === 'ontrack').length;
+  const warning = activePats.filter(p => p.status === 'warning').length;
+  const danger = activePats.filter(p => p.status === 'danger').length;
+  const avgAdherence = activePats.length > 0
+    ? Math.round(activePats.reduce((sum, p) => sum + p.adherence, 0) / activePats.length)
+    : 0;
 
   const events = activePats.slice(0, 6).map((p, i) => ({
     time: ['14:28', '13:50', '12:05', '10:40', '09:14', '08:02'][i] || '07:30',
@@ -103,16 +111,13 @@ export function HomeView() {
         <div>
           <div className="eyebrow">Quarta-feira · 17 abril 2026</div>
           <h1 className="serif" style={{ fontSize: 34, margin: '4px 0 0', letterSpacing: '-0.02em', fontWeight: 400, whiteSpace: 'nowrap' }}>
-            Bom dia, Helena.
+            Bom dia, {user?.name?.split(' ')[0] || 'nutricionista'}.
           </h1>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
-          <div className="chip ontrack"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--sage)', marginRight: 4 }} />{AGGREGATE.onTrack} on-track</div>
-          <div className="chip warning"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)', marginRight: 4 }} />{AGGREGATE.warning} atenção</div>
-          <div className="chip danger"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--coral)', marginRight: 4 }} />{AGGREGATE.danger} crítico</div>
-          <button className="btn btn-primary" onClick={() => { /* New patient modal would open here */ }} style={{ marginLeft: 8 }}>
-            <IconPlus size={13} /> Novo paciente
-          </button>
+          <div className="chip ontrack"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--sage)', marginRight: 4 }} />{onTrack} on-track</div>
+          <div className="chip warning"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--amber)', marginRight: 4 }} />{warning} atenção</div>
+          <div className="chip danger"><span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--coral)', marginRight: 4 }} />{danger} crítico</div>
         </div>
       </div>
 
@@ -121,25 +126,25 @@ export function HomeView() {
         <KPI
           label="Pacientes ativos"
           value={String(data?.totalElements ?? 0)}
-          sub="+2 esta semana"
+          sub={`${activePats.length} pacientes`}
           sparklineData={[44, 45, 46, 47, 46, 48, 48]}
           trend="up"
         />
         <KPI
           label="Adesão média"
-          value={`${AGGREGATE.avgAdherence}%`}
-          sub={`${AGGREGATE.avgAdherenceWoW > 0 ? '+' : ''}${AGGREGATE.avgAdherenceWoW}pp vs. semana passada`}
+          value={`${avgAdherence}%`}
+          sub="média da carteira"
           sparklineData={[78, 79, 80, 81, 80, 82, 82]}
           trend="up"
         />
         <KPI
           label="Refeições registradas"
-          value="127"
+          value="—"
           sub="via WhatsApp"
         />
         <KPI
           label="Sem registro há >3 dias"
-          value={String(AGGREGATE.danger)}
+          value={String(danger)}
           sub="contato recomendado"
           danger
         />

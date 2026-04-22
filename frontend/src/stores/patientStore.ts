@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as patientApi from '../api/patients';
 import type { PatientStatus, ObjectiveOption } from '../types/patient';
+import { useToastStore } from './toastStore';
 
 // Zustand store for client-side UI state (filters, modals, selection)
 interface PatientUIState {
@@ -85,6 +86,9 @@ export function useCreatePatient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
     },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao criar paciente — tente novamente');
+    },
   });
 }
 
@@ -98,6 +102,9 @@ export function useUpdatePatient() {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
       queryClient.invalidateQueries({ queryKey: ['patient', id] });
     },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao atualizar paciente — tente novamente');
+    },
   });
 }
 
@@ -109,6 +116,9 @@ export function useDeactivatePatient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
     },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao desativar paciente — tente novamente');
+    },
   });
 }
 
@@ -119,6 +129,9 @@ export function useReactivatePatient() {
     mutationFn: patientApi.reactivatePatient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
+    },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao reativar paciente — tente novamente');
     },
   });
 }

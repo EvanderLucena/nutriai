@@ -5,6 +5,7 @@ import type { AuthUser, SignupRequest, MeResponse, FieldError } from '../types';
 
 interface AuthState {
   isAuthenticated: boolean;
+  isInitializing: boolean;
   user: AuthUser | null;
   accessToken: string | null;
   isLoading: boolean;
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
+      isInitializing: true,
       user: null,
       accessToken: null,
       isLoading: false,
@@ -121,7 +123,6 @@ export const useAuthStore = create<AuthState>()(
       clearError: () => set({ error: null, fieldErrors: {} }),
 
       initializeAuth: async () => {
-        // Clean up old mock auth key
         const oldAuth = localStorage.getItem('nutriai.auth');
         if (oldAuth === 'true') {
           localStorage.removeItem('nutriai.auth');
@@ -129,7 +130,7 @@ export const useAuthStore = create<AuthState>()(
 
         const token = get().accessToken;
         if (!token) {
-          set({ isAuthenticated: false });
+          set({ isAuthenticated: false, isInitializing: false });
           return;
         }
         try {
@@ -143,16 +144,16 @@ export const useAuthStore = create<AuthState>()(
               onboardingCompleted: user.onboardingCompleted,
             },
             isAuthenticated: true,
+            isInitializing: false,
           });
         } catch {
-          // Access token might be expired, try refresh
           try {
             await get().refreshAuth();
-            // refreshAuth already set state
           } catch {
             set({ isAuthenticated: false, user: null, accessToken: null });
           }
         }
+        set({ isInitializing: false });
       },
     }),
     {

@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useNavigationStore } from '../../stores/navigationStore';
-import { PATIENTS } from '../../data/patients';
+import { usePatients } from '../../stores/patientStore';
+import { useAuthStore } from '../../stores/authStore';
+import { mapPatientFromApi } from '../../types/patient';
 import { IconSearch, IconHome, IconUsers, IconMeal, IconInsight } from '../icons';
 import type { PatientStatus } from '../../types/patient';
 
@@ -31,14 +33,17 @@ export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setView, setActivePatientId, statusFilter, setStatusFilter, sidebarOpen } = useNavigationStore();
+  const user = useAuthStore((s) => s.user);
+  const { data } = usePatients();
+  const apiPatients = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const [q, setQ] = useState('');
 
   const filtered = useMemo(() => {
-    let list = PATIENTS;
+    let list = apiPatients;
     if (statusFilter !== 'all') list = list.filter((p) => p.status === statusFilter);
     if (q) list = list.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
     return list;
-  }, [q, statusFilter]);
+  }, [apiPatients, q, statusFilter]);
 
   return (
     <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
@@ -48,7 +53,7 @@ export function Sidebar() {
           <div className="brand-tag mono">v2.4</div>
         </div>
         <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          Dra. Helena Viana · CRN-3 24781
+          {user?.name || 'Nutricionista'}
         </div>
       </div>
 
@@ -69,7 +74,7 @@ export function Sidebar() {
             <it.Icon size={15} />
             <span>{it.label}</span>
             {'badge' in it && it.badge && <span className="count">{it.badge}</span>}
-            {it.id === 'patients' && <span className="count">{PATIENTS.length}</span>}
+            {it.id === 'patients' && <span className="count">{apiPatients.length}</span>}
           </button>
         ))}
       </div>

@@ -11,6 +11,12 @@ export const OBJECTIVE_LABELS: Record<string, string> = {
   SAUDE_GERAL: 'Saúde geral',
 };
 
+export const OBJECTIVE_KEYS = Object.keys(OBJECTIVE_LABELS) as ObjectiveOption[];
+
+export const REVERSE_OBJECTIVE_LABELS: Record<string, ObjectiveOption> = Object.fromEntries(
+  Object.entries(OBJECTIVE_LABELS).map(([k, v]) => [v, k as ObjectiveOption])
+) as Record<string, ObjectiveOption>;
+
 export const STATUS_LABELS: Record<PatientStatus, string> = {
   ontrack: 'On-track',
   warning: 'Atenção',

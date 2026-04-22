@@ -1,4 +1,5 @@
-export type { PatientStatus, MacroValues, MacroTarget, Patient, BiometricEntry, SkinfoldEntry as SkinfoldEntryType, SkinfoldData, PerimetryMeasure, PerimetryData, TimelineMacro, TimelineEvent, DetailedPatient } from './patient';
+export type { PatientStatus, ObjectiveOption, MacroValues, MacroTarget, Patient, BiometricEntry, SkinfoldEntry as SkinfoldEntryType, SkinfoldData, PerimetryMeasure, PerimetryData, TimelineMacro, TimelineEvent, DetailedPatient } from './patient';
+export { OBJECTIVE_LABELS, OBJECTIVE_KEYS, REVERSE_OBJECTIVE_LABELS, mapPatientFromApi } from './patient';
 export type { FoodType, FoodCategory, FoodPer100, FoodPortion, Food, FoodPortionResponse, FoodApiResponse, FoodListApiResponse } from './food';
 export { FOOD_CATEGORIES, mapFoodFromApi } from './food';
 export type { MealFood, MealOption, MealSlot, PlanExtra, MealPlan } from './plan';

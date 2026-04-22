@@ -453,6 +453,38 @@ E2E tests MUST be written with the critical eye of a SENIOR QA engineer. Every s
 6. **Test edge cases** — empty states, pagination boundaries, concurrent actions, network errors
 7. **Test accessibility basics** — visible labels, focusable elements, no layout breaks
 8. **Never skip assertions** — use `expect` not `if+skip`; fail fast on unexpected states
+
+### E2E (Playwright) — REGRA DE INTEGRAÇÃO FRONT↔BACK
+E2E tests são a **única camada que valida alinhamento real entre frontend e backend**. Unit testes não pegam desalinhamento de contrato.
+
+**Para cada tela/fluxo que envia dados ao backend, o E2E DEVE:**
+
+1. **Testar conversão de valores** — Se a UI exibe "Hipertrofia" mas envia `HIPERTROFIA`, o teste verifica que o dado chega no backend no formato correto. Para cada campo com mapeamento (enum↔label, string↔number, etc.), o teste valida a tradução end-to-end.
+
+2. **Testar rejeição de valores inválidos** — Para cada campo enum, o E2E chama a API diretamente com o label pt-BR e verifica que retorna 400. Isso garante que se alguém remover a conversão no frontend, o teste falha.
+
+3. **Testar UI→API→UI completo** — Preencher formulário na UI → submeter → verificar via API que o recurso foi criado com os valores corretos → verificar que a UI exibe o dado criado.
+
+4. **Testar erro visível** — Para cada mutation que pode falhar (400, 401, 409, 404), o E2E verifica que o usuário vê uma mensagem de erro. Erro silencioso = bug.
+
+5. **Sem valores hardcoded de contorno** — Nunca usar valores nos testes E2E que burlam o problema real (ex: mandar o enum key direto na API quando a UI manda o label). O teste deve simular o que a UI realmente envia.
+
+**Checklist por endpoint (obrigatório antes de marcar fase como completa):**
+
+| Endpoint | UI→Payload | Enum/Conversão | Erro visível? | E2E testa? |
+|----------|-----------|----------------|---------------|------------|
+| POST /auth/signup | SignupView→{name,email,password,crn,...} | — | sim | ☐ |
+| POST /auth/login | LoginView→{email,password} | — | sim | ☐ |
+| POST /patients | NewPatientModal→{name,objective,...} | objective: label→enum | sim | ☐ |
+| PATCH /patients/{id} | EditPatientModal→{name,objective,...} | objective: label→enum, status: label→enum | sim | ☐ |
+| GET /patients | PatientsView list | status filter, objective filter | — | ☐ |
+| POST /foods | CreateFoodModal→{name,type,category,...} | type: label→enum, category: label→enum | sim | ☐ |
+| PATCH /foods/{id} | EditFoodModal→{name,type,category,...} | type/category: label→enum | sim | ☐ |
+| POST /plans/{episodeId}/slots | PlansView→{mealSlot} | — | sim | ☐ |
+| PATCH /plans/slots/{id} | PlansView→{option/food} | — | sim | ☐ |
+| POST /plans/{episodeId}/extras | PlansView→{extra} | — | sim | ☐ |
+| (adicionar linhas conforme novos endpoints são criados) | | | | |
+
 - Requires backend + frontend running
 - Run: `npm run test:e2e` (from frontend/)
 

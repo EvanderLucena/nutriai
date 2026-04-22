@@ -115,7 +115,7 @@ class PlanControllerTest {
 
         // Create a BASE food for testing items
         CreateFoodRequest foodReq = new CreateFoodRequest(
-                "BASE", "Arroz branco", "Cereais",
+                "BASE", "Arroz branco", "CARBOIDRATO",
                 new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
                 new BigDecimal("0.3"), new BigDecimal("0.4"),
                 null, null, null, null, null, null, null

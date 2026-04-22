@@ -13,11 +13,15 @@ import { LandingView } from './views/LandingView';
 import { LoginView } from './views/LoginView';
 import { SignupView } from './views/SignupView';
 import { OnboardingView } from './views/OnboardingView';
+import { Toast } from './components/ui/Toast';
 import type { ReactNode } from 'react';
 
 function AuthGuard({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isInitializing = useAuthStore((s) => s.isInitializing);
   const user = useAuthStore((s) => s.user);
+
+  if (isInitializing) return null;
 
   if (!isAuthenticated || !user) return <Navigate to="/" replace />;
 
@@ -32,7 +36,10 @@ function AuthGuard({ children }: { children: ReactNode }) {
 
 function RedirectIfAuthenticated({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isInitializing = useAuthStore((s) => s.isInitializing);
   const user = useAuthStore((s) => s.user);
+
+  if (isInitializing) return null;
 
   if (isAuthenticated && user) {
     if (!user.onboardingCompleted) return <Navigate to="/onboarding" replace />;
@@ -87,6 +94,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      <Toast />
     </QueryClientProvider>
   );
 }

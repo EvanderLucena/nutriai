@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-
-const OBJECTIVES = ['Emagrecimento', 'Hipertrofia', 'Manutenção', 'Recomposição corporal', 'Saúde geral', 'Controle glicêmico', 'Controle pressão', 'Performance esportiva', 'Reeducação alimentar'];
+import { OBJECTIVE_LABELS, OBJECTIVE_KEYS } from '../../types/patient';
+import type { ObjectiveOption } from '../../types/patient';
 
 interface NewPatientModalProps {
   open: boolean;
   onClose: () => void;
-  onSave?: (data: { name: string; objective: string; phone: string }) => void;
+  onSave?: (data: { name: string; objective: ObjectiveOption; phone: string }) => void;
 }
 
 export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps) {
-  const [form, setForm] = useState({ name: '', objective: '', phone: '', birthDate: '', sex: '', height: '', notes: '' });
+  const [form, setForm] = useState({ name: '', objective: '' as ObjectiveOption | '', phone: '', birthDate: '', sex: '', height: '', notes: '' });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || !form.objective) return;
     onSave?.({ name: form.name, objective: form.objective, phone: form.phone });
     onClose();
   };
@@ -61,7 +61,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
               }}
             >
               <option value="">Selecione…</option>
-              {OBJECTIVES.map(o => <option key={o} value={o}>{o}</option>)}
+              {OBJECTIVE_KEYS.map(o => <option key={o} value={o}>{OBJECTIVE_LABELS[o]}</option>)}
             </select>
           </div>
         </div>
@@ -79,7 +79,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
         <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-        <Button variant="primary" disabled={!form.name.trim()} onClick={handleSubmit}>Cadastrar paciente</Button>
+        <Button variant="primary" disabled={!form.name.trim() || !form.objective} onClick={handleSubmit}>Cadastrar paciente</Button>
       </div>
     </Modal>
   );

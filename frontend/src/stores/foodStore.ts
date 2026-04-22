@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as foodApi from '../api/foods';
-import type { FoodCategory } from '../types/food';
+import type { FoodCategory, FoodCategoryKey } from '../types/food';
 import { mapFoodFromApi } from '../types/food';
+import { useToastStore } from './toastStore';
 
 // Zustand store for client-side UI state (filters, modals, selection)
 interface FoodUIState {
@@ -44,7 +45,7 @@ export function useFoodCatalog() {
         page: currentPage,
         size: pageSize,
         search: searchQuery || undefined,
-        category: categoryFilter !== 'Todos' ? categoryFilter : undefined,
+        category: categoryFilter !== 'Todos' ? (categoryFilter as FoodCategoryKey) : undefined,
       });
       return {
         content: response.data.content.map(mapFoodFromApi),
@@ -84,6 +85,9 @@ export function useCreateFood() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foods'] });
     },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao criar alimento — tente novamente');
+    },
   });
 }
 
@@ -96,6 +100,9 @@ export function useUpdateFood() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foods'] });
     },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao atualizar alimento — tente novamente');
+    },
   });
 }
 
@@ -106,6 +113,9 @@ export function useDeleteFood() {
     mutationFn: foodApi.deleteFood,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['foods'] });
+    },
+    onError: () => {
+      useToastStore.getState().showError('Erro ao excluir alimento — tente novamente');
     },
   });
 }

@@ -1,17 +1,19 @@
 import { apiClient } from './client';
 import type { FoodListApiResponse, FoodApiResponse } from '../types/food';
 
+import type { FoodTypeKey, FoodCategoryKey } from '../types/food';
+
 export interface ListFoodsParams {
   page?: number;
   size?: number;
   search?: string;
-  category?: string;
+  category?: FoodCategoryKey;
 }
 
 export interface CreateFoodRequest {
-  type: string;
+  type: FoodTypeKey;
   name: string;
-  category: string;
+  category: FoodCategoryKey;
   per100Kcal?: number | null;
   per100Prot?: number | null;
   per100Carb?: number | null;

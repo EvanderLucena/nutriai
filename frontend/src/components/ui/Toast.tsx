@@ -1,27 +1,22 @@
 import { useEffect, useState } from 'react';
+import { useToastStore } from '../../stores/toastStore';
 
-interface ToastProps {
-  visible: boolean;
-  message?: string;
-  onHide: () => void;
-}
-
-export function Toast({ visible, message = 'Erro ao salvar — tente novamente', onHide }: ToastProps) {
+export function Toast() {
+  const { visible, message, hideToast } = useToastStore();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      // Trigger fade-in
       requestAnimationFrame(() => setShow(true));
       const timer = setTimeout(() => {
         setShow(false);
-        setTimeout(onHide, 200); // Wait for fade-out transition
+        setTimeout(hideToast, 200);
       }, 4000);
       return () => clearTimeout(timer);
     } else {
       setShow(false);
     }
-  }, [visible, onHide]);
+  }, [visible, hideToast]);
 
   if (!visible && !show) return null;
 
@@ -43,7 +38,7 @@ export function Toast({ visible, message = 'Erro ao salvar — tente novamente',
         fontFamily: 'var(--font-ui)',
       }}
     >
-      {message}
+      {message || 'Erro ao salvar — tente novamente'}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as planApi from '../api/plans';
 import type { MealPlan, MealFood } from '../types/plan';
+import { useToastStore } from './toastStore';
 
 // Save status type
 export type SaveStatus = 'saved' | 'saving' | 'error';
@@ -52,6 +53,7 @@ function withSaveStatus(
     },
     onError: () => {
       usePlanUIStore.getState().setSaveStatus('error');
+      useToastStore.getState().showError('Erro ao salvar plano — tente novamente');
       setTimeout(() => {
         usePlanUIStore.getState().setSaveStatus('saved');
       }, 3000);

@@ -58,13 +58,13 @@ describe('useFoodUIStore', () => {
 
   describe('categoryFilter', () => {
     it('sets category filter', () => {
-      useFoodUIStore.getState().setCategoryFilter('Proteína');
-      expect(useFoodUIStore.getState().categoryFilter).toBe('Proteína');
+      useFoodUIStore.getState().setCategoryFilter('PROTEINA');
+      expect(useFoodUIStore.getState().categoryFilter).toBe('PROTEINA');
     });
 
     it('resets page to 0 when category filter changes', () => {
       useFoodUIStore.setState({ currentPage: 2 });
-      useFoodUIStore.getState().setCategoryFilter('Carboidrato');
+      useFoodUIStore.getState().setCategoryFilter('CARBOIDRATO');
       expect(useFoodUIStore.getState().currentPage).toBe(0);
     });
   });

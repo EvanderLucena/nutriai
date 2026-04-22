@@ -29,7 +29,7 @@ public interface FoodRepository extends JpaRepository<Food, UUID> {
      */
     @Query("SELECT f FROM Food f WHERE f.nutritionistId = :nutritionistId " +
            "AND (:search IS NULL OR LOWER(f.name) LIKE LOWER(CONCAT('%', :search, '%')) ESCAPE '!') " +
-           "AND (:category IS NULL OR f.category = :category)")
+           "AND (:category IS NULL OR UPPER(f.category) = UPPER(:category))")
     Page<Food> findByNutritionistIdWithFilters(
             @Param("nutritionistId") UUID nutritionistId,
             @Param("search") String search,

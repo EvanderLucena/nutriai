@@ -208,11 +208,12 @@ export function PatientsView() {
         onSave={(data) => {
           const payload: CreatePatientRequest = {
             name: data.name,
-            age: 30,
             objective: data.objective,
-            weight: 70,
           };
-          createMutation.mutate(payload, { onSuccess: () => setNewPatientModalOpen(false) });
+          createMutation.mutate(payload, {
+            onSuccess: () => setNewPatientModalOpen(false),
+            onError: () => {},
+          });
         }}
       />
       {editingPatientId && (
