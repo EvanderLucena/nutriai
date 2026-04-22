@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-04-22T10:58:06.146Z"
+status: verifying
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-04-22T12:00:20.197Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 10
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 14
-  percent: 78
+  completed_plans: 15
+  percent: 83
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-19)
 
 Phase: 05 (meal-plans-food-catalog) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-22
 
 Progress: ██████████ 100%
@@ -142,6 +142,7 @@ Patient Management fully implemented and wired to real API:
 | 03 | 2 | - | - |
 | 04 | 2 | - | - |
 | Phase 05 P01 | 15min | 3 tasks | 36 files |
+| Phase 05 P02 | 45min | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Used patient.macrosToday (not macros) for MacroRings; used patient.weekMacroFill for WeekBars — both match existing type fields in DetailedPatient
 - [Phase 05]: Removed @OneToMany(mappedBy) from raw-UUID FK entities; cascade handled at DB level and service layer via deleteAllBy*() methods
 - [Phase 05]: Macro calculation: BigDecimal with HALF_UP rounding scale=1, formula per100 * grams / 100 for BASE, preset values for PRESET
+- [Phase 05]: AddFoodModal onAdd passes simplified shape (foodId+grams+qty) — parent PlansView calls addFoodItem.mutate
+- [Phase 05]: Macros frozen from backend: PlanFoodRow shows read-only macros, only grams and qty editable (D-20)
 
 ### Pending Todos
 
@@ -172,6 +175,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-22T10:58:06.141Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-04-22T12:00:20.192Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
