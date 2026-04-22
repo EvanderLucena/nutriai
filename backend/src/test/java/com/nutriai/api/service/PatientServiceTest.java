@@ -34,6 +34,9 @@ class PatientServiceTest {
     @Mock
     private NutritionistRepository nutritionistRepository;
 
+    @Mock
+    private MealPlanService mealPlanService;
+
     @InjectMocks
     private PatientService patientService;
 

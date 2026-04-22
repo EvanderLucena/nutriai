@@ -29,13 +29,16 @@ public class PatientService {
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
     private final NutritionistRepository nutritionistRepository;
+    private final MealPlanService mealPlanService;
 
     public PatientService(PatientRepository patientRepository,
                           EpisodeRepository episodeRepository,
-                          NutritionistRepository nutritionistRepository) {
+                          NutritionistRepository nutritionistRepository,
+                          MealPlanService mealPlanService) {
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
         this.nutritionistRepository = nutritionistRepository;
+        this.mealPlanService = mealPlanService;
     }
 
     @Transactional
@@ -60,7 +63,10 @@ public class PatientService {
         Episode episode = Episode.builder()
                 .patientId(saved.getId())
                 .build();
-        episodeRepository.save(episode);
+        Episode savedEpisode = episodeRepository.save(episode);
+
+        // D-13/D-14: Auto-create default 6-meal plan
+        mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
 
         return PatientResponse.from(saved);
     }
