@@ -144,8 +144,10 @@ Plans:
   - **Backend (JUnit 5)**: PlanController, PlanService, FoodController, FoodService — CRUD, macro calculation, plan-patient linkage
   - **Frontend (Vitest)**: planStore, foodStore — state, API, macro math; PlansView — inline editing, macro totals; FoodsView — search, pagination, create/edit
   - **E2E (Playwright)**: create meal plan, add foods, macro calculation, edit/delete food from catalog
-**Plans**: TBD
-**UI hint**: yes
+**Plans:** 2 plans in 2 waves
+Plans:
+- [ ] 05-01-PLAN.md — Backend entities, food catalog, meal plan API, macro calculation, auto-creation
+- [ ] 05-02-PLAN.md — Frontend types, API modules, stores, view wiring, auto-save UI components
 
 ### Phase 6: Dashboard & Biometry
 **Goal**: Nutritionists can track patient biometrics and see clinical insights on the dashboard
@@ -240,7 +242,7 @@ Phase 9 depends on Phase 3 and Phase 7 and can begin once both are complete.
 | 2. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
 | 3. Auth & Onboarding | 2/2 | Complete ✓ | 2026-04-21 |
 | 4. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
-| 5. Meal Plans & Food Catalog | 0/? | Not started | - |
+| 5. Meal Plans & Food Catalog | 0/2 | Planned | - |
 | 6. Dashboard & Biometry | 0/? | Not started | - |
 | 7. WhatsApp Intelligence | 0/? | Not started | - |
 | 8. Billing & Subscriptions | 0/? | Not started | - |
