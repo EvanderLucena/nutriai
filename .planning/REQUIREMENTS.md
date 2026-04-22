@@ -25,11 +25,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Meal Plans & Food
 
-- [ ] **PLAN-01**: Meal plan editor — meals, options, foods with inline editing
-- [ ] **PLAN-02**: Food catalog — base items (per 100g) and preset items (portioned)
-- [ ] **PLAN-03**: Automatic macro calculation (kcal, protein, carbs, fat)
-- [ ] **PLAN-04**: Multiple options per meal
-- [ ] **PLAN-05**: Extras/out-of-plan food authorization
+- [x] **PLAN-01**: Meal plan editor — meals, options, foods with inline editing
+- [x] **PLAN-02**: Food catalog — base items (per 100g) and preset items (portioned)
+- [x] **PLAN-03**: Automatic macro calculation (kcal, protein, carbs, fat)
+- [x] **PLAN-04**: Multiple options per meal
+- [x] **PLAN-05**: Extras/out-of-plan food authorization
 
 ### WhatsApp AI
 
@@ -119,11 +119,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PAT-03 | Phase 4 | Pending |
 | PAT-04 | Phase 4 | Pending |
 | PAT-05 | Phase 8 | Pending |
-| PLAN-01 | Phase 5 | Pending |
-| PLAN-02 | Phase 5 | Pending |
-| PLAN-03 | Phase 5 | Pending |
-| PLAN-04 | Phase 5 | Pending |
-| PLAN-05 | Phase 5 | Pending |
+| PLAN-01 | Phase 5 | Complete |
+| PLAN-02 | Phase 5 | Complete |
+| PLAN-03 | Phase 5 | Complete |
+| PLAN-04 | Phase 5 | Complete |
+| PLAN-05 | Phase 5 | Complete |
 | WA-01 | Phase 7 | Pending |
 | WA-02 | Phase 7 | Pending |
 | WA-03 | Phase 7 | Pending |

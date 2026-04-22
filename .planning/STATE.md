@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-04-22T03:42:24.738Z"
-last_activity: 2026-04-22 -- Phase 5 planning complete
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-04-22T10:58:06.146Z"
+last_activity: 2026-04-22
 progress:
   total_phases: 10
   completed_phases: 2
   total_plans: 18
-  completed_plans: 13
-  percent: 72
+  completed_plans: 14
+  percent: 78
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 04 — patient-management
+**Current focus:** Phase 05 — meal-plans-food-catalog
 
 ## Current Position
 
-Phase: 4
-Plan: All tasks complete
+Phase: 05 (meal-plans-food-catalog) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-04-22 -- Phase 5 planning complete
+Last activity: 2026-04-22
 
 Progress: ██████████ 100%
 
@@ -141,6 +141,7 @@ Patient Management fully implemented and wired to real API:
 | 02 | 8 | - | - |
 | 03 | 2 | - | - |
 | 04 | 2 | - | - |
+| Phase 05 P01 | 15min | 3 tasks | 36 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Phase 9 (LGPD) depends on Phase 3 (Auth) and Phase 7 (WhatsApp) — consent needs auth, data deletion needs WhatsApp data model
 - [Project]: Stripe recommended for MVP (solo-dev DX, subscription APIs); Pagar.me can be added later if needed
 - [Phase 02]: Used patient.macrosToday (not macros) for MacroRings; used patient.weekMacroFill for WeekBars — both match existing type fields in DetailedPatient
+- [Phase 05]: Removed @OneToMany(mappedBy) from raw-UUID FK entities; cascade handled at DB level and service layer via deleteAllBy*() methods
+- [Phase 05]: Macro calculation: BigDecimal with HALF_UP rounding scale=1, formula per100 * grams / 100 for BASE, preset values for PRESET
 
 ### Pending Todos
 
@@ -169,6 +172,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-22T03:35:15.822Z
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: .planning/phases/05-meal-plans-food-catalog/05-UI-SPEC.md
+Last session: 2026-04-22T10:58:06.141Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

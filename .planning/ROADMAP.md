@@ -146,7 +146,7 @@ Plans:
   - **E2E (Playwright)**: create meal plan, add foods, macro calculation, edit/delete food from catalog
 **Plans:** 2 plans in 2 waves
 Plans:
-- [ ] 05-01-PLAN.md — Backend entities, food catalog, meal plan API, macro calculation, auto-creation
+- [x] 05-01-PLAN.md — Backend entities, food catalog, meal plan API, macro calculation, auto-creation
 - [ ] 05-02-PLAN.md — Frontend types, API modules, stores, view wiring, auto-save UI components
 
 ### Phase 6: Dashboard & Biometry
