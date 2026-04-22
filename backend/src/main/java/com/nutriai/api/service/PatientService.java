@@ -148,10 +148,12 @@ public class PatientService {
         Episode episode = Episode.builder()
                 .patientId(patient.getId())
                 .build();
-        episodeRepository.save(episode);
-        logger.info("Patient reactivated: id={}, nutritionistId={}", id, nutritionistId);
+        Episode savedEpisode = episodeRepository.save(episode);
+
+        mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
 
         Patient updated = patientRepository.save(patient);
+        logger.info("Patient reactivated: id={}, nutritionistId={}", id, nutritionistId);
         return PatientResponse.from(updated);
     }
 

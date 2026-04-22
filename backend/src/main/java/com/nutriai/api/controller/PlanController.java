@@ -53,11 +53,10 @@ public class PlanController {
     public ResponseEntity<ApiResponse<MealSlotResponse>> updateMealSlot(
             @PathVariable UUID patientId,
             @PathVariable UUID mealId,
-            @RequestParam(required = false) String label,
-            @RequestParam(required = false) String time
+            @RequestBody @Valid UpdateMealSlotRequest request
     ) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
-        MealSlotResponse response = mealPlanService.updateMealSlot(nutritionistId, mealId, label, time);
+        MealSlotResponse response = mealPlanService.updateMealSlot(nutritionistId, mealId, request.label(), request.time());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -87,10 +86,10 @@ public class PlanController {
             @PathVariable UUID patientId,
             @PathVariable UUID mealId,
             @PathVariable UUID optionId,
-            @RequestParam(required = false) String name
+            @RequestBody @Valid UpdateOptionRequest request
     ) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
-        MealOptionResponse response = mealPlanService.updateOption(nutritionistId, optionId, name);
+        MealOptionResponse response = mealPlanService.updateOption(nutritionistId, optionId, request.name());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 

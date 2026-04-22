@@ -172,14 +172,12 @@ public class MealPlanService {
         if (time != null) slot.setTime(time);
         mealSlotRepository.save(slot);
 
-        return MealSlotResponse.from(slot,
-                mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId()),
-                mealFoodRepository.findByOptionIdOrderBySortOrder(
-                        mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId())
-                                .stream().map(MealOption::getId).toList().isEmpty() ?
-                        UUID.randomUUID() :
-                        mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId()).get(0).getId()
-                ));
+        List<MealOption> options = mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId());
+        List<MealFood> allItems = options.stream()
+                .flatMap(o -> mealFoodRepository.findByOptionIdOrderBySortOrder(o.getId()).stream())
+                .toList();
+
+        return MealSlotResponse.from(slot, options, allItems);
     }
 
     /**

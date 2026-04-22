@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { MealFood } from '../../types/plan';
 
 interface PlanFoodRowProps {
@@ -10,56 +10,75 @@ interface PlanFoodRowProps {
   onRemove: () => void;
 }
 
-export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepChange, onRemove }: PlanFoodRowProps) {
-  const [macroFlash, setMacroFlash] = useState(false);
+function EditableCell({ value, color, isNum, onChange }: { value: string | number; color: string; isNum: boolean; onChange: (val: string) => void }) {
+  const [local, setLocal] = useState(String(value));
+  const ref = useRef<HTMLInputElement>(null);
+  const syncing = useRef(false);
 
-  const cellStyle = (color: string, isNum: boolean, readonly?: boolean): React.CSSProperties => ({
-    padding: '5px 7px',
-    border: '1px solid transparent',
-    borderRadius: 5,
-    fontSize: 12.5,
-    background: readonly ? 'var(--surface-2)' : 'transparent',
-    outline: 'none',
-    color,
-    width: '100%',
-    fontFamily: isNum ? 'var(--font-mono)' : 'var(--font-ui)',
-    textAlign: isNum ? 'right' : 'left',
-    transition: readonly ? 'opacity 0.2s' : 'border-color 0.1s, background 0.1s',
-    opacity: macroFlash ? 0.5 : 1,
-  });
+  useEffect(() => {
+    if (!ref.current || ref.current !== document.activeElement) {
+      syncing.current = true;
+      setLocal(String(value));
+      syncing.current = false;
+    }
+  }, [value]);
 
-  const onFocusIn = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'var(--border)';
-    e.target.style.background = 'var(--surface)';
-  };
-  const onFocusOut = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'transparent';
-    e.target.style.background = 'transparent';
-  };
-
-  const editableInp = (
-    value: string | number,
-    color: string,
-    isNum: boolean,
-    onChange: (val: string) => void,
-    type?: string,
-  ) => (
+  return (
     <input
-      value={String(value)}
-      onChange={(e) => onChange(e.target.value)}
-      onFocus={onFocusIn}
-      onBlur={onFocusOut}
-      type={type}
-      style={cellStyle(color, isNum)}
+      ref={ref}
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={(e) => {
+        e.target.style.borderColor = 'transparent';
+        e.target.style.background = 'transparent';
+        const synced = String(value);
+        if (e.target.value !== synced) onChange(e.target.value);
+        else setLocal(synced);
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--border)';
+        e.target.style.background = 'var(--surface)';
+      }}
+      style={{
+        padding: '5px 7px', border: '1px solid transparent', borderRadius: 5, fontSize: 12.5,
+        background: 'transparent', outline: 'none', color, width: '100%',
+        fontFamily: isNum ? 'var(--font-mono)' : 'var(--font-ui)',
+        textAlign: isNum ? 'right' : 'left',
+      }}
     />
   );
+}
 
-  const handleGramsBlur = (val: string) => {
-    const newGrams = Number(val) || 0;
-    setMacroFlash(true);
-    onGramsChange(newGrams);
-    setTimeout(() => setMacroFlash(false), 200);
+export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepChange, onRemove }: PlanFoodRowProps) {
+  const [macroFlash, setMacroFlash] = useState(false);
+  const [localGrams, setLocalGrams] = useState(String(item.grams));
+  const gramsRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!gramsRef.current || gramsRef.current !== document.activeElement) {
+      setLocalGrams(String(item.grams));
+    }
+  }, [item.grams]);
+
+  const handleGramsBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.style.borderColor = 'transparent';
+    e.target.style.background = 'transparent';
+    const newGrams = Number(e.target.value) || 0;
+    if (newGrams !== item.grams) {
+      setMacroFlash(true);
+      onGramsChange(newGrams);
+      setTimeout(() => setMacroFlash(false), 200);
+    } else {
+      setLocalGrams(String(item.grams));
+    }
   };
+
+  const readonlyStyle = (color: string): React.CSSProperties => ({
+    padding: '5px 7px', border: '1px solid transparent', borderRadius: 5, fontSize: 12.5,
+    background: 'var(--surface-2)', outline: 'none', color, width: '100%',
+    fontFamily: 'var(--font-mono)', textAlign: 'right',
+    transition: 'opacity 0.2s', opacity: macroFlash ? 0.5 : 1,
+  });
 
   return (
     <div
@@ -72,51 +91,41 @@ export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepCh
         alignItems: 'center',
       }}
     >
-      {/* Alimento — read-only, frozen display name */}
       <div
         className="mono"
         title="Vinculado ao catálogo"
         style={{
-          padding: '5px 7px',
-          fontSize: 12.5,
-          color: 'var(--fg)',
-          background: 'var(--surface-2)',
-          borderRadius: 5,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          padding: '5px 7px', fontSize: 12.5, color: 'var(--fg)',
+          background: 'var(--surface-2)', borderRadius: 5,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}
       >
         {item.foodName}
       </div>
 
-      {/* Quantidade — editable free text */}
-      {editableInp(item.qty, 'var(--fg-muted)', false, (val) => onQtyChange(val))}
+      <EditableCell value={item.qty} color="var(--fg-muted)" isNum={false} onChange={onQtyChange} />
 
-      {/* Gramas — editable numeric */}
       <input
+        ref={gramsRef}
         type="number"
-        value={String(item.grams)}
-        onBlur={(e) => handleGramsBlur(e.target.value)}
-        style={cellStyle('var(--fg)', true)}
+        value={localGrams}
+        onChange={(e) => setLocalGrams(e.target.value)}
+        onBlur={handleGramsBlur}
+        onFocus={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.background = 'var(--surface)'; }}
+        style={{
+          padding: '5px 7px', border: '1px solid transparent', borderRadius: 5, fontSize: 12.5,
+          background: 'transparent', outline: 'none', color: 'var(--fg)', width: '100%',
+          fontFamily: 'var(--font-mono)', textAlign: 'right',
+        }}
       />
 
-      {/* Preparo — editable */}
-      {editableInp(item.prep, 'var(--fg-muted)', false, (val) => onPrepChange(val))}
+      <EditableCell value={item.prep} color="var(--fg-muted)" isNum={false} onChange={onPrepChange} />
 
-      {/* Kcal — read-only frozen macro */}
-      <input readOnly value={String(item.kcal)} style={cellStyle('var(--fg)', true, true)} />
+      <input readOnly value={String(item.kcal)} style={readonlyStyle('var(--fg)')} />
+      <input readOnly value={String(item.prot)} style={readonlyStyle('var(--sage-dim)')} />
+      <input readOnly value={String(item.carb)} style={readonlyStyle('var(--carb)')} />
+      <input readOnly value={String(item.fat)} style={readonlyStyle('var(--sky)')} />
 
-      {/* Prot — read-only frozen macro */}
-      <input readOnly value={String(item.prot)} style={cellStyle('var(--sage-dim)', true, true)} />
-
-      {/* Carb — read-only frozen macro */}
-      <input readOnly value={String(item.carb)} style={cellStyle('var(--carb)', true, true)} />
-
-      {/* Gord — read-only frozen macro */}
-      <input readOnly value={String(item.fat)} style={cellStyle('var(--sky)', true, true)} />
-
-      {/* Remove button */}
       <button
         onClick={onRemove}
         title="Remover"

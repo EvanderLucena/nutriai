@@ -6,7 +6,6 @@ import com.nutriai.api.model.MealSlot;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * DTO for a meal slot within a plan.

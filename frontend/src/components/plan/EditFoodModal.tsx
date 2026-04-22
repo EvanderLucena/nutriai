@@ -61,7 +61,7 @@ export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-            Alimento vinculqado ao catálogo
+            Alimento vinculado ao catálogo
           </div>
           {field('Nome', foodName, setFoodName)}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

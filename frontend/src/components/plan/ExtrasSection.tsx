@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { IconPlus, IconX, IconSparkle } from '../icons';
 import type { PlanExtra } from '../../types/plan';
 
@@ -8,16 +9,31 @@ interface ExtrasSectionProps {
   onDeleteExtra: (extraId: string) => void;
 }
 
-export function ExtrasSection({ extras, onUpdateExtra, onAddExtra, onDeleteExtra }: ExtrasSectionProps) {
-  const inp = (extraId: string, key: 'name' | 'quantity' | 'kcal' | 'prot' | 'carb' | 'fat', value: string | number, color: string, mono: boolean, align?: React.CSSProperties['textAlign']) => (
+function ExtraRow({ extra, onUpdateExtra, onDeleteExtra }: { extra: PlanExtra; onUpdateExtra: ExtrasSectionProps['onUpdateExtra']; onDeleteExtra: ExtrasSectionProps['onDeleteExtra'] }) {
+  const [localName, setLocalName] = useState(extra.name);
+  const [localQty, setLocalQty] = useState(extra.quantity);
+  const [localKcal, setLocalKcal] = useState(String(extra.kcal));
+  const [localProt, setLocalProt] = useState(String(extra.prot));
+  const [localCarb, setLocalCarb] = useState(String(extra.carb));
+  const [localFat, setLocalFat] = useState(String(extra.fat));
+
+  useEffect(() => {
+    setLocalName(extra.name);
+    setLocalQty(extra.quantity);
+    setLocalKcal(String(extra.kcal));
+    setLocalProt(String(extra.prot));
+    setLocalCarb(String(extra.carb));
+    setLocalFat(String(extra.fat));
+  }, [extra]);
+
+  const inp = (localVal: string, setLocal: (v: string) => void, color: string, mono: boolean, align?: React.CSSProperties['textAlign'], onBlurred?: (val: string) => void) => (
     <input
-      value={String(value)}
-      onChange={(ev) => {
-        const isNameOrQty = key === 'name' || key === 'quantity';
-        const numVal = Number(ev.target.value) || 0;
-        onUpdateExtra(extraId, { [key]: isNameOrQty ? ev.target.value : numVal });
+      value={localVal}
+      onChange={(ev) => setLocal(ev.target.value)}
+      onBlur={(ev) => {
+        ev.target.style.borderColor = 'transparent';
+        if (onBlurred) onBlurred(ev.target.value);
       }}
-      onBlur={(ev) => (ev.target.style.borderColor = 'transparent')}
       style={{
         padding: '3px 6px', border: '1px solid transparent', borderRadius: 5, fontSize: 12.5,
         background: 'transparent', outline: 'none', color, width: '100%',
@@ -28,6 +44,27 @@ export function ExtrasSection({ extras, onUpdateExtra, onAddExtra, onDeleteExtra
     />
   );
 
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 0.7fr 0.8fr 0.9fr 0.8fr 28px', gap: 8, padding: '5px 20px', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+      {inp(localName, setLocalName, 'var(--fg)', false, undefined, (v) => { if (v !== extra.name) onUpdateExtra(extra.id, { name: v }); })}
+      {inp(localQty, setLocalQty, 'var(--fg-muted)', true, undefined, (v) => { if (v !== extra.quantity) onUpdateExtra(extra.id, { quantity: v }); })}
+      {inp(localKcal, setLocalKcal, 'var(--fg)', true, 'right', (v) => { const n = Number(v) || 0; if (n !== extra.kcal) onUpdateExtra(extra.id, { kcal: n }); })}
+      {inp(localProt, setLocalProt, 'var(--sage-dim)', true, 'right', (v) => { const n = Number(v) || 0; if (n !== extra.prot) onUpdateExtra(extra.id, { prot: n }); })}
+      {inp(localCarb, setLocalCarb, 'var(--carb)', true, 'right', (v) => { const n = Number(v) || 0; if (n !== extra.carb) onUpdateExtra(extra.id, { carb: n }); })}
+      {inp(localFat, setLocalFat, 'var(--sky)', true, 'right', (v) => { const n = Number(v) || 0; if (n !== extra.fat) onUpdateExtra(extra.id, { fat: n }); })}
+      <button
+        onClick={() => onDeleteExtra(extra.id)}
+        style={{ color: 'var(--fg-subtle)', padding: 4 }}
+        onMouseEnter={(ev) => (ev.currentTarget.style.color = 'var(--coral)')}
+        onMouseLeave={(ev) => (ev.currentTarget.style.color = 'var(--fg-subtle)')}
+      >
+        <IconX size={12} />
+      </button>
+    </div>
+  );
+}
+
+export function ExtrasSection({ extras, onUpdateExtra, onAddExtra, onDeleteExtra }: ExtrasSectionProps) {
   return (
     <div style={{ padding: '20px 28px 28px' }}>
       <div className="card" style={{ marginBottom: 16 }}>
@@ -44,22 +81,12 @@ export function ExtrasSection({ extras, onUpdateExtra, onAddExtra, onDeleteExtra
           ))}
         </div>
         {extras.map((e) => (
-          <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 0.7fr 0.8fr 0.9fr 0.8fr 28px', gap: 8, padding: '5px 20px', borderBottom: e.id === extras[extras.length - 1].id ? 'none' : '1px solid var(--border)', alignItems: 'center' }}>
-            {inp(e.id, 'name', e.name, 'var(--fg)', false)}
-            {inp(e.id, 'quantity', e.quantity, 'var(--fg-muted)', true)}
-            {inp(e.id, 'kcal', e.kcal, 'var(--fg)', true, 'right')}
-            {inp(e.id, 'prot', e.prot, 'var(--sage-dim)', true, 'right')}
-            {inp(e.id, 'carb', e.carb, 'var(--carb)', true, 'right')}
-            {inp(e.id, 'fat', e.fat, 'var(--sky)', true, 'right')}
-            <button
-              onClick={() => onDeleteExtra(e.id)}
-              style={{ color: 'var(--fg-subtle)', padding: 4 }}
-              onMouseEnter={(ev) => (ev.currentTarget.style.color = 'var(--coral)')}
-              onMouseLeave={(ev) => (ev.currentTarget.style.color = 'var(--fg-subtle)')}
-            >
-              <IconX size={12} />
-            </button>
-          </div>
+          <ExtraRow
+            key={e.id}
+            extra={e}
+            onUpdateExtra={onUpdateExtra}
+            onDeleteExtra={onDeleteExtra}
+          />
         ))}
         <div style={{ padding: '12px 20px', background: 'var(--surface-2)', borderTop: '1px solid var(--border)' }}>
           <button onClick={onAddExtra} style={{ fontSize: 12.5, color: 'var(--fg-muted)' }}>
