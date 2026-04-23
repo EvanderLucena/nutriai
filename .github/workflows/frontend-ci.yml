@@ -33,8 +33,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Unit tests
-        run: npm test
+      - name: Unit tests with coverage
+        run: npx vitest run --coverage
+
+      - name: Dependency check
+        run: npm run depcruise
 
       - name: Build
         run: npm run build
