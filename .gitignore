@@ -37,6 +37,8 @@ data/
 # Logs
 *.log
 logs/
+stdout.log
+stderr.log
 
 # Misc
 *.tmp
@@ -54,5 +56,12 @@ test-results-*.csv
 run-tests.ps1
 session-ses_*.md
 frontend/test-results/
+frontend/coverage/
 *.tsbuildinfo
 .claude/
+
+# Secrets — never commit
+*.pem
+*.key
+credentials.json
+service-account*.json

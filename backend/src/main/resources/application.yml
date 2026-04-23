@@ -3,9 +3,9 @@ spring:
     name: nutriai-api
 
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/nutriai
-    username: nutriai
-    password: changeme
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/nutriai}
+    username: ${SPRING_DATASOURCE_USERNAME:nutriai}
+    password: ${SPRING_DATASOURCE_PASSWORD:changeme}
 
   jpa:
     hibernate:
@@ -22,7 +22,7 @@ server:
 nutriai:
   version: 0.2.0
   jwt:
-    secret: ${NUTRIAI_JWT_SECRET:default-dev-secret-change-in-production-must-be-at-least-256-bits-long}
+    secret: ${NUTRIAI_JWT_SECRET}
     access-token-expiration: 900000    # 15 minutes in ms
     refresh-token-expiration: 604800000 # 7 days in ms
     cookie:
