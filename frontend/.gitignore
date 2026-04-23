@@ -7,6 +7,9 @@ dist/
 # Coverage
 coverage/
 
+# Playwright auth state
+e2e/.auth/
+
 # Environment
 .env
 .env.local

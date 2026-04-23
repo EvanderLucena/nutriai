@@ -3,23 +3,8 @@ import { uniqueEmail, signupViaApi } from './helpers';
 
 const API = 'http://localhost:8080/api/v1';
 
-async function setupAuth(page: import('@playwright/test').Page) {
-  const email = uniqueEmail();
-  const { accessToken } = await signupViaApi(email);
-
-  await page.goto('/login');
-  await page.waitForLoadState('networkidle');
-  await page.evaluate((token) => {
-    localStorage.setItem('nutriai-auth', JSON.stringify({
-      state: { isAuthenticated: true, accessToken: token, user: { id: '1', name: 'Dra. Teste', email: 'test@test.com', role: 'NUTRITIONIST', onboardingCompleted: true } },
-      version: 0,
-    }));
-  }, accessToken);
-}
-
 test.describe('Patient Management — Page Rendering', () => {
   test.beforeEach(async ({ page }) => {
-    await setupAuth(page);
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
   });

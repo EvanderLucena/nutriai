@@ -3,29 +3,6 @@ import { uniqueEmail, signupViaApi } from './helpers';
 
 const API = 'http://localhost:8080/api/v1';
 
-async function setupAuthWithPatient(page: import('@playwright/test').Page, request: import('@playwright/test').APIRequestContext) {
-  const email = uniqueEmail();
-  const { accessToken } = await signupViaApi(email);
-
-  const createResp = await request.post(`${API}/patients`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    data: { name: 'Paciente Plano E2E', age: 30, objective: 'EMAGRECIMENTO' },
-  });
-  const created = await createResp.json();
-  const patientId = created.data.id;
-
-  await page.goto('/login');
-  await page.waitForLoadState('networkidle');
-  await page.evaluate((token) => {
-    localStorage.setItem('nutriai-auth', JSON.stringify({
-      state: { isAuthenticated: true, accessToken: token, user: { id: '1', name: 'Dra. Plano', email: 'plano@test.com', role: 'NUTRITIONIST', onboardingCompleted: true } },
-      version: 0,
-    }));
-  }, accessToken);
-
-  return { accessToken, patientId };
-}
-
 test.describe('Meal Plans — API Contract', () => {
   let accessToken: string;
   let patientId: string;
