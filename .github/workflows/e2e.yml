@@ -6,7 +6,7 @@ on:
       - 'frontend/**'
       - 'backend/**'
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - 'frontend/**'
       - 'backend/**'
