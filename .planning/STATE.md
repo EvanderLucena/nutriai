@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-04-22T12:00:20.197Z"
-last_activity: 2026-04-22
+status: completed
+stopped_at: Phase 05 complete — ready for Phase 06
+last_updated: "2026-04-23T17:00:00.000Z"
+last_activity: 2026-04-23
 progress:
   total_phases: 10
-  completed_phases: 3
-  total_plans: 18
-  completed_plans: 15
-  percent: 83
+  completed_phases: 4
+  total_plans: 19
+  completed_plans: 19
+  percent: 85
 ---
 
 # Project State
@@ -21,14 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 05 — meal-plans-food-catalog
+**Current focus:** Phase 06 — Dashboard & Biometry (or code quality infrastructure)
 
 ## Current Position
 
-Phase: 05 (meal-plans-food-catalog) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-04-22
+Phase: 05 (meal-plans-food-catalog) — COMPLETED
+Status: All 3 plans executed, review findings resolved, ready for next phase
+Last activity: 2026-04-23
 
 Progress: ██████████ 100%
 
@@ -122,6 +121,42 @@ Patient Management fully implemented and wired to real API:
 - e2e/patient-management.spec.ts: 7 E2E tests (page load, search, filter, new patient modal, inactive toggle, patient navigation, home KPIs)
 
 **Next:** Phase 5 — Meal Plans
+
+## Phase 5 Completion Summary
+
+Meal Plans & Food Catalog fully implemented with unified food model:
+
+**Backend (3 plans executed, 9 review findings, all resolved):**
+
+- Complete meal plan structure: Episode → MealSlots (breakfast/lunch/dinner/snacks) → Options → FoodItems
+- Unified Food model (removed BASE/PRESET type split): single model with unit + referenceAmount, proportional macro calculation
+- Removed FoodPortion entity entirely (simplified from 2-entity to 1-entity food model)
+- MealFood.grams → referenceAmount + unit (V12 migration)
+- Food CRUD with category enum, validation, and nutritionist-scoped queries
+- Extra foods (off-plan authorizations) with full CRUD
+- Migrations V9-V12 for schema evolution (drop basedOn, drop type/portions, fix category type, rename amount→referenceAmount)
+- Service simplification: single proportional calculation `macro * amount / referenceAmount`
+
+**Frontend (all views wired to real API with TanStack Query):**
+
+- FoodsView → useFoods(), useCreateFood(), useUpdateFood(), useDeleteFood() with optimistic updates
+- PlansView → planStore with useMealPlan, useCreateSlot, useUpdateSlot, useDeleteSlot, useAddOption, useRemoveOption, useAddFoodItem, useUpdateFoodItem, useDeleteFoodItem, useAddExtra, useDeleteExtra
+- All delete mutations with optimistic updates (useDeleteMealSlot, useDeleteOption, useDeleteFoodItem, useDeleteExtra)
+- AddFoodModal / EditFoodModal adapted for unified model (no BASE/PRESET distinction)
+- PlanFoodRow with debounced update, reference amount display
+
+**Tests (84 unit + E2E suite):**
+
+- FoodsView.test.tsx, PlansView.test.tsx, planStore tests
+- E2E: food-catalog.spec.ts, meal-plans.spec.ts with API contract validation, enum translation, cross-tenant isolation
+
+**Review findings resolved:**
+- CR-01: @RequestParam → @RequestBody (fixed)
+- WR-01: patientId in nested endpoints (accepted risk, documented)
+- WR-03: Delete without optimistic update (fixed)
+- All other findings fixed in P5-02 and P5-03
+
+**Next:** Phase 06 (Dashboard & Biometry) — or code quality infrastructure first
 
 ## Performance Metrics
 
