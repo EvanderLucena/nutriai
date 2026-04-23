@@ -5,15 +5,12 @@ import com.nutriai.api.model.MealFood;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * DTO for a food item within a meal option.
- */
 public record MealFoodResponse(
         UUID id,
         UUID foodId,
         String foodName,
-        String qty,
-        BigDecimal grams,
+        BigDecimal referenceAmount,
+        String unit,
         String prep,
         BigDecimal kcal,
         BigDecimal prot,
@@ -25,8 +22,8 @@ public record MealFoodResponse(
                 item.getId(),
                 item.getFoodId(),
                 item.getFoodName(),
-                item.getQty(),
-                item.getGrams(),
+                item.getReferenceAmount(),
+                item.getUnit(),
                 item.getPrep(),
                 item.getKcal(),
                 item.getProt(),
