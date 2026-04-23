@@ -80,7 +80,7 @@ One critical bug was found: the `updateMealSlot` backend endpoint accepts query 
 
 ## Critical Issues
 
-### CR-01: Frontend sends JSON body to `updateMealSlot` but backend expects `@RequestParam`
+### CR-01: Frontend sends JSON body to `updateMealSlot` but backend expects `@RequestParam` — ✅ FIXED
 
 **File:** `backend/src/main/java/com/nutriai/api/controller/PlanController.java:52-62` and `frontend/src/api/plans.ts:90-100`
 
@@ -96,19 +96,23 @@ public ResponseEntity<ApiResponse<MealSlotResponse>> updateMealSlot(
 ) {
     UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
     MealSlotResponse response = mealPlanService.updateMealSlot(
-        nutritionistId, mealId, request.label(), request.time());
+            nutritionistId, mealId, request.label(), request.time());
     return ResponseEntity.ok(ApiResponse.ok(response));
 }
 ```
 Or alternatively, change the frontend to pass query parameters. The `@RequestBody` approach is preferred as it's consistent with other PATCH endpoints in this controller.
 
+**Resolution (2026-04-23):** Backend now uses `@RequestBody @Valid UpdateMealSlotRequest request` with a proper record DTO. Frontend sends JSON body as expected. Fixed.
+
 ## Warnings
 
-### WR-01: `PlanController.updateMealSlot` and `updateOption` ignore `patientId` path variable for authorization
+### WR-01: `PlanController.updateMealSlot` and `updateOption` ignore `patientId` path variable for authorization — 🟡 ACCEPTED RISK
 
 **File:** `backend/src/main/java/com/nutriai/api/controller/PlanController.java:52-62` and `85-95`
 
-**Issue:** The `updateMealSlot`, `deleteMealSlot`, `updateOption`, `deleteOption`, `updateFoodItem`, and `deleteFoodItem` endpoints receive `patientId` as a `@PathVariable` but never pass it to the service layer. They only pass `nutritionistId` and the direct child ID (mealId, optionId, itemId). The service verifies ownership by walking the chain MealFood→MealOption→MealSlot→MealPlan→nutritionistId, which is correct for nutritionist isolation. However, the `patientId` in the URL is unused, creating a misleading API contract — a caller could put any patientId in the URL and the request would still succeed as long as they own the meal option/item through a different patient. This is an authorization gap where the API implies patient-scoping but doesn't enforce it.
+**Issue:** The `updateMealSlot`, `deleteMealSlot`, `updateOption`, `deleteOption`, `updateFoodItem`, `deleteFoodItem` endpoints receive `patientId` as a `@PathVariable` but never pass it to the service layer. They only pass `nutritionistId` and the direct child ID (mealId, optionId, itemId). The service verifies ownership by walking the chain MealFood→MealOption→MealSlot→MealPlan→nutritionistId, which is correct for nutritionist isolation. However, the `patientId` in the URL is unused, creating a misleading API contract — a caller could put any patientId in the URL and the request would still succeed as long as they own the meal option/item through a different patient. This is an authorization gap where the API implies patient-scoping but doesn't enforce it.
+
+**Resolution (2026-04-23):** Accepted as documented risk. The `nutritionistId` check via ownership chain provides sufficient isolation. Removing `patientId` from URLs would break the API contract with frontend and E2E tests. The current behavior is functionally correct — no data leakage occurs because the service always verifies ownership through the `nutritionistId` chain.
 
 **Fix:** Either (a) pass `patientId` to the service and verify the chain goes through the correct patient, or (b) remove `patientId` from these nested-resource endpoints (since they're redundant — the mealSlotId/optionId already uniquely identify the resource). Option (b) is simpler and avoids the misleading contract:
 ```java
@@ -119,7 +123,7 @@ public ResponseEntity<ApiResponse<MealSlotResponse>> updateMealSlot(
         @RequestBody @Valid UpdateMealSlotRequest request) { ... }
 ```
 
-### WR-02: `MealPlanService.updateMealSlot` response construction is fragile with fallback to random UUID
+### WR-02: `MealPlanService.updateMealSlot` response construction is fragile with fallback to random UUID — ✅ FIXED
 
 **File:** `backend/src/main/java/com/nutriai/api/service/MealPlanService.java:168-183`
 
@@ -141,11 +145,13 @@ public MealSlotResponse updateMealSlot(UUID nutritionistId, UUID mealSlotId, Str
 }
 ```
 
-### WR-03: `withSaveStatus` helper uses `onMutate` but mutations that spread it also define their own `onMutate`
+### WR-03: `withSaveStatus` helper uses `onMutate` but mutations that spread it also define their own `onMutate` — ✅ FIXED
 
 **File:** `frontend/src/stores/planStore.ts:45-63` and `109-118`
 
 **Issue:** Several mutation hooks (e.g., `useAddMealSlot`, `useDeleteMealSlot`, `useAddExtra`, `useUpdateExtra`, `useDeleteFoodItem`) spread `...withSaveStatus(queryClient, patientId)` which defines `onMutate`, `onError`, and `onSettled`. However, `withSaveStatus.onMutate` only sets the save status to 'saving' — it does NOT return a context for rollback. Meanwhile, `useUpdatePlan` and `useAddFoodItem` implement proper optimistic updates with context. For `useDeleteFoodItem` and `useDeleteMealSlot`, there's no optimistic update — the cache only refreshes after `onSettled`. This means the UI won't reflect deletions until the server confirms, causing a perceived lag. It's inconsistent with the `useUpdatePlan`/`useAddFoodItem` patterns that show instant feedback.
+
+**Resolution (2026-04-23):** All delete mutations (`useDeleteMealSlot`, `useDeleteOption`, `useDeleteFoodItem`, `useDeleteExtra`) now have proper optimistic updates with `onMutate` (removes item from cache immediately), `onError` (rolls back on failure), and `onSettled` (invalidates cache). Pattern matches `useUpdatePlan` and `useAddFoodItem`.
 
 **Fix:** Add optimistic updates for delete mutations. For example, `useDeleteFoodItem` should:
 ```typescript
@@ -167,7 +173,7 @@ onMutate: ({ mealId, optionId, itemId }) => {
 },
 ```
 
-### WR-04: `PlanFoodRow` fires `onQtyChange` and `onPrepChange` on every keystroke, not on blur
+### WR-04: `PlanFoodRow` fires `onQtyChange` and `onPrepChange` on every keystroke, not on blur — ✅ FIXED
 
 **File:** `frontend/src/components/plan/PlanFoodRow.tsx:94-105`
 
@@ -190,7 +196,7 @@ onMutate: ({ mealId, optionId, itemId }) => {
 ```
 Note: switching from `value`/`onChange` to `defaultValue`/`onBlur` is needed to allow free typing without re-render from optimistic state.
 
-### WR-05: `ExtrasSection` fires `onUpdateExtra` on every keystroke for name/quantity fields
+### WR-05: `ExtrasSection` fires `onUpdateExtra` on every keystroke for name/quantity fields — ✅ FIXED
 
 **File:** `frontend/src/components/plan/ExtrasSection.tsx:13-19`
 
@@ -221,7 +227,7 @@ This requires converting from controlled to uncontrolled inputs or managing loca
 kcal: Math.round(selected.per100.kcal * g * 10) / 10,  // matches HALF_UP scale=1
 ```
 
-### WR-07: `Food.type` is stored as plain String, no enum validation
+### WR-07: `Food.type` is stored as plain String, no enum validation — ✅ FIXED (type eliminated via P5-03 refactoring)
 
 **File:** `backend/src/main/java/com/nutriai/api/model/Food.java:37` and `backend/src/main/java/com/nutriai/api/dto/food/CreateFoodRequest.java:12`
 
@@ -237,7 +243,7 @@ private FoodType type;
 ```
 Then the service check becomes `food.getType() == FoodType.BASE`.
 
-### WR-08: `reactivatePatient` creates new episode but doesn't create a default meal plan
+### WR-08: `reactivatePatient` creates new episode but doesn't create a default meal plan — ✅ FIXED
 
 **File:** `backend/src/main/java/com/nutriai/api/service/PatientService.java:141-156`
 

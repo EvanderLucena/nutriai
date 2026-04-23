@@ -1,0 +1,1 @@
+ALTER TABLE food_catalog DROP COLUMN IF EXISTS based_on;

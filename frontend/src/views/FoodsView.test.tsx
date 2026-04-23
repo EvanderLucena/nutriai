@@ -9,30 +9,40 @@ vi.mock('react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 }));
 
-const mockBaseFood: Food = {
+const mockFood1: Food = {
   id: 'f1',
-  type: 'base',
   name: 'Aveia em flocos',
   category: 'Carboidrato',
-  per100: { kcal: 389, prot: 17, carb: 66, fat: 7, fiber: 11 },
-  portions: [{ name: '1 xícara', grams: 40 }],
+  unit: 'GRAMAS',
+  referenceAmount: 100,
+  kcal: 389,
+  prot: 17,
+  carb: 66,
+  fat: 7,
+  fiber: 11,
+  prep: '',
+  portionLabel: '1 colher de sopa · 15g',
   used: 3,
 };
 
-const mockPresetFood: Food = {
+const mockFood2: Food = {
   id: 'f2',
-  type: 'preset',
-  name: 'Frango grelhado 100g',
+  name: 'Frango grelhado',
   category: 'Proteína',
-  portionLabel: '1 porção · 100g',
-  grams: 100,
-  nutrition: { kcal: 165, prot: 31, carb: 0, fat: 4 },
-  basedOn: 'Frango',
+  unit: 'GRAMAS',
+  referenceAmount: 100,
+  kcal: 165,
+  prot: 31,
+  carb: 0,
+  fat: 3.6,
+  fiber: 0,
+  prep: 'grelhado',
+  portionLabel: '1 filé pequeno · 100g',
   used: 5,
 };
 
 const mockFoodData = {
-  content: [mockBaseFood, mockPresetFood],
+  content: [mockFood1, mockFood2],
   page: 0,
   size: 12,
   total: 2,
@@ -89,20 +99,10 @@ describe('FoodsView', () => {
   it('renders food names from catalog data', () => {
     render(<FoodsView />);
     expect(screen.getByText('Aveia em flocos')).toBeInTheDocument();
-    expect(screen.getByText('Frango grelhado 100g')).toBeInTheDocument();
+    expect(screen.getByText('Frango grelhado')).toBeInTheDocument();
   });
 
-  it('renders BASE chip for base-type foods', () => {
-    render(<FoodsView />);
-    expect(screen.getByText('BASE')).toBeInTheDocument();
-  });
-
-  it('renders PRESET chip for preset-type foods', () => {
-    render(<FoodsView />);
-    expect(screen.getByText('PRESET')).toBeInTheDocument();
-  });
-
-  it('renders macro values for base food (per 100g)', () => {
+  it('renders macro values for foods', () => {
     render(<FoodsView />);
     expect(screen.getByText('389')).toBeInTheDocument();
   });
@@ -119,8 +119,8 @@ describe('FoodsView', () => {
     expect(select).toBeInTheDocument();
   });
 
-  it('renders portion pills for base foods with portions', () => {
+  it('renders reference amount for foods', () => {
     render(<FoodsView />);
-    expect(screen.getByText('1 xícara')).toBeInTheDocument();
+    expect(screen.getAllByText(/por 100g/).length).toBeGreaterThanOrEqual(1);
   });
 });

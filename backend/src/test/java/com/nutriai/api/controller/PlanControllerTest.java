@@ -56,9 +56,6 @@ class PlanControllerTest {
     private FoodRepository foodRepository;
 
     @Autowired
-    private FoodPortionRepository foodPortionRepository;
-
-    @Autowired
     private PlanExtraRepository planExtraRepository;
 
     @Autowired
@@ -82,13 +79,11 @@ class PlanControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Clean up in reverse dependency order
         mealFoodRepository.deleteAll();
         mealOptionRepository.deleteAll();
         mealSlotRepository.deleteAll();
         planExtraRepository.deleteAll();
         mealPlanRepository.deleteAll();
-        foodPortionRepository.deleteAll();
         foodRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
@@ -99,7 +94,6 @@ class PlanControllerTest {
         var result = authService.signup(signupReq);
         accessToken = result.accessToken();
 
-        // Create a patient — this auto-creates a plan (D-13/D-14)
         CreatePatientRequest patientReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
         try {
             String patientResponse = mockMvc.perform(post("/api/v1/patients")
@@ -113,12 +107,11 @@ class PlanControllerTest {
             throw new RuntimeException(e);
         }
 
-        // Create a BASE food for testing items
         CreateFoodRequest foodReq = new CreateFoodRequest(
-                "BASE", "Arroz branco", "CARBOIDRATO",
-                new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
-                new BigDecimal("0.3"), new BigDecimal("0.4"),
-                null, null, null, null, null, null, null, null
+                "Arroz branco", "CARBOIDRATO", "GRAMAS",
+                new BigDecimal("100"), new BigDecimal("130.0"), new BigDecimal("2.7"),
+                new BigDecimal("28.0"), new BigDecimal("0.3"), null,
+                "cozido", null
         );
         try {
             String foodResponse = mockMvc.perform(post("/api/v1/foods")
@@ -178,7 +171,6 @@ class PlanControllerTest {
 
     @Test
     void deleteMealSlot_returns204() throws Exception {
-        // Get the plan to find a meal slot ID
         String planResponse = mockMvc.perform(get("/api/v1/patients/" + patientId + "/plan")
                         .header("Authorization", "Bearer " + accessToken))
                 .andReturn().getResponse().getContentAsString();
@@ -200,7 +192,7 @@ class PlanControllerTest {
         String optionId = objectMapper.readTree(planResponse).at("/data/meals/0/options/0/id").asText();
 
         AddFoodItemRequest req = new AddFoodItemRequest(
-                UUID.fromString(foodId), new BigDecimal("200.0"), "1 xícara"
+                UUID.fromString(foodId), new BigDecimal("200.0")
         );
 
         mockMvc.perform(post("/api/v1/patients/" + patientId + "/plan/meals/" + mealId + "/options/" + optionId + "/items")
@@ -211,7 +203,9 @@ class PlanControllerTest {
                 .andExpect(jsonPath("$.data.foodName").value("Arroz branco"))
                 .andExpect(jsonPath("$.data.kcal").value(260.0))
                 .andExpect(jsonPath("$.data.prot").value(5.4))
-                .andExpect(jsonPath("$.data.carb").value(56.0));
+                .andExpect(jsonPath("$.data.carb").value(56.0))
+                .andExpect(jsonPath("$.data.referenceAmount").value(200.0))
+                .andExpect(jsonPath("$.data.unit").value("GRAMAS"));
     }
 
     @Test

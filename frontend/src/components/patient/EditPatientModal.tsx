@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useUpdatePatient } from '../../stores/patientStore';
 import { useToastStore } from '../../stores/toastStore';
-import type { Patient } from '../../types/patient';
+import type { Patient, ObjectiveOption } from '../../types/patient';
+import { OBJECTIVE_LABELS, OBJECTIVE_KEYS, REVERSE_OBJECTIVE_LABELS } from '../../types/patient';
 import { IconX, IconCheck } from '../icons';
 
 interface EditPatientModalProps {
@@ -28,7 +29,9 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
   const [sex, setSex] = useState(patient.sex || 'F');
   const [heightCm, setHeightCm] = useState(patient.heightCm != null ? String(patient.heightCm) : '');
   const [whatsapp, setWhatsapp] = useState(formatPhone(patient.whatsapp ?? ''));
-  const [objective, setObjective] = useState(patient.objective);
+  const [objective, setObjective] = useState<ObjectiveOption>(
+    (REVERSE_OBJECTIVE_LABELS[patient.objective] ?? patient.objective) as ObjectiveOption
+  );
 
   const handle = () => {
     if (!name.trim()) return;
@@ -41,7 +44,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           sex,
           ...(heightCm ? { heightCm: Number(heightCm) } : {}),
           ...(stripPhone(whatsapp) ? { whatsapp: stripPhone(whatsapp) } : {}),
-          objective: objective.trim(),
+          objective,
         },
       },
       {
@@ -134,7 +137,16 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
               />
             </div>
           </div>
-          {field('Objetivo clínico', objective, setObjective, { placeholder: 'Hipertrofia com manutenção de % gordura' })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div className="eyebrow">Objetivo clínico</div>
+            <select
+              value={objective}
+              onChange={(e) => setObjective(e.target.value as ObjectiveOption)}
+              style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
+            >
+              {OBJECTIVE_KEYS.map(o => <option key={o} value={o}>{OBJECTIVE_LABELS[o]}</option>)}
+            </select>
+          </div>
         </div>
         <div
           style={{

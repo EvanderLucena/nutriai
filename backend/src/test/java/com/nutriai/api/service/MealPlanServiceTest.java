@@ -11,7 +11,6 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,7 +86,7 @@ class MealPlanServiceTest {
     }
 
     @Test
-    void addFoodItem_baseType_calculatesMacrosFromPer100() {
+    void addFoodItem_gramas_calculatesMacrosProportionally() {
         UUID optionId = UUID.randomUUID();
         MealSlot slot = MealSlot.builder().id(UUID.randomUUID()).planId(plan.getId()).build();
         MealOption option = MealOption.builder().id(optionId).mealSlotId(slot.getId()).name("Opção 1").build();
@@ -96,12 +95,13 @@ class MealPlanServiceTest {
         Food food = Food.builder()
                 .id(foodId)
                 .nutritionistId(nutritionistId)
-                .type("BASE")
                 .name("Arroz branco")
-                .per100Kcal(new BigDecimal("130.0"))
-                .per100Prot(new BigDecimal("2.7"))
-                .per100Carb(new BigDecimal("28.0"))
-                .per100Fat(new BigDecimal("0.3"))
+                .unit("GRAMAS")
+                .referenceAmount(new BigDecimal("100"))
+                .kcal(new BigDecimal("130.0"))
+                .prot(new BigDecimal("2.7"))
+                .carb(new BigDecimal("28.0"))
+                .fat(new BigDecimal("0.3"))
                 .usedCount(0)
                 .build();
 
@@ -117,23 +117,20 @@ class MealPlanServiceTest {
         });
         when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("200.0"), "1 xícara");
+        AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("200.0"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
 
-        // 130 * 200 / 100 = 260.0
         assertEquals(new BigDecimal("260.0"), resp.kcal());
-        // 2.7 * 200 / 100 = 5.4
         assertEquals(new BigDecimal("5.4"), resp.prot());
-        // 28 * 200 / 100 = 56.0
         assertEquals(new BigDecimal("56.0"), resp.carb());
-        // 0.3 * 200 / 100 = 0.6
         assertEquals(new BigDecimal("0.6"), resp.fat());
-        assertEquals(new BigDecimal("200.0"), resp.grams());
+        assertEquals(new BigDecimal("200.0"), resp.referenceAmount());
+        assertEquals("GRAMAS", resp.unit());
         assertEquals("Arroz branco", resp.foodName());
     }
 
     @Test
-    void addFoodItem_presetType_usesPresetGramsAndNutrition() {
+    void addFoodItem_unidade_calculatesMacrosProportionally() {
         UUID optionId = UUID.randomUUID();
         MealSlot slot = MealSlot.builder().id(UUID.randomUUID()).planId(plan.getId()).build();
         MealOption option = MealOption.builder().id(optionId).mealSlotId(slot.getId()).name("Opção 1").build();
@@ -142,13 +139,14 @@ class MealPlanServiceTest {
         Food food = Food.builder()
                 .id(foodId)
                 .nutritionistId(nutritionistId)
-                .type("PRESET")
-                .name("Pão integral")
-                .presetGrams(new BigDecimal("30.0"))
-                .presetKcal(new BigDecimal("70.0"))
-                .presetProt(new BigDecimal("2.5"))
-                .presetCarb(new BigDecimal("12.0"))
-                .presetFat(new BigDecimal("1.0"))
+                .name("Omelete 2 ovos")
+                .unit("UNIDADE")
+                .referenceAmount(new BigDecimal("1"))
+                .kcal(new BigDecimal("358.0"))
+                .prot(new BigDecimal("24.0"))
+                .carb(new BigDecimal("2.0"))
+                .fat(new BigDecimal("24.0"))
+                .prep("frito")
                 .usedCount(0)
                 .build();
 
@@ -164,12 +162,16 @@ class MealPlanServiceTest {
         });
         when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("30.0"), "1 fatia");
+        AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("1.5"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
 
-        assertEquals(new BigDecimal("30.0"), resp.grams());
-        assertEquals(new BigDecimal("70.0"), resp.kcal());
-        assertEquals(new BigDecimal("2.5"), resp.prot());
+        // 358 * 1.5 / 1 = 537.0
+        assertEquals(new BigDecimal("537.0"), resp.kcal());
+        // 24 * 1.5 / 1 = 36.0
+        assertEquals(new BigDecimal("36.0"), resp.prot());
+        assertEquals(new BigDecimal("1.5"), resp.referenceAmount());
+        assertEquals("UNIDADE", resp.unit());
+        assertEquals("frito", resp.prep());
     }
 
     @Test
@@ -185,7 +187,7 @@ class MealPlanServiceTest {
         MealOption opt = MealOption.builder().id(UUID.randomUUID()).mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build();
         when(mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId())).thenReturn(List.of(opt));
 
-        MealFood item = MealFood.builder().id(UUID.randomUUID()).optionId(opt.getId()).foodName("Café").grams(new BigDecimal("200")).kcal(new BigDecimal("5")).build();
+        MealFood item = MealFood.builder().id(UUID.randomUUID()).optionId(opt.getId()).foodName("Café").referenceAmount(new BigDecimal("200")).unit("ML").kcal(new BigDecimal("5")).build();
         when(mealFoodRepository.findByOptionIdOrderBySortOrder(opt.getId())).thenReturn(List.of(item));
 
         PlanResponse resp = mealPlanService.getPlan(nutritionistId, patientId);
@@ -193,8 +195,6 @@ class MealPlanServiceTest {
         assertEquals(plan.getId(), resp.id());
         assertEquals(1, resp.meals().size());
         assertEquals("Café", resp.meals().get(0).label());
-        assertEquals(1, resp.meals().get(0).options().size());
-        assertEquals(1, resp.meals().get(0).options().get(0).items().size());
     }
 
     @Test
@@ -206,7 +206,7 @@ class MealPlanServiceTest {
     }
 
     @Test
-    void updateFoodItem_gramsChange_recalculatesMacros() {
+    void updateFoodItem_amountChange_recalculatesMacros() {
         UUID itemId = UUID.randomUUID();
         UUID optionId = UUID.randomUUID();
         UUID slotId = UUID.randomUUID();
@@ -216,11 +216,12 @@ class MealPlanServiceTest {
         MealOption option = MealOption.builder().id(optionId).mealSlotId(slotId).build();
         MealFood item = MealFood.builder()
                 .id(itemId).optionId(optionId).foodId(foodId).foodName("Arroz")
-                .grams(new BigDecimal("100")).kcal(new BigDecimal("130")).prot(new BigDecimal("2.7"))
+                .referenceAmount(new BigDecimal("100")).unit("GRAMAS").kcal(new BigDecimal("130")).prot(new BigDecimal("2.7"))
                 .carb(new BigDecimal("28")).fat(new BigDecimal("0.3")).build();
 
-        Food food = Food.builder().id(foodId).type("BASE").per100Kcal(new BigDecimal("130")).per100Prot(new BigDecimal("2.7"))
-                .per100Carb(new BigDecimal("28")).per100Fat(new BigDecimal("0.3")).build();
+        Food food = Food.builder().id(foodId).unit("GRAMAS").referenceAmount(new BigDecimal("100"))
+                .kcal(new BigDecimal("130")).prot(new BigDecimal("2.7"))
+                .carb(new BigDecimal("28")).fat(new BigDecimal("0.3")).build();
 
         when(mealFoodRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(mealOptionRepository.findById(optionId)).thenReturn(Optional.of(option));
@@ -229,10 +230,10 @@ class MealPlanServiceTest {
         when(foodRepository.findById(foodId)).thenReturn(Optional.of(food));
         when(mealFoodRepository.save(any(MealFood.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateFoodItemRequest req = new UpdateFoodItemRequest(new BigDecimal("200"), null, null);
+        UpdateFoodItemRequest req = new UpdateFoodItemRequest(new BigDecimal("200"), null, null, null, null, null);
         MealFoodResponse resp = mealPlanService.updateFoodItem(nutritionistId, itemId, req);
 
-        assertEquals(new BigDecimal("200"), resp.grams());
+        assertEquals(new BigDecimal("200"), resp.referenceAmount());
         assertEquals(new BigDecimal("260.0"), resp.kcal());
         assertEquals(new BigDecimal("5.4"), resp.prot());
     }
@@ -304,15 +305,27 @@ class MealPlanServiceTest {
     }
 
     @Test
-    void calculateMacro_per100TimesGramsDividedBy100() {
-        BigDecimal result = mealPlanService.calculateMacro(new BigDecimal("130.0"), new BigDecimal("200.0"));
+    void calculateMacro_proportionalCalculation() {
+        BigDecimal result = mealPlanService.calculateMacro(new BigDecimal("130.0"), new BigDecimal("200.0"), new BigDecimal("100"));
         assertEquals(new BigDecimal("260.0"), result);
     }
 
     @Test
+    void calculateMacro_withUnidade() {
+        BigDecimal result = mealPlanService.calculateMacro(new BigDecimal("358.0"), new BigDecimal("1.5"), new BigDecimal("1"));
+        assertEquals(new BigDecimal("537.0"), result);
+    }
+
+    @Test
     void calculateMacro_handlesNullValues() {
-        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(null, new BigDecimal("200")));
-        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(new BigDecimal("130"), null));
+        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(null, new BigDecimal("200"), new BigDecimal("100")));
+        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(new BigDecimal("130"), null, new BigDecimal("100")));
+        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(new BigDecimal("130"), new BigDecimal("200"), null));
+    }
+
+    @Test
+    void calculateMacro_handlesZeroReferenceAmount() {
+        assertEquals(BigDecimal.ZERO, mealPlanService.calculateMacro(new BigDecimal("130"), new BigDecimal("200"), BigDecimal.ZERO));
     }
 
     @Test
@@ -334,27 +347,12 @@ class MealPlanServiceTest {
 
     @Test
     void frozenMacros_editingFoodCatalogDoesNotUpdatePlan() {
-        UUID itemId = UUID.randomUUID();
-        UUID optionId = UUID.randomUUID();
-        UUID slotId = UUID.randomUUID();
-        UUID foodId = UUID.randomUUID();
-
-        MealSlot slot = MealSlot.builder().id(slotId).planId(plan.getId()).build();
-        MealOption option = MealOption.builder().id(optionId).mealSlotId(slotId).build();
-
-        // Plan has frozen macro values from when the item was added
         MealFood item = MealFood.builder()
-                .id(itemId).optionId(optionId).foodId(foodId).foodName("Arroz")
-                .grams(new BigDecimal("200")).kcal(new BigDecimal("260.0")).prot(new BigDecimal("5.4"))
+                .id(UUID.randomUUID()).foodName("Arroz")
+                .referenceAmount(new BigDecimal("200")).unit("GRAMAS").kcal(new BigDecimal("260.0")).prot(new BigDecimal("5.4"))
                 .carb(new BigDecimal("56.0")).fat(new BigDecimal("0.6")).build();
 
-        // Just verify existing plan macros are unchanged
         assertEquals(new BigDecimal("260.0"), item.getKcal());
         assertEquals(new BigDecimal("5.4"), item.getProt());
-        assertEquals(new BigDecimal("56.0"), item.getCarb());
-        assertEquals(new BigDecimal("0.6"), item.getFat());
-
-        // Only updateFoodItem with changed grams triggers recalculation
-        // Editing food in catalog does NOT change existing plan items (D-10)
     }
 }

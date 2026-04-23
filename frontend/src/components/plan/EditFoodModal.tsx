@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MealFood } from '../../types/plan';
+import { FOOD_UNIT_SYMBOLS } from '../../types/food';
 import { IconX, IconCheck } from '../icons';
 
 interface EditFoodModalProps {
@@ -10,22 +11,21 @@ interface EditFoodModalProps {
 
 export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
   const [foodName, setFoodName] = useState(item.foodName);
-  const [qty, setQty] = useState(item.qty);
   const [prep, setPrep] = useState(item.prep);
-  const [grams, setGrams] = useState(String(item.grams));
+  const [referenceAmount, setReferenceAmount] = useState(String(item.referenceAmount));
   const [kcal, setKcal] = useState(String(item.kcal));
   const [prot, setProt] = useState(String(item.prot));
   const [carb, setCarb] = useState(String(item.carb));
   const [fat, setFat] = useState(String(item.fat));
+  const unitSymbol = FOOD_UNIT_SYMBOLS[item.unit as keyof typeof FOOD_UNIT_SYMBOLS] || 'g';
 
   const handle = () => {
     if (!foodName.trim()) return;
     onSave({
       ...item,
       foodName: foodName.trim(),
-      qty,
       prep,
-      grams: Number(grams) || 0,
+      referenceAmount: Number(referenceAmount) || 0,
       kcal: Number(kcal) || 0,
       prot: Number(prot) || 0,
       carb: Number(carb) || 0,
@@ -64,9 +64,9 @@ export function EditFoodModal({ item, onClose, onSave }: EditFoodModalProps) {
             Alimento vinculado ao catálogo
           </div>
           {field('Nome', foodName, setFoodName)}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {field('Quantidade', qty, setQty)}
-            {field('Gramas', grams, setGrams, { mono: true })}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>{field('Referência', referenceAmount, setReferenceAmount, { mono: true })}</div>
+            <div className="mono" style={{ fontSize: 13, color: 'var(--fg-muted)', paddingBottom: 12 }}>Uni: {unitSymbol}</div>
           </div>
           {field('Preparo', prep, setPrep)}
           <div className="divider"><span>Valores nutricionais (congelados)</span></div>

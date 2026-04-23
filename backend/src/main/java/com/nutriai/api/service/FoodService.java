@@ -3,8 +3,6 @@ package com.nutriai.api.service;
 import com.nutriai.api.dto.food.*;
 import com.nutriai.api.exception.ResourceNotFoundException;
 import com.nutriai.api.model.Food;
-import com.nutriai.api.model.FoodPortion;
-import com.nutriai.api.repository.FoodPortionRepository;
 import com.nutriai.api.repository.FoodRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -25,62 +22,41 @@ public class FoodService {
 
     private static final Logger logger = LoggerFactory.getLogger(FoodService.class);
 
-    private static final Set<String> VALID_TYPES = Set.of("BASE", "PRESET");
+    private static final Set<String> VALID_UNITS = Set.of("GRAMAS", "UNIDADE", "ML");
     private static final Set<String> VALID_CATEGORIES = Set.of(
             "PROTEINA", "CARBOIDRATO", "GORDURA", "VEGETAL", "FRUTA", "BEBIDA", "OUTRO"
     );
 
     private final FoodRepository foodRepository;
-    private final FoodPortionRepository foodPortionRepository;
 
-    public FoodService(FoodRepository foodRepository, FoodPortionRepository foodPortionRepository) {
+    public FoodService(FoodRepository foodRepository) {
         this.foodRepository = foodRepository;
-        this.foodPortionRepository = foodPortionRepository;
     }
 
     @Transactional
     public FoodResponse createFood(UUID nutritionistId, CreateFoodRequest req) {
-        validateType(req.type());
+        validateUnit(req.unit());
         validateCategory(req.category());
 
         Food food = Food.builder()
                 .nutritionistId(nutritionistId)
-                .type(req.type())
                 .name(req.name())
-                .category(req.category())
-                .per100Kcal(req.per100Kcal())
-                .per100Prot(req.per100Prot())
-                .per100Carb(req.per100Carb())
-                .per100Fat(req.per100Fat())
-                .per100Fiber(req.per100Fiber())
-                .presetGrams(req.presetGrams())
-                .presetKcal(req.presetKcal())
-                .presetProt(req.presetProt())
-                .presetCarb(req.presetCarb())
-                .presetFat(req.presetFat())
+                .category(req.category() != null ? req.category().toUpperCase() : null)
+                .unit(req.unit().toUpperCase())
+                .referenceAmount(req.referenceAmount())
+                .kcal(req.kcal())
+                .prot(req.prot())
+                .carb(req.carb())
+                .fat(req.fat())
+                .fiber(req.fiber())
+                .prep(req.prep())
                 .portionLabel(req.portionLabel())
-                .basedOn(req.basedOn())
                 .build();
 
         Food saved = foodRepository.save(food);
 
-        List<FoodPortion> portions = List.of();
-        if (req.portions() != null && !req.portions().isEmpty()) {
-            int sortOrder = 0;
-            for (FoodPortionDto p : req.portions()) {
-                FoodPortion portion = FoodPortion.builder()
-                        .foodId(saved.getId())
-                        .name(p.name())
-                        .grams(p.grams())
-                        .sortOrder(sortOrder++)
-                        .build();
-                foodPortionRepository.save(portion);
-            }
-            portions = foodPortionRepository.findByFoodIdOrderBySortOrder(saved.getId());
-        }
-
-        logger.info("Food created: id={}, name={}, type={}, nutritionistId={}", saved.getId(), saved.getName(), saved.getType(), nutritionistId);
-        return FoodResponse.from(saved, portions);
+        logger.info("Food created: id={}, name={}, unit={}, nutritionistId={}", saved.getId(), saved.getName(), saved.getUnit(), nutritionistId);
+        return FoodResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -88,24 +64,24 @@ public class FoodService {
         PageRequest pageRequest = PageRequest.of(page, size);
 
         String escapedSearch = search != null ? escapeLike(search) : null;
-        boolean hasFilter = escapedSearch != null || category != null;
+        String upperCategory = category != null ? category.toUpperCase() : null;
+        boolean hasFilter = escapedSearch != null || upperCategory != null;
 
         Page<Food> result;
         if (hasFilter) {
-            result = foodRepository.findByNutritionistIdWithFilters(nutritionistId, escapedSearch, category, pageRequest);
+            result = foodRepository.findByNutritionistIdWithFilters(nutritionistId, escapedSearch, upperCategory, pageRequest);
         } else {
             result = foodRepository.findByNutritionistId(nutritionistId, pageRequest);
         }
 
-        return FoodListResponse.from(result, this);
+        return FoodListResponse.from(result);
     }
 
     @Transactional(readOnly = true)
     public FoodResponse getFood(UUID nutritionistId, UUID foodId) {
         Food food = foodRepository.findByIdAndNutritionistId(foodId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alimento", foodId));
-        List<FoodPortion> portions = foodPortionRepository.findByFoodIdOrderBySortOrder(foodId);
-        return FoodResponse.from(food, portions);
+        return FoodResponse.from(food);
     }
 
     @Transactional
@@ -118,44 +94,23 @@ public class FoodService {
             validateCategory(req.category());
             food.setCategory(req.category());
         }
-
-        // BASE-only fields
-        if (req.per100Kcal() != null) food.setPer100Kcal(req.per100Kcal());
-        if (req.per100Prot() != null) food.setPer100Prot(req.per100Prot());
-        if (req.per100Carb() != null) food.setPer100Carb(req.per100Carb());
-        if (req.per100Fat() != null) food.setPer100Fat(req.per100Fat());
-        if (req.per100Fiber() != null) food.setPer100Fiber(req.per100Fiber());
-
-        // PRESET-only fields
-        if (req.presetGrams() != null) food.setPresetGrams(req.presetGrams());
-        if (req.presetKcal() != null) food.setPresetKcal(req.presetKcal());
-        if (req.presetProt() != null) food.setPresetProt(req.presetProt());
-        if (req.presetCarb() != null) food.setPresetCarb(req.presetCarb());
-        if (req.presetFat() != null) food.setPresetFat(req.presetFat());
+        if (req.unit() != null) {
+            validateUnit(req.unit());
+            food.setUnit(req.unit().toUpperCase());
+        }
+        if (req.referenceAmount() != null) food.setReferenceAmount(req.referenceAmount());
+        if (req.kcal() != null) food.setKcal(req.kcal());
+        if (req.prot() != null) food.setProt(req.prot());
+        if (req.carb() != null) food.setCarb(req.carb());
+        if (req.fat() != null) food.setFat(req.fat());
+        if (req.fiber() != null) food.setFiber(req.fiber());
+        if (req.prep() != null) food.setPrep(req.prep());
         if (req.portionLabel() != null) food.setPortionLabel(req.portionLabel());
-        if (req.basedOn() != null) food.setBasedOn(req.basedOn());
 
         Food saved = foodRepository.save(food);
 
-        // Replace all portions if provided
-        List<FoodPortion> portions = foodPortionRepository.findByFoodIdOrderBySortOrder(foodId);
-        if (req.portions() != null) {
-            foodPortionRepository.deleteAllByFoodId(foodId);
-            int sortOrder = 0;
-            for (FoodPortionDto p : req.portions()) {
-                FoodPortion portion = FoodPortion.builder()
-                        .foodId(foodId)
-                        .name(p.name())
-                        .grams(p.grams())
-                        .sortOrder(sortOrder++)
-                        .build();
-                foodPortionRepository.save(portion);
-            }
-            portions = foodPortionRepository.findByFoodIdOrderBySortOrder(foodId);
-        }
-
         logger.info("Food updated: id={}, nutritionistId={}", saved.getId(), nutritionistId);
-        return FoodResponse.from(saved, portions);
+        return FoodResponse.from(saved);
     }
 
     @Transactional
@@ -163,18 +118,14 @@ public class FoodService {
         Food food = foodRepository.findByIdAndNutritionistId(foodId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alimento", foodId));
 
-        foodPortionRepository.deleteAllByFoodId(foodId);
         foodRepository.delete(food);
         logger.info("Food deleted: id={}, nutritionistId={}", foodId, nutritionistId);
     }
 
-    /**
-     * Escape SQL LIKE special characters (% and _) for safe wildcard search.
-     */
-    private void validateType(String type) {
-        if (type == null || !VALID_TYPES.contains(type.toUpperCase())) {
+    private void validateUnit(String unit) {
+        if (unit == null || !VALID_UNITS.contains(unit.toUpperCase())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Tipo inválido. Valores permitidos: " + VALID_TYPES);
+                    "Unidade inválida. Valores permitidos: " + VALID_UNITS);
         }
     }
 
@@ -192,16 +143,6 @@ public class FoodService {
                 .replace("_", "!_");
     }
 
-    /**
-     * Helper to load portions for a food (used by FoodListResponse).
-     */
-    public List<FoodPortion> loadPortions(UUID foodId) {
-        return foodPortionRepository.findByFoodIdOrderBySortOrder(foodId);
-    }
-
-    /**
-     * Paginated food list response.
-     */
     public record FoodListResponse(
             List<FoodResponse> content,
             int page,
@@ -209,10 +150,10 @@ public class FoodService {
             long totalElements,
             int totalPages
     ) {
-        public static FoodListResponse from(Page<Food> pageResult, FoodService foodService) {
+        public static FoodListResponse from(Page<Food> pageResult) {
             return new FoodListResponse(
                     pageResult.getContent().stream()
-                            .map(f -> FoodResponse.from(f, foodService.loadPortions(f.getId())))
+                            .map(FoodResponse::from)
                             .toList(),
                     pageResult.getNumber(),
                     pageResult.getSize(),

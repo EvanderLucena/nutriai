@@ -32,14 +32,16 @@ export interface UpdateOptionRequest {
 
 export interface AddFoodItemRequest {
   foodId: string;
-  grams: number;
-  qty: string;
+  referenceAmount: number;
 }
 
 export interface UpdateFoodItemRequest {
-  grams?: number;
-  qty?: string;
+  referenceAmount?: number;
   prep?: string;
+  kcal?: number;
+  prot?: number;
+  carb?: number;
+  fat?: number;
 }
 
 export interface AddExtraRequest {

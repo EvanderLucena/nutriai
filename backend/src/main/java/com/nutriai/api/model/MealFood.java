@@ -37,11 +37,11 @@ public class MealFood {
     @Column(name = "food_name", nullable = false, length = 200)
     private String foodName;
 
-    @Column(length = 200)
-    private String qty; // e.g., "1 colher", "2 unidades"
+    @Column(name = "reference_amount", precision = 10, scale = 1)
+    private BigDecimal referenceAmount;
 
-    @Column(precision = 10, scale = 1)
-    private BigDecimal grams;
+    @Column(length = 20)
+    private String unit;
 
     @Column(length = 200)
     private String prep; // e.g., "cozido", "cru"

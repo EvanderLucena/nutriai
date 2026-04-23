@@ -14,15 +14,10 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Meal plan service — CRUD, macro calculation (D-20), auto-creation (D-13/D-14).
- * All mutations verify nutritionist ownership through Episode → Patient chain.
- */
 @Service
 public class MealPlanService {
 
     private static final Logger logger = LoggerFactory.getLogger(MealPlanService.class);
-    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     private final MealPlanRepository mealPlanRepository;
     private final MealSlotRepository mealSlotRepository;
@@ -51,9 +46,6 @@ public class MealPlanService {
         this.episodeRepository = episodeRepository;
     }
 
-    /**
-     * Create a default 6-meal plan for a new episode (D-13/D-14).
-     */
     @Transactional
     public void createDefaultPlan(UUID episodeId, UUID nutritionistId) {
         MealPlan plan = MealPlan.builder()
@@ -96,10 +88,6 @@ public class MealPlanService {
         logger.info("Default plan created: episodeId={}, nutritionistId={}", episodeId, nutritionistId);
     }
 
-    /**
-     * Get full plan tree for a patient's active episode.
-     * Verifies nutritionist ownership via Episode → Patient → nutritionistId chain.
-     */
     @Transactional(readOnly = true)
     public PlanResponse getPlan(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
@@ -113,9 +101,6 @@ public class MealPlanService {
         return buildPlanResponse(plan);
     }
 
-    /**
-     * Update plan-level fields (title, targets, notes).
-     */
     @Transactional
     public PlanResponse updatePlan(UUID nutritionistId, UUID patientId, UpdatePlanRequest req) {
         MealPlan plan = getPlanAndVerifyOwnership(nutritionistId, patientId);
@@ -131,9 +116,6 @@ public class MealPlanService {
         return buildPlanResponse(plan);
     }
 
-    /**
-     * Add a meal slot to the plan.
-     */
     @Transactional
     public MealSlotResponse addMealSlot(UUID nutritionistId, UUID patientId, AddMealSlotRequest req) {
         MealPlan plan = getPlanAndVerifyOwnership(nutritionistId, patientId);
@@ -161,9 +143,6 @@ public class MealPlanService {
                 List.of());
     }
 
-    /**
-     * Update a meal slot (label, time).
-     */
     @Transactional
     public MealSlotResponse updateMealSlot(UUID nutritionistId, UUID mealSlotId, String label, String time) {
         MealSlot slot = findSlotAndVerifyOwnership(nutritionistId, mealSlotId);
@@ -180,14 +159,10 @@ public class MealPlanService {
         return MealSlotResponse.from(slot, options, allItems);
     }
 
-    /**
-     * Delete a meal slot (cascades to options and food items).
-     */
     @Transactional
     public void deleteMealSlot(UUID nutritionistId, UUID mealSlotId) {
         MealSlot slot = findSlotAndVerifyOwnership(nutritionistId, mealSlotId);
 
-        // Service-layer cascade: delete children before parent
         List<MealOption> options = mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId());
         for (MealOption opt : options) {
             mealFoodRepository.deleteAllByOptionId(opt.getId());
@@ -197,9 +172,6 @@ public class MealPlanService {
         logger.info("MealSlot deleted: id={}", mealSlotId);
     }
 
-    /**
-     * Add a named option to a meal slot (D-04).
-     */
     @Transactional
     public MealOptionResponse addOption(UUID nutritionistId, UUID mealSlotId, AddOptionRequest req) {
         MealSlot slot = findSlotAndVerifyOwnership(nutritionistId, mealSlotId);
@@ -217,9 +189,6 @@ public class MealPlanService {
         return MealOptionResponse.from(saved, List.of());
     }
 
-    /**
-     * Rename an option.
-     */
     @Transactional
     public MealOptionResponse updateOption(UUID nutritionistId, UUID optionId, String name) {
         MealOption option = findOptionAndVerifyOwnership(nutritionistId, optionId);
@@ -231,9 +200,6 @@ public class MealPlanService {
                 mealFoodRepository.findByOptionIdOrderBySortOrder(option.getId()));
     }
 
-    /**
-     * Delete an option (cascades to items).
-     */
     @Transactional
     public void deleteOption(UUID nutritionistId, UUID optionId) {
         MealOption option = findOptionAndVerifyOwnership(nutritionistId, optionId);
@@ -243,9 +209,6 @@ public class MealPlanService {
         logger.info("Option deleted: id={}", optionId);
     }
 
-    /**
-     * Add a food item to an option with macro calculation (D-20).
-     */
     @Transactional
     public MealFoodResponse addFoodItem(UUID nutritionistId, UUID optionId, AddFoodItemRequest req) {
         MealOption option = findOptionAndVerifyOwnership(nutritionistId, optionId);
@@ -253,23 +216,13 @@ public class MealPlanService {
         Food food = foodRepository.findById(req.foodId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alimento", req.foodId()));
 
-        BigDecimal grams, kcal, prot, carb, fat;
+        BigDecimal referenceAmount = req.referenceAmount();
+        String unit = food.getUnit();
 
-        if ("BASE".equals(food.getType())) {
-            // D-20: Backend calculates macros from per100 data × grams / 100
-            grams = req.grams();
-            kcal = calculateMacro(food.getPer100Kcal(), grams);
-            prot = calculateMacro(food.getPer100Prot(), grams);
-            carb = calculateMacro(food.getPer100Carb(), grams);
-            fat = calculateMacro(food.getPer100Fat(), grams);
-        } else {
-            // PRESET: use preset values directly
-            grams = food.getPresetGrams() != null ? food.getPresetGrams() : req.grams();
-            kcal = food.getPresetKcal();
-            prot = food.getPresetProt();
-            carb = food.getPresetCarb();
-            fat = food.getPresetFat();
-        }
+        BigDecimal kcal = calculateMacro(food.getKcal(), referenceAmount, food.getReferenceAmount());
+        BigDecimal prot = calculateMacro(food.getProt(), referenceAmount, food.getReferenceAmount());
+        BigDecimal carb = calculateMacro(food.getCarb(), referenceAmount, food.getReferenceAmount());
+        BigDecimal fat = calculateMacro(food.getFat(), referenceAmount, food.getReferenceAmount());
 
         int maxSort = mealFoodRepository.findByOptionIdOrderBySortOrder(option.getId())
                 .stream().mapToInt(MealFood::getSortOrder).max().orElse(-1);
@@ -278,8 +231,9 @@ public class MealPlanService {
                 .optionId(option.getId())
                 .foodId(food.getId())
                 .foodName(food.getName())
-                .qty(req.qty())
-                .grams(grams)
+                .referenceAmount(referenceAmount)
+                .unit(unit)
+                .prep(food.getPrep())
                 .kcal(kcal)
                 .prot(prot)
                 .carb(carb)
@@ -288,7 +242,6 @@ public class MealPlanService {
                 .build();
         MealFood saved = mealFoodRepository.save(item);
 
-        // Update usedCount on food
         food.setUsedCount(food.getUsedCount() + 1);
         foodRepository.save(food);
 
@@ -296,38 +249,31 @@ public class MealPlanService {
         return MealFoodResponse.from(saved);
     }
 
-    /**
-     * Update a food item — recalculate macros if grams changed (D-20).
-     */
     @Transactional
     public MealFoodResponse updateFoodItem(UUID nutritionistId, UUID itemId, UpdateFoodItemRequest req) {
         MealFood item = findFoodItemAndVerifyOwnership(nutritionistId, itemId);
 
-        if (req.grams() != null) {
-            item.setGrams(req.grams());
-            // Recalculate macros from food's per100 data if foodId exists
+        if (req.referenceAmount() != null) {
+            item.setReferenceAmount(req.referenceAmount());
             if (item.getFoodId() != null) {
                 foodRepository.findById(item.getFoodId()).ifPresent(food -> {
-                    if ("BASE".equals(food.getType())) {
-                        item.setKcal(calculateMacro(food.getPer100Kcal(), req.grams()));
-                        item.setProt(calculateMacro(food.getPer100Prot(), req.grams()));
-                        item.setCarb(calculateMacro(food.getPer100Carb(), req.grams()));
-                        item.setFat(calculateMacro(food.getPer100Fat(), req.grams()));
-                    }
-                    // PRESET: just update grams, macros stay as is
+                    item.setKcal(calculateMacro(food.getKcal(), item.getReferenceAmount(), food.getReferenceAmount()));
+                    item.setProt(calculateMacro(food.getProt(), item.getReferenceAmount(), food.getReferenceAmount()));
+                    item.setCarb(calculateMacro(food.getCarb(), item.getReferenceAmount(), food.getReferenceAmount()));
+                    item.setFat(calculateMacro(food.getFat(), item.getReferenceAmount(), food.getReferenceAmount()));
                 });
             }
         }
-        if (req.qty() != null) item.setQty(req.qty());
         if (req.prep() != null) item.setPrep(req.prep());
+        if (req.kcal() != null) item.setKcal(req.kcal());
+        if (req.prot() != null) item.setProt(req.prot());
+        if (req.carb() != null) item.setCarb(req.carb());
+        if (req.fat() != null) item.setFat(req.fat());
 
         MealFood saved = mealFoodRepository.save(item);
         return MealFoodResponse.from(saved);
     }
 
-    /**
-     * Delete a food item from an option.
-     */
     @Transactional
     public void deleteFoodItem(UUID nutritionistId, UUID itemId) {
         MealFood item = findFoodItemAndVerifyOwnership(nutritionistId, itemId);
@@ -335,9 +281,6 @@ public class MealPlanService {
         logger.info("Food item deleted: id={}", itemId);
     }
 
-    /**
-     * Add an off-plan extra authorization (D-11/D-12).
-     */
     @Transactional
     public ExtraResponse addExtra(UUID nutritionistId, UUID patientId, AddExtraRequest req) {
         MealPlan plan = getPlanAndVerifyOwnership(nutritionistId, patientId);
@@ -360,9 +303,6 @@ public class MealPlanService {
         return ExtraResponse.from(saved);
     }
 
-    /**
-     * Update an extra.
-     */
     @Transactional
     public ExtraResponse updateExtra(UUID nutritionistId, UUID extraId, UpdateExtraRequest req) {
         PlanExtra extra = findExtraAndVerifyOwnership(nutritionistId, extraId);
@@ -378,9 +318,6 @@ public class MealPlanService {
         return ExtraResponse.from(saved);
     }
 
-    /**
-     * Delete an extra.
-     */
     @Transactional
     public void deleteExtra(UUID nutritionistId, UUID extraId) {
         PlanExtra extra = findExtraAndVerifyOwnership(nutritionistId, extraId);
@@ -388,17 +325,12 @@ public class MealPlanService {
         logger.info("Extra deleted: id={}", extraId);
     }
 
-    // === Macro Calculation (D-20) ===
-
-    /**
-     * Calculate frozen macro value: per100 × grams / 100, with HALF_UP rounding, scale=1.
-     */
-    BigDecimal calculateMacro(BigDecimal per100Value, BigDecimal grams) {
-        if (per100Value == null || grams == null) return BigDecimal.ZERO;
-        return per100Value.multiply(grams).divide(HUNDRED, 1, RoundingMode.HALF_UP);
+    BigDecimal calculateMacro(BigDecimal foodValue, BigDecimal amount, BigDecimal referenceAmount) {
+        if (foodValue == null || amount == null || referenceAmount == null || referenceAmount.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO;
+        }
+        return foodValue.multiply(amount).divide(referenceAmount, 1, RoundingMode.HALF_UP);
     }
-
-    // === Ownership Verification ===
 
     private MealPlan getPlanAndVerifyOwnership(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);

@@ -10,7 +10,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,9 +21,6 @@ class FoodAndPlanRepositoryTest {
 
     @Autowired
     private FoodRepository foodRepository;
-
-    @Autowired
-    private FoodPortionRepository foodPortionRepository;
 
     @Autowired
     private MealPlanRepository mealPlanRepository;
@@ -59,13 +55,11 @@ class FoodAndPlanRepositoryTest {
         mealOptionRepository.deleteAll();
         mealSlotRepository.deleteAll();
         mealPlanRepository.deleteAll();
-        foodPortionRepository.deleteAll();
         foodRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         nutritionistRepository.deleteAll();
 
-        // Create a real nutritionist for FK constraints
         Nutritionist nutri = Nutritionist.builder()
                 .email("test@repo.com")
                 .passwordHash("hash")
@@ -75,64 +69,63 @@ class FoodAndPlanRepositoryTest {
         nutritionistId = nutri.getId();
     }
 
-    // === Food entity tests ===
-
     @Test
-    void foodEntity_withBaseType_hasPer100FieldsPopulated() {
+    void foodEntity_withUnifiedModel_hasAllFieldsPopulated() {
         Food food = Food.builder()
                 .nutritionistId(nutritionistId)
-                .type("BASE")
                 .name("Arroz branco")
                 .category("CARBOIDRATO")
-                .per100Kcal(new BigDecimal("130.0"))
-                .per100Prot(new BigDecimal("2.7"))
-                .per100Carb(new BigDecimal("28.0"))
-                .per100Fat(new BigDecimal("0.3"))
-                .per100Fiber(new BigDecimal("0.4"))
+                .unit("GRAMAS")
+                .referenceAmount(new BigDecimal("100"))
+                .kcal(new BigDecimal("130.0"))
+                .prot(new BigDecimal("2.7"))
+                .carb(new BigDecimal("28.0"))
+                .fat(new BigDecimal("0.3"))
+                .fiber(new BigDecimal("0.4"))
+                .prep("cozido")
+                .portionLabel("1 colher")
                 .build();
 
         Food saved = foodRepository.save(food);
 
         assertNotNull(saved.getId());
-        assertEquals("BASE", saved.getType());
-        assertEquals(new BigDecimal("130.0"), saved.getPer100Kcal());
-        assertNull(saved.getPresetGrams());
-        assertNull(saved.getPresetKcal());
+        assertEquals("GRAMAS", saved.getUnit());
+        assertEquals(new BigDecimal("100"), saved.getReferenceAmount());
+        assertEquals(new BigDecimal("130.0"), saved.getKcal());
+        assertEquals("cozido", saved.getPrep());
     }
 
     @Test
-    void foodEntity_withPresetType_hasPresetFieldsPopulated() {
+    void foodEntity_withUnidade_persistsCorrectly() {
         Food food = Food.builder()
                 .nutritionistId(nutritionistId)
-                .type("PRESET")
-                .name("Pão integral")
-                .category("CARBOIDRATO")
-                .presetGrams(new BigDecimal("30.0"))
-                .presetKcal(new BigDecimal("70.0"))
-                .presetProt(new BigDecimal("2.5"))
-                .presetCarb(new BigDecimal("12.0"))
-                .presetFat(new BigDecimal("1.0"))
-                .portionLabel("1 fatia")
+                .name("Omelete 2 ovos")
+                .category("PROTEINA")
+                .unit("UNIDADE")
+                .referenceAmount(new BigDecimal("1"))
+                .kcal(new BigDecimal("358.0"))
+                .prot(new BigDecimal("24.0"))
+                .carb(new BigDecimal("2.0"))
+                .fat(new BigDecimal("24.0"))
+                .portionLabel("1 unidade")
                 .build();
 
         Food saved = foodRepository.save(food);
 
         assertNotNull(saved.getId());
-        assertEquals("PRESET", saved.getType());
-        assertEquals(new BigDecimal("30.0"), saved.getPresetGrams());
-        assertNull(saved.getPer100Kcal());
+        assertEquals("UNIDADE", saved.getUnit());
+        assertEquals(new BigDecimal("1"), saved.getReferenceAmount());
     }
 
     @Test
     void foodRepository_findByNutritionistId_returnsOnlyOwnerFoods() {
         UUID otherNutriId = createOtherNutritionist();
 
-        foodRepository.save(Food.builder().nutritionistId(nutritionistId).type("BASE").name("Arroz").build());
-        foodRepository.save(Food.builder().nutritionistId(nutritionistId).type("PRESET").name("Pão").build());
-        foodRepository.save(Food.builder().nutritionistId(otherNutriId).type("BASE").name("Feijão").build());
+        foodRepository.save(Food.builder().nutritionistId(nutritionistId).name("Arroz").unit("GRAMAS").referenceAmount(new BigDecimal("100")).kcal(new BigDecimal("130")).prot(new BigDecimal("2.7")).carb(new BigDecimal("28")).fat(new BigDecimal("0.3")).build());
+        foodRepository.save(Food.builder().nutritionistId(otherNutriId).name("Feijão").unit("GRAMAS").referenceAmount(new BigDecimal("100")).kcal(new BigDecimal("80")).prot(new BigDecimal("5")).carb(new BigDecimal("15")).fat(new BigDecimal("0.5")).build());
 
         Page<Food> result = foodRepository.findByNutritionistId(nutritionistId, PageRequest.of(0, 20));
-        assertEquals(2, result.getTotalElements());
+        assertEquals(1, result.getTotalElements());
         assertTrue(result.getContent().stream().allMatch(f -> f.getNutritionistId().equals(nutritionistId)));
     }
 
@@ -140,39 +133,11 @@ class FoodAndPlanRepositoryTest {
     void foodRepository_findByIdAndNutritionistId_returnsEmptyForWrongOwner() {
         UUID otherNutriId = createOtherNutritionist();
 
-        Food food = foodRepository.save(Food.builder().nutritionistId(nutritionistId).type("BASE").name("Arroz").build());
+        Food food = foodRepository.save(Food.builder().nutritionistId(nutritionistId).name("Arroz").unit("GRAMAS").referenceAmount(new BigDecimal("100")).kcal(new BigDecimal("130")).prot(new BigDecimal("2.7")).carb(new BigDecimal("28")).fat(new BigDecimal("0.3")).build());
 
         Optional<Food> result = foodRepository.findByIdAndNutritionistId(food.getId(), otherNutriId);
         assertTrue(result.isEmpty());
     }
-
-    @Test
-    void foodPortion_deletedSeparatelyWhenFoodDeleted() {
-        Food food = Food.builder()
-                .nutritionistId(nutritionistId)
-                .type("BASE")
-                .name("Arroz")
-                .build();
-        Food savedFood = foodRepository.save(food);
-
-        FoodPortion portion = FoodPortion.builder()
-                .foodId(savedFood.getId())
-                .name("1 colher de sopa")
-                .grams(new BigDecimal("15.0"))
-                .sortOrder(0)
-                .build();
-        foodPortionRepository.save(portion);
-
-        // With raw UUID FKs, cascade is handled in DB (ON DELETE CASCADE) and service layer
-        // Simulate service-layer cascade: delete children before parent
-        foodPortionRepository.deleteAllByFoodId(savedFood.getId());
-        foodRepository.delete(savedFood);
-
-        assertTrue(foodPortionRepository.findById(portion.getId()).isEmpty());
-        assertTrue(foodRepository.findById(savedFood.getId()).isEmpty());
-    }
-
-    // === MealPlan entity tests ===
 
     @Test
     void mealPlan_hasUniqueConstraintOnEpisodeId() {
@@ -209,8 +174,6 @@ class FoodAndPlanRepositoryTest {
         assertEquals("Plano test", found.get().getTitle());
     }
 
-    // === MealFood with nullable foodId FK ===
-
     @Test
     void mealFood_withNullFoodId_persistsSuccessfully() {
         UUID patientId = createPatient();
@@ -221,10 +184,10 @@ class FoodAndPlanRepositoryTest {
 
         MealFood item = MealFood.builder()
                 .optionId(option.getId())
-                .foodId(null) // nullable FK for free-text foods
+                .foodId(null)
                 .foodName("Pão caseiro da mãe")
-                .qty("1 unidade")
-                .grams(new BigDecimal("50.0"))
+                .referenceAmount(new BigDecimal("50.0"))
+                .unit("GRAMAS")
                 .kcal(new BigDecimal("120.0"))
                 .build();
         MealFood saved = mealFoodRepository.save(item);
@@ -232,9 +195,9 @@ class FoodAndPlanRepositoryTest {
         assertNotNull(saved.getId());
         assertNull(saved.getFoodId());
         assertEquals("Pão caseiro da mãe", saved.getFoodName());
+        assertEquals(new BigDecimal("50.0"), saved.getReferenceAmount());
+        assertEquals("GRAMAS", saved.getUnit());
     }
-
-    // === Cascading delete tests ===
 
     @Test
     void deleteMealSlot_serviceCascadeRemovesOptionsAndFoodItems() {
@@ -244,9 +207,8 @@ class FoodAndPlanRepositoryTest {
         MealSlot slot = mealSlotRepository.save(MealSlot.builder().planId(plan.getId()).label("Café").sortOrder(0).build());
         MealOption option = mealOptionRepository.save(MealOption.builder().mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build());
         MealFood item = mealFoodRepository.save(MealFood.builder()
-                .optionId(option.getId()).foodName("Café").grams(new BigDecimal("200")).kcal(BigDecimal.ZERO).build());
+                .optionId(option.getId()).foodName("Café").referenceAmount(new BigDecimal("200")).unit("ML").kcal(BigDecimal.ZERO).build());
 
-        // Simulate service-layer cascade: delete children before parent (DB ON DELETE CASCADE handles this in production)
         mealFoodRepository.deleteAllByOptionId(option.getId());
         mealOptionRepository.deleteAllByMealSlotId(slot.getId());
         mealSlotRepository.delete(slot);
@@ -263,9 +225,8 @@ class FoodAndPlanRepositoryTest {
         MealSlot slot = mealSlotRepository.save(MealSlot.builder().planId(plan.getId()).label("Café").sortOrder(0).build());
         PlanExtra extra = planExtraRepository.save(PlanExtra.builder().planId(plan.getId()).name("Chá verde").build());
 
-        // Simulate service-layer cascade: delete children before parent (DB ON DELETE CASCADE handles this in production)
         planExtraRepository.deleteAllByPlanId(plan.getId());
-        List<MealOption> options = mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId());
+        java.util.List<MealOption> options = mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId());
         for (MealOption opt : options) {
             mealFoodRepository.deleteAllByOptionId(opt.getId());
         }
@@ -276,8 +237,6 @@ class FoodAndPlanRepositoryTest {
         assertTrue(mealSlotRepository.findById(slot.getId()).isEmpty());
         assertTrue(planExtraRepository.findById(extra.getId()).isEmpty());
     }
-
-    // Helper methods
 
     private UUID createPatient() {
         Patient patient = Patient.builder()

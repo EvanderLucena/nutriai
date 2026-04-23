@@ -30,7 +30,7 @@ const mockPlan: MealPlan = {
           id: 'opt-1',
           name: 'Opção 1 · Clássico',
           items: [
-            { id: 'item-1', foodId: 'food-1', foodName: 'Aveia em flocos', qty: '2 col. sopa', grams: 30, prep: '-', kcal: 117, prot: 5, carb: 20, fat: 2 },
+            { id: 'item-1', foodId: 'food-1', foodName: 'Aveia em flocos', referenceAmount: 30, unit: 'GRAMAS', prep: '-', kcal: 117, prot: 5, carb: 20, fat: 2 },
           ],
         },
       ],

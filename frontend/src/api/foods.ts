@@ -1,7 +1,5 @@
 import { apiClient } from './client';
-import type { FoodListApiResponse, FoodApiResponse } from '../types/food';
-
-import type { FoodTypeKey, FoodCategoryKey } from '../types/food';
+import type { FoodListApiResponse, FoodApiResponse, FoodCategoryKey, FoodUnit } from '../types/food';
 
 export interface ListFoodsParams {
   page?: number;
@@ -11,22 +9,17 @@ export interface ListFoodsParams {
 }
 
 export interface CreateFoodRequest {
-  type: FoodTypeKey;
   name: string;
   category: FoodCategoryKey;
-  per100Kcal?: number | null;
-  per100Prot?: number | null;
-  per100Carb?: number | null;
-  per100Fat?: number | null;
-  per100Fiber?: number | null;
-  presetGrams?: number | null;
-  presetKcal?: number | null;
-  presetProt?: number | null;
-  presetCarb?: number | null;
-  presetFat?: number | null;
+  unit: FoodUnit;
+  referenceAmount: number;
+  kcal: number;
+  prot: number;
+  carb: number;
+  fat: number;
+  fiber?: number | null;
+  prep?: string | null;
   portionLabel?: string | null;
-  basedOn?: string | null;
-  portions?: Array<{ name: string; grams: number }> | null;
 }
 
 export interface UpdateFoodRequest extends Partial<CreateFoodRequest> {}

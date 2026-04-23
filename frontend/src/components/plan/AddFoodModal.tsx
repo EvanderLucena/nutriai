@@ -1,30 +1,26 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Food } from '../../types/food';
-import { mapFoodFromApi } from '../../types/food';
+import { mapFoodFromApi, FOOD_UNIT_SYMBOLS } from '../../types/food';
 import { listFoods } from '../../api/foods';
 import { IconSearch, IconPlus, IconX } from '../icons';
-import { PortionChips } from './PortionChips';
 
 interface AddFoodModalProps {
   onClose: () => void;
-  onAdd: (item: { foodId: string; grams: number; qty: string }) => void;
+  onAdd: (item: { foodId: string; referenceAmount: number }) => void;
 }
 
 export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Food | null>(null);
-  const [qty, setQty] = useState('');
-  const [grams, setGrams] = useState<number | ''>('');
+  const [referenceAmount, setReferenceAmount] = useState<number | ''>('');
   const [results, setResults] = useState<Food[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounced API search
   const handleSearch = useCallback((val: string) => {
     setQ(val);
     setSelected(null);
-    setGrams('');
-    setQty('');
+    setReferenceAmount('');
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!val.trim()) {
       setResults([]);
@@ -48,49 +44,35 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
 
   const handleSelectFood = (food: Food) => {
     setSelected(food);
-    if (food.type === 'preset') {
-      setGrams(food.grams ?? 0);
-      setQty(food.portionLabel ?? '');
-    } else {
-      setGrams('');
-      setQty('');
-    }
+    setReferenceAmount(food.referenceAmount);
   };
 
-  const handlePortionSelect = (name: string, portionGrams: number) => {
-    setQty(name);
-    setGrams(portionGrams);
-  };
-
-  // Approximate macro preview for display
   const getMacroPreview = () => {
-    if (!selected || !grams) return null;
-    if (selected.type === 'preset') {
-      return selected.nutrition ?? null;
-    }
-    if (selected.per100) {
-      const g = Number(grams) || 0;
-      return {
-        kcal: Math.round((selected.per100.kcal * g) / 10) / 10,
-        prot: Math.round((selected.per100.prot * g) / 10) / 10,
-        carb: Math.round((selected.per100.carb * g) / 10) / 10,
-        fat: Math.round((selected.per100.fat * g) / 10) / 10,
-      };
-    }
-    return null;
+    if (!selected || !referenceAmount) return null;
+    const ref = Number(referenceAmount) || 0;
+    const foodRef = selected.referenceAmount;
+    if (!foodRef) return null;
+    const scale = ref / foodRef;
+    return {
+      kcal: Math.round(selected.kcal * scale * 10) / 10,
+      prot: Math.round(selected.prot * scale * 10) / 10,
+      carb: Math.round(selected.carb * scale * 10) / 10,
+      fat: Math.round(selected.fat * scale * 10) / 10,
+    };
   };
 
   const macroPreview = getMacroPreview();
 
   const handleAdd = () => {
-    if (!selected || !grams) return;
+    if (!selected || !referenceAmount) return;
     onAdd({
       foodId: selected.id,
-      grams: Number(grams),
-      qty: qty || (selected.type === 'preset' ? selected.portionLabel! : `${grams}g`),
+      referenceAmount: Number(referenceAmount),
     });
     onClose();
   };
+
+  const unitSymbol = selected ? FOOD_UNIT_SYMBOLS[selected.unit] : '';
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }} onClick={onClose}>
@@ -117,28 +99,31 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
           )}
           {!searching && results.length > 0 && (
             <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
-              {results.map((f) => (
-                <div
-                  key={f.id}
-                  onClick={() => handleSelectFood(f)}
-                  style={{
-                    padding: '10px 14px', cursor: 'pointer',
-                    background: selected?.id === f.id ? 'var(--surface-2)' : 'transparent',
-                    borderBottom: '1px solid var(--border)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: selected?.id === f.id ? 600 : 400 }}>{f.name}</div>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                      {f.category} · {f.type === 'preset' ? f.portionLabel : 'por 100g'}
+              {results.map((f) => {
+                const fSymbol = FOOD_UNIT_SYMBOLS[f.unit];
+                return (
+                  <div
+                    key={f.id}
+                    onClick={() => handleSelectFood(f)}
+                    style={{
+                      padding: '10px 14px', cursor: 'pointer',
+                      background: selected?.id === f.id ? 'var(--surface-2)' : 'transparent',
+                      borderBottom: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: selected?.id === f.id ? 600 : 400 }}>{f.name}</div>
+                      <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        {f.category} · ref {f.referenceAmount}{fSymbol}
+                      </div>
+                    </div>
+                    <div className="mono tnum" style={{ fontSize: 11.5, color: 'var(--fg-muted)', flexShrink: 0 }}>
+                      {f.kcal} kcal
                     </div>
                   </div>
-                  <div className="mono tnum" style={{ fontSize: 11.5, color: 'var(--fg-muted)', flexShrink: 0 }}>
-                    {f.type === 'preset' ? f.nutrition!.kcal : f.per100!.kcal} kcal
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           {!searching && q && results.length === 0 && (
@@ -146,28 +131,18 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
           )}
           {selected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <div className="eyebrow">Quantidade / descrição</div>
-                  <input
-                    value={qty}
-                    onChange={(e) => setQty(e.target.value)}
-                    placeholder="ex: 1 unidade, 2 col. sopa"
-                    style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: '100%', boxSizing: 'border-box' }}
-                  />
-                  {selected.type === 'base' && selected.portions && (
-                    <PortionChips portions={selected.portions} onSelect={handlePortionSelect} />
-                  )}
-                </div>
-                <div>
-                  <div className="eyebrow">Gramas</div>
+              <div>
+                <div className="eyebrow">Referência</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
                     type="number"
-                    value={grams}
-                    onChange={(e) => setGrams(Number(e.target.value) || '')}
+                    value={referenceAmount}
+                    onChange={(e) => setReferenceAmount(Number(e.target.value) || '')}
                     placeholder="0"
-                    style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: '100%', boxSizing: 'border-box', fontFamily: 'var(--font-mono)' }}
+                    style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', outline: 'none', color: 'var(--fg)', width: 100, boxSizing: 'border-box', fontFamily: 'var(--font-mono)' }}
                   />
+                  <span className="mono" style={{ fontSize: 13, color: 'var(--fg-muted)' }}>Uni: {unitSymbol}</span>
+                  {selected.prep && <span style={{ fontSize: 12, color: 'var(--fg-subtle)', marginLeft: 4 }}>· {selected.prep}</span>}
                 </div>
               </div>
               {macroPreview && (
@@ -188,7 +163,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" disabled={!selected || !grams} onClick={handleAdd} style={{ opacity: selected && grams ? 1 : 0.45 }}>
+          <button className="btn btn-primary" disabled={!selected || !referenceAmount} onClick={handleAdd} style={{ opacity: selected && referenceAmount ? 1 : 0.45 }}>
             <IconPlus size={13} /> Adicionar
           </button>
         </div>

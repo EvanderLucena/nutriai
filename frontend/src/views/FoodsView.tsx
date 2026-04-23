@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { FOOD_CATEGORIES, FOOD_CATEGORY_LABELS, FOOD_TYPE_KEYS, FOOD_TYPE_LABELS, REVERSE_CATEGORY_LABELS } from '../types/food';
-import type { Food, FoodCategory, FoodCategoryKey, FoodTypeKey } from '../types/food';
+import { FOOD_CATEGORIES, FOOD_CATEGORY_LABELS, FOOD_UNIT_KEYS, FOOD_UNIT_LABELS, FOOD_UNIT_SYMBOLS, REVERSE_CATEGORY_LABELS } from '../types/food';
+import type { Food, FoodCategory, FoodCategoryKey, FoodUnit } from '../types/food';
 import { useFoodUIStore, useFoodCatalog, useCreateFood, useUpdateFood, useDeleteFood } from '../stores/foodStore';
 import { IconSearch, IconPlus, IconEdit, IconDots, IconX, IconCheck, IconTrash } from '../components/icons';
 
@@ -58,43 +58,33 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
   const [category, setCategory] = useState<FoodCategoryKey>(
     REVERSE_CATEGORY_LABELS[food.category] || (food.category as FoodCategoryKey)
   );
+  const [unit, setUnit] = useState<FoodUnit>(food.unit);
+  const [referenceAmount, setReferenceAmount] = useState(String(food.referenceAmount));
+  const [kcal, setKcal] = useState(String(food.kcal));
+  const [prot, setProt] = useState(String(food.prot));
+  const [carb, setCarb] = useState(String(food.carb));
+  const [fat, setFat] = useState(String(food.fat));
+  const [fiber, setFiber] = useState(String(food.fiber));
+  const [prep, setPrep] = useState(food.prep);
   const updateFood = useUpdateFood();
-
-  const isBase = food.type === 'base';
-  const [kcal, setKcal] = useState(String(isBase ? food.per100!.kcal : food.nutrition!.kcal));
-  const [prot, setProt] = useState(String(isBase ? food.per100!.prot : food.nutrition!.prot));
-  const [carb, setCarb] = useState(String(isBase ? food.per100!.carb : food.nutrition!.carb));
-  const [fat, setFat] = useState(String(isBase ? food.per100!.fat : food.nutrition!.fat));
-  const [basedOn, setBasedOn] = useState(food.basedOn || '');
 
   const handle = () => {
     if (!name.trim()) return;
-    if (isBase) {
-      updateFood.mutate({
-        id: food.id,
-        data: {
-          name: name.trim(),
-          category,
-          per100Kcal: Number(kcal) || 0,
-          per100Prot: Number(prot) || 0,
-          per100Carb: Number(carb) || 0,
-          per100Fat: Number(fat) || 0,
-        },
-      });
-    } else {
-      updateFood.mutate({
-        id: food.id,
-        data: {
-          name: name.trim(),
-          category,
-          presetKcal: Number(kcal) || 0,
-          presetProt: Number(prot) || 0,
-          presetCarb: Number(carb) || 0,
-          presetFat: Number(fat) || 0,
-          basedOn: basedOn.trim() || null,
-        },
-      });
-    }
+    updateFood.mutate({
+      id: food.id,
+      data: {
+        name: name.trim(),
+        category,
+        unit,
+        referenceAmount: Number(referenceAmount) || 0,
+        kcal: Number(kcal) || 0,
+        prot: Number(prot) || 0,
+        carb: Number(carb) || 0,
+        fat: Number(fat) || 0,
+        fiber: Number(fiber) || 0,
+        prep: prep || null,
+      },
+    });
     onClose();
   };
 
@@ -117,6 +107,9 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
     </div>
   );
 
+  const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
+  const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }} onClick={onClose}>
       <div className="card" style={{ width: 'min(520px, 100%)', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
@@ -127,7 +120,7 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           {field('Nome', name, setName)}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="eyebrow">Categoria</div>
               <select
@@ -138,15 +131,27 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
                 {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c} value={c}>{FOOD_CATEGORY_LABELS[c as FoodCategoryKey]}</option>)}
               </select>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="eyebrow">Unidade</div>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value as FoodUnit)}
+                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
+              >
+                {FOOD_UNIT_KEYS.map((u) => <option key={u} value={u}>{FOOD_UNIT_LABELS[u]}</option>)}
+              </select>
+            </div>
+            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, { mono: true })}
           </div>
-          <div className="divider"><span>{isBase ? 'Valores por 100g' : 'Valores da porção'}</span></div>
+          <div className="divider"><span>Valores por {referenceAmount || '?'}{unitSymbol}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {field('Kcal', kcal, setKcal, { mono: true })}
             {field('Prot (g)', prot, setProt, { mono: true })}
             {field('Carb (g)', carb, setCarb, { mono: true })}
             {field('Gord (g)', fat, setFat, { mono: true })}
           </div>
-          {!isBase && field('Baseado em (opcional)', basedOn, setBasedOn, { placeholder: 'ex: Frango desfiado cozido' })}
+          {field('Fibra (g)', fiber, setFiber, { mono: true })}
+          {field('Preparo sugerido', prep, setPrep, { placeholder: 'ex: grelhado, cozido no vapor' })}
         </div>
         <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
@@ -198,17 +203,19 @@ function SkeletonCard() {
   );
 }
 
-function FoodBaseCard({ food, onEdit, onDelete }: { food: Food; onEdit: () => void; onDelete: () => void }) {
+function FoodCard({ food, onEdit, onDelete }: { food: Food; onEdit: () => void; onDelete: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const unitSymbol = FOOD_UNIT_SYMBOLS[food.unit];
+  const refLabel = food.unit === 'UNIDADE' ? 'unidade' : food.unit === 'ML' ? 'ml' : 'g';
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-            <div className="chip" style={{ padding: '1px 6px', fontSize: 9.5 }}>BASE</div>
             <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{food.category}</div>
           </div>
           <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.005em' }}>{food.name}</div>
+          {food.prep && <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', marginTop: 2 }}>{food.prep}</div>}
         </div>
         <div style={{ position: 'relative' }}>
           <button style={{ color: 'var(--fg-subtle)' }} onClick={() => setMenuOpen((v) => !v)}><IconDots size={14} /></button>
@@ -216,65 +223,13 @@ function FoodBaseCard({ food, onEdit, onDelete }: { food: Food; onEdit: () => vo
         </div>
       </div>
       <div style={{ padding: '12px 16px' }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>por 100g</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>por {food.referenceAmount}{unitSymbol} ({refLabel})</div>
         <div className="foods-foods-macros-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          <MiniMacro label="Kcal" value={food.per100!.kcal} />
-          <MiniMacro label="Prot" value={`${food.per100!.prot}g`} color="var(--sage-dim)" />
-          <MiniMacro label="Carb" value={`${food.per100!.carb}g`} color="var(--carb)" />
-          <MiniMacro label="Gord" value={`${food.per100!.fat}g`} color="var(--sky)" />
+          <MiniMacro label="Kcal" value={food.kcal} />
+          <MiniMacro label="Prot" value={`${food.prot}g`} color="var(--sage-dim)" />
+          <MiniMacro label="Carb" value={`${food.carb}g`} color="var(--carb)" />
+          <MiniMacro label="Gord" value={`${food.fat}g`} color="var(--sky)" />
         </div>
-      </div>
-      {food.portions && food.portions.length > 0 && (
-        <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border)' }}>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>Porções · {food.portions.length}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-            {food.portions.map((p, i) => (
-              <div key={i} style={{ fontSize: 11, padding: '3px 7px', border: '1px solid var(--border)', borderRadius: 999, color: 'var(--fg-muted)' }}>
-                <span>{p.name}</span>
-                <span className="mono tnum" style={{ marginLeft: 5, color: 'var(--fg-subtle)' }}>{p.grams}g</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', marginTop: 'auto' }}>
-        <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>usado em {food.used} planos</div>
-        <button className="btn btn-ghost" style={{ fontSize: 11.5, padding: '3px 6px', color: 'var(--fg-muted)' }} onClick={onEdit}><IconEdit size={11} /> Editar</button>
-      </div>
-    </div>
-  );
-}
-
-function FoodPresetCard({ food, onEdit, onDelete }: { food: Food; onEdit: () => void; onDelete: () => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', borderColor: 'rgba(156,191,43,0.3)' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-            <div className="chip ai" style={{ padding: '1px 6px', fontSize: 9.5 }}><span className="d" />PRESET</div>
-            <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{food.category}</div>
-          </div>
-          <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: '-0.005em' }}>{food.name}</div>
-          <div className="mono tnum" style={{ fontSize: 11, color: 'var(--fg-muted)', marginTop: 2 }}>{food.portionLabel}</div>
-        </div>
-        <div style={{ position: 'relative' }}>
-          <button style={{ color: 'var(--fg-subtle)' }} onClick={() => setMenuOpen((v) => !v)}><IconDots size={14} /></button>
-          {menuOpen && <FoodMenuDropdown onEdit={onEdit} onDelete={onDelete} onClose={() => setMenuOpen(false)} />}
-        </div>
-      </div>
-      <div style={{ padding: '12px 16px' }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>valores calculados</div>
-        <div className="foods-foods-macros-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          <MiniMacro label="Kcal" value={food.nutrition!.kcal} />
-          <MiniMacro label="Prot" value={`${food.nutrition!.prot}g`} color="var(--sage-dim)" />
-          <MiniMacro label="Carb" value={`${food.nutrition!.carb}g`} color="var(--carb)" />
-          <MiniMacro label="Gord" value={`${food.nutrition!.fat}g`} color="var(--sky)" />
-        </div>
-      </div>
-      <div style={{ padding: '10px 16px', fontSize: 11.5, color: 'var(--fg-muted)', lineHeight: 1.5, borderTop: '1px solid var(--border)' }}>
-        <span className="mono" style={{ fontSize: 10, letterSpacing: '0.04em', color: 'var(--fg-subtle)', marginRight: 6 }}>BASE:</span>
-        {food.basedOn}
       </div>
       <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', marginTop: 'auto' }}>
         <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>usado em {food.used} planos</div>
@@ -308,47 +263,33 @@ function FoodsPagination({ page, pages, total, pageSize, onChange }: { page: num
 
 function CreateFoodModal({ onClose }: { onClose: () => void }) {
   const [name, setName] = useState('');
-  const [foodType, setFoodType] = useState<FoodTypeKey>('PRESET');
   const [category, setCategory] = useState<FoodCategoryKey>('PROTEINA');
+  const [unit, setUnit] = useState<FoodUnit>('GRAMAS');
+  const [referenceAmount, setReferenceAmount] = useState('');
   const [kcal, setKcal] = useState('');
   const [prot, setProt] = useState('');
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
-  const [portionLabel, setPortionLabel] = useState('');
-  const [basedOn, setBasedOn] = useState('');
-  const [grams, setGrams] = useState('');
   const [fiber, setFiber] = useState('');
+  const [prep, setPrep] = useState('');
+  const [portionLabel, setPortionLabel] = useState('');
   const createFood = useCreateFood();
-  const [portions] = useState<Array<{ name: string; grams: number }>>([]);
 
   const handle = () => {
     if (!name.trim()) return;
-    if (foodType === 'PRESET') {
-      createFood.mutate({
-        type: 'PRESET',
-        name: name.trim(),
-        category,
-        portionLabel: portionLabel || '1 porção',
-        basedOn: basedOn.trim() || null,
-        presetGrams: Number(grams) || 100,
-        presetKcal: Number(kcal) || 0,
-        presetProt: Number(prot) || 0,
-        presetCarb: Number(carb) || 0,
-        presetFat: Number(fat) || 0,
-      });
-    } else {
-      createFood.mutate({
-        type: 'BASE',
-        name: name.trim(),
-        category,
-        per100Kcal: Number(kcal) || 0,
-        per100Prot: Number(prot) || 0,
-        per100Carb: Number(carb) || 0,
-        per100Fat: Number(fat) || 0,
-        per100Fiber: Number(fiber) || 0,
-        portions: portions.length > 0 ? portions : null,
-      });
-    }
+    createFood.mutate({
+      name: name.trim(),
+      category,
+      unit,
+      referenceAmount: Number(referenceAmount) || 0,
+      kcal: Number(kcal) || 0,
+      prot: Number(prot) || 0,
+      carb: Number(carb) || 0,
+      fat: Number(fat) || 0,
+      fiber: Number(fiber) || 0,
+      prep: prep || null,
+      portionLabel: portionLabel || null,
+    });
     onClose();
   };
 
@@ -370,6 +311,9 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 
+  const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
+  const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }} onClick={onClose}>
       <div className="card" style={{ width: 'min(520px, 100%)', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
@@ -379,18 +323,8 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} className="btn btn-ghost" style={{ padding: '4px 6px' }}><IconX size={14} /></button>
         </div>
         <div style={{ padding: '18px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {field('Nome do alimento', name, setName, { placeholder: 'ex: Frango desfiado 100g' })}
+          {field('Nome do alimento', name, setName, { placeholder: 'ex: Frango desfiado' })}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">Tipo</div>
-              <select
-                value={foodType}
-                onChange={(e) => setFoodType(e.target.value as FoodTypeKey)}
-                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
-              >
-                {FOOD_TYPE_KEYS.map((t) => <option key={t} value={t}>{FOOD_TYPE_LABELS[t]}</option>)}
-              </select>
-            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="eyebrow">Categoria</div>
               <select
@@ -401,18 +335,28 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
                 {FOOD_CATEGORIES.filter((c) => c !== 'Todos').map((c) => <option key={c} value={c}>{FOOD_CATEGORY_LABELS[c as FoodCategoryKey]}</option>)}
               </select>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div className="eyebrow">Unidade</div>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value as FoodUnit)}
+                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
+              >
+                {FOOD_UNIT_KEYS.map((u) => <option key={u} value={u}>{FOOD_UNIT_LABELS[u]}</option>)}
+              </select>
+            </div>
           </div>
-          {foodType === 'PRESET' && field('Descrição da porção', portionLabel, setPortionLabel, { placeholder: 'ex: 1 unidade · 100g' })}
-          {foodType === 'PRESET' && field('Gramas da porção', grams, setGrams, { mono: true, placeholder: '100' })}
-          {foodType === 'PRESET' && field('Baseado em (opcional)', basedOn, setBasedOn, { placeholder: 'ex: Frango desfiado cozido' })}
-          <div className="divider"><span>{foodType === 'BASE' ? 'Valores por 100g' : 'Macros da porção'}</span></div>
+          {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, { mono: true, placeholder: unit === 'GRAMAS' ? '100' : '1' })}
+          <div className="divider"><span>Valores por {referenceAmount || '?'}{unitSymbol}</span></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {field('Kcal', kcal, setKcal, { mono: true, placeholder: '0' })}
             {field('Proteína (g)', prot, setProt, { mono: true, placeholder: '0' })}
             {field('Carboidrato (g)', carb, setCarb, { mono: true, placeholder: '0' })}
             {field('Gordura (g)', fat, setFat, { mono: true, placeholder: '0' })}
           </div>
-          {foodType === 'BASE' && field('Fibra (g)', fiber, setFiber, { mono: true, placeholder: '0' })}
+          {field('Fibra (g)', fiber, setFiber, { mono: true, placeholder: '0' })}
+          {field('Preparo sugerido', prep, setPrep, { placeholder: 'ex: grelhado, cozido no vapor' })}
+          {field('Descrição da porção', portionLabel, setPortionLabel, { placeholder: 'ex: 1 unidade · 100g' })}
         </div>
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 8, background: 'var(--surface-2)' }}>
           <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
@@ -488,11 +432,9 @@ export function FoodsView() {
           {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           ) : (
-            foods.map((f) =>
-              f.type === 'base'
-                ? <FoodBaseCard key={f.id} food={f} onEdit={() => setEditingFoodId(f.id)} onDelete={() => setDeletingFood(f)} />
-                : <FoodPresetCard key={f.id} food={f} onEdit={() => setEditingFoodId(f.id)} onDelete={() => setDeletingFood(f)} />,
-            )
+            foods.map((f) => (
+              <FoodCard key={f.id} food={f} onEdit={() => setEditingFoodId(f.id)} onDelete={() => setDeletingFood(f)} />
+            ))
           )}
           {!isLoading && foods.length === 0 && (
             <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--fg-subtle)', fontSize: 13 }}>

@@ -239,7 +239,7 @@ export function PlansView({ patientId }: PlansViewProps) {
           const strong = doc.createElement('strong');
           strong.textContent = it.foodName;
           li.appendChild(strong);
-          if (it.qty) li.appendChild(doc.createTextNode(` · ${it.qty}`));
+          li.appendChild(doc.createTextNode(` · ref ${it.referenceAmount}${it.unit === 'GRAMAS' ? 'g' : it.unit === 'ML' ? 'ml' : ' un'}`));
           if (it.prep && it.prep !== '-') {
             const prepSpan = doc.createElement('span');
             prepSpan.className = 'prep';
@@ -434,18 +434,17 @@ export function PlansView({ patientId }: PlansViewProps) {
               </div>
 
               <div className="card">
-                <div className="plans-food-table" style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 0.8fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-                  {['Alimento', 'Quantidade', 'Gramas', 'Preparo', 'Kcal', 'Prot', 'Carb', 'Gord', ''].map((h, i) => (
-                    <div key={i} className="eyebrow" style={{ fontSize: 10, textAlign: i >= 4 && i <= 7 ? 'right' : 'left' }}>{h}</div>
+                <div className="plans-food-table" style={{ display: 'grid', gridTemplateColumns: '2.2fr 0.8fr 0.6fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px', gap: 10, padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                  {['Alimento', 'Ref', 'Unid', 'Preparo', 'Kcal', 'Prot', 'Carb', 'Gord', ''].map((h, i) => (
+                    <div key={i} className="eyebrow" style={{ fontSize: 10, textAlign: i >= 4 && i <= 7 ? 'right' : (i === 1 || i === 2) ? 'center' : 'left' }}>{h}</div>
                   ))}
                 </div>
-                {activeOpt.items.map((it) => (
+                  {activeOpt.items.map((it) => (
                   <PlanFoodRow
                     key={it.id}
                     item={it}
                     isLast={it.id === activeOpt.items[activeOpt.items.length - 1]?.id}
-                    onGramsChange={(grams) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { grams } })}
-                    onQtyChange={(qty) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { qty } })}
+                    onReferenceAmountChange={(referenceAmount) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { referenceAmount } })}
                     onPrepChange={(prep) => updateFoodItem.mutate({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, data: { prep } })}
                     onRemove={() => planUI.setPendingDeleteItem({ mealId: activeMeal.id, optionId: activeOpt.id, itemId: it.id, name: it.foodName })}
                   />
@@ -462,10 +461,10 @@ export function PlansView({ patientId }: PlansViewProps) {
                   <div className="eyebrow">TOTAL DA OPÇÃO</div>
                   <div className="serif" style={{ fontSize: 18, letterSpacing: '-0.01em', marginTop: 2 }}>{activeOpt.name}</div>
                 </div>
-                <TotalCell label="Kcal" actual={optTotals.kcal} target={meals.length > 0 ? Math.round(plan.kcalTarget / meals.length) : 0} />
-                <TotalCell label="Proteína" actual={optTotals.prot} target={meals.length > 0 ? Math.round(plan.protTarget / meals.length) : 0} unit="g" color="var(--sage)" />
-                <TotalCell label="Carboidrato" actual={optTotals.carb} target={meals.length > 0 ? Math.round(plan.carbTarget / meals.length) : 0} unit="g" color="var(--amber)" />
-                <TotalCell label="Gordura" actual={optTotals.fat} target={meals.length > 0 ? Math.round(plan.fatTarget / meals.length) : 0} unit="g" color="var(--sky)" />
+                <TotalCell label="Kcal" actual={optTotals.kcal} target={plan.kcalTarget} />
+                <TotalCell label="Proteína" actual={optTotals.prot} target={plan.protTarget} unit="g" color="var(--sage)" />
+                <TotalCell label="Carboidrato" actual={optTotals.carb} target={plan.carbTarget} unit="g" color="var(--amber)" />
+                <TotalCell label="Gordura" actual={optTotals.fat} target={plan.fatTarget} unit="g" color="var(--sky)" />
               </div>
             </div>
           )}
@@ -479,7 +478,7 @@ export function PlansView({ patientId }: PlansViewProps) {
             addFoodItem.mutate({
               mealId: activeMeal.id,
               optionId: activeOpt.id,
-              data: { foodId: data.foodId, grams: data.grams, qty: data.qty },
+              data: { foodId: data.foodId, referenceAmount: data.referenceAmount },
             });
             planUI.setAddFoodModalOpen(false);
           }}

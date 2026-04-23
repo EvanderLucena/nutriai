@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MealFood } from '../../types/plan';
+import { FOOD_UNIT_SYMBOLS } from '../../types/food';
 
 interface PlanFoodRowProps {
   item: MealFood;
   isLast: boolean;
-  onGramsChange: (grams: number) => void;
-  onQtyChange: (qty: string) => void;
+  onReferenceAmountChange: (referenceAmount: number) => void;
   onPrepChange: (prep: string) => void;
   onRemove: () => void;
 }
@@ -49,27 +49,28 @@ function EditableCell({ value, color, isNum, onChange }: { value: string | numbe
   );
 }
 
-export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepChange, onRemove }: PlanFoodRowProps) {
+export function PlanFoodRow({ item, isLast, onReferenceAmountChange, onPrepChange, onRemove }: PlanFoodRowProps) {
   const [macroFlash, setMacroFlash] = useState(false);
-  const [localGrams, setLocalGrams] = useState(String(item.grams));
-  const gramsRef = useRef<HTMLInputElement>(null);
+  const [localRef, setLocalRef] = useState(String(item.referenceAmount));
+  const refInput = useRef<HTMLInputElement>(null);
+  const unitSymbol = FOOD_UNIT_SYMBOLS[item.unit as keyof typeof FOOD_UNIT_SYMBOLS] || 'g';
 
   useEffect(() => {
-    if (!gramsRef.current || gramsRef.current !== document.activeElement) {
-      setLocalGrams(String(item.grams));
+    if (!refInput.current || refInput.current !== document.activeElement) {
+      setLocalRef(String(item.referenceAmount));
     }
-  }, [item.grams]);
+  }, [item.referenceAmount]);
 
-  const handleGramsBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleRefBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.style.borderColor = 'transparent';
     e.target.style.background = 'transparent';
-    const newGrams = Number(e.target.value) || 0;
-    if (newGrams !== item.grams) {
+    const newRef = Number(e.target.value) || 0;
+    if (newRef !== item.referenceAmount) {
       setMacroFlash(true);
-      onGramsChange(newGrams);
+      onReferenceAmountChange(newRef);
       setTimeout(() => setMacroFlash(false), 200);
     } else {
-      setLocalGrams(String(item.grams));
+      setLocalRef(String(item.referenceAmount));
     }
   };
 
@@ -84,7 +85,7 @@ export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepCh
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '2.2fr 1fr 0.8fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px',
+        gridTemplateColumns: '2.2fr 0.8fr 0.6fr 1.8fr 0.8fr 0.8fr 0.9fr 0.8fr 28px',
         gap: 10,
         padding: '8px 16px',
         borderBottom: isLast ? 'none' : '1px solid var(--border)',
@@ -103,14 +104,12 @@ export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepCh
         {item.foodName}
       </div>
 
-      <EditableCell value={item.qty} color="var(--fg-muted)" isNum={false} onChange={onQtyChange} />
-
       <input
-        ref={gramsRef}
+        ref={refInput}
         type="number"
-        value={localGrams}
-        onChange={(e) => setLocalGrams(e.target.value)}
-        onBlur={handleGramsBlur}
+        value={localRef}
+        onChange={(e) => setLocalRef(e.target.value)}
+        onBlur={handleRefBlur}
         onFocus={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.background = 'var(--surface)'; }}
         style={{
           padding: '5px 7px', border: '1px solid transparent', borderRadius: 5, fontSize: 12.5,
@@ -118,6 +117,16 @@ export function PlanFoodRow({ item, isLast, onGramsChange, onQtyChange, onPrepCh
           fontFamily: 'var(--font-mono)', textAlign: 'right',
         }}
       />
+
+      <div
+        className="mono"
+        style={{
+          padding: '5px 7px', fontSize: 11, color: 'var(--fg-muted)',
+          background: 'var(--surface-2)', borderRadius: 5, textAlign: 'center',
+        }}
+      >
+        {unitSymbol}
+      </div>
 
       <EditableCell value={item.prep} color="var(--fg-muted)" isNum={false} onChange={onPrepChange} />
 

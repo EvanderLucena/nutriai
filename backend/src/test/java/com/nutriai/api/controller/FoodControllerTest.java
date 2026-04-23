@@ -5,9 +5,7 @@ import com.nutriai.api.auth.AuthService;
 import com.nutriai.api.auth.RefreshTokenRepository;
 import com.nutriai.api.auth.dto.SignupRequest;
 import com.nutriai.api.dto.food.CreateFoodRequest;
-import com.nutriai.api.dto.food.FoodPortionDto;
 import com.nutriai.api.dto.food.UpdateFoodRequest;
-import com.nutriai.api.repository.FoodPortionRepository;
 import com.nutriai.api.repository.FoodRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -46,9 +43,6 @@ class FoodControllerTest {
     private FoodRepository foodRepository;
 
     @Autowired
-    private FoodPortionRepository foodPortionRepository;
-
-    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
@@ -61,7 +55,6 @@ class FoodControllerTest {
 
     @BeforeEach
     void setUp() {
-        foodPortionRepository.deleteAll();
         foodRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         nutritionistRepository.deleteAll();
@@ -74,11 +67,10 @@ class FoodControllerTest {
     @Test
     void createFood_returns201WithFoodResponse() throws Exception {
         CreateFoodRequest req = new CreateFoodRequest(
-                "BASE", "Arroz branco", "CARBOIDRATO",
-                new BigDecimal("130.0"), new BigDecimal("2.7"), new BigDecimal("28.0"),
-                new BigDecimal("0.3"), new BigDecimal("0.4"),
-                null, null, null, null, null, null, null,
-                List.of(new FoodPortionDto(null, "1 colher", new BigDecimal("15")))
+                "Arroz branco", "CARBOIDRATO", "GRAMAS",
+                new BigDecimal("100"), new BigDecimal("130.0"), new BigDecimal("2.7"),
+                new BigDecimal("28.0"), new BigDecimal("0.3"), new BigDecimal("0.4"),
+                "cozido", "1 colher"
         );
 
         mockMvc.perform(post("/api/v1/foods")
@@ -88,19 +80,18 @@ class FoodControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.name").value("Arroz branco"))
-                .andExpect(jsonPath("$.data.type").value("BASE"))
-                .andExpect(jsonPath("$.data.per100Kcal").value(130.0))
-                .andExpect(jsonPath("$.data.portions").isArray());
+                .andExpect(jsonPath("$.data.unit").value("GRAMAS"))
+                .andExpect(jsonPath("$.data.kcal").value(130.0))
+                .andExpect(jsonPath("$.data.prep").value("cozido"));
     }
 
     @Test
-    void createFood_presetType_returns201WithPresetFields() throws Exception {
+    void createFood_withUnidade_returns201WithUnitField() throws Exception {
         CreateFoodRequest req = new CreateFoodRequest(
-                "PRESET", "Pão integral", "PROTEINA",
-                null, null, null, null, null,
-                new BigDecimal("30.0"), new BigDecimal("70.0"), new BigDecimal("2.5"),
-                new BigDecimal("12.0"), new BigDecimal("1.0"), "1 fatia",
-                null, null
+                "Omelete 2 ovos", "PROTEINA", "UNIDADE",
+                new BigDecimal("1"), new BigDecimal("358.0"), new BigDecimal("24.0"),
+                new BigDecimal("2.0"), new BigDecimal("24.0"), null,
+                "frito", "1 unidade"
         );
 
         mockMvc.perform(post("/api/v1/foods")
@@ -108,21 +99,15 @@ class FoodControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.type").value("PRESET"))
-                .andExpect(jsonPath("$.data.presetGrams").value(30.0))
-                .andExpect(jsonPath("$.data.portionLabel").value("1 fatia"));
+                .andExpect(jsonPath("$.data.unit").value("UNIDADE"))
+                .andExpect(jsonPath("$.data.referenceAmount").value(1))
+                .andExpect(jsonPath("$.data.portionLabel").value("1 unidade"));
     }
 
     @Test
     void listFoods_returnsPaginatedList() throws Exception {
-        CreateFoodRequest req1 = new CreateFoodRequest("BASE", "Arroz branco", "CARBOIDRATO", null, null, null, null, null, null, null, null, null, null, null, null, null);
-        CreateFoodRequest req2 = new CreateFoodRequest(
-                "PRESET", "Pão integral", "PROTEINA",
-                null, null, null, null, null,
-                new BigDecimal("30.0"), new BigDecimal("70.0"), new BigDecimal("2.5"),
-                new BigDecimal("12.0"), new BigDecimal("1.0"), "1 fatia",
-                null, null
-        );
+        CreateFoodRequest req1 = new CreateFoodRequest("Arroz branco", "CARBOIDRATO", "GRAMAS", new BigDecimal("100"), new BigDecimal("130"), new BigDecimal("2.7"), new BigDecimal("28"), new BigDecimal("0.3"), null, null, null);
+        CreateFoodRequest req2 = new CreateFoodRequest("Pão integral", "PROTEINA", "GRAMAS", new BigDecimal("30"), new BigDecimal("70"), new BigDecimal("2.5"), new BigDecimal("12"), new BigDecimal("1"), null, null, "1 fatia");
 
         mockMvc.perform(post("/api/v1/foods").header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req1)));
@@ -139,7 +124,7 @@ class FoodControllerTest {
 
     @Test
     void updateFood_returns200WithUpdatedFields() throws Exception {
-        CreateFoodRequest createReq = new CreateFoodRequest("BASE", "Arroz branco", "CARBOIDRATO", new BigDecimal("130"), null, null, null, null, null, null, null, null, null, null, null, null);
+        CreateFoodRequest createReq = new CreateFoodRequest("Arroz branco", "CARBOIDRATO", "GRAMAS", new BigDecimal("100"), new BigDecimal("130"), new BigDecimal("2.7"), new BigDecimal("28"), new BigDecimal("0.3"), null, null, null);
         String createResponse = mockMvc.perform(post("/api/v1/foods")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -148,7 +133,7 @@ class FoodControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         String foodId = objectMapper.readTree(createResponse).at("/data/id").asText();
-        UpdateFoodRequest updateReq = new UpdateFoodRequest("Arroz integral", null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        UpdateFoodRequest updateReq = new UpdateFoodRequest("Arroz integral", null, null, null, null, null, null, null, null, null, null);
 
         mockMvc.perform(patch("/api/v1/foods/" + foodId)
                         .header("Authorization", "Bearer " + accessToken)
@@ -160,7 +145,7 @@ class FoodControllerTest {
 
     @Test
     void deleteFood_returns204() throws Exception {
-        CreateFoodRequest createReq = new CreateFoodRequest("BASE", "Arroz branco", "CARBOIDRATO", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        CreateFoodRequest createReq = new CreateFoodRequest("Arroz branco", "CARBOIDRATO", "GRAMAS", new BigDecimal("100"), new BigDecimal("130"), new BigDecimal("2.7"), new BigDecimal("28"), new BigDecimal("0.3"), null, null, null);
         String createResponse = mockMvc.perform(post("/api/v1/foods")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -180,7 +165,7 @@ class FoodControllerTest {
         SignupRequest otherNutriReq = new SignupRequest("Other Nutri", "otherfood@test.com", "senha12345", "54321", "RJ", null, null, true);
         var otherResult = authService.signup(otherNutriReq);
 
-        CreateFoodRequest createReq = new CreateFoodRequest("BASE", "Arroz branco", "CARBOIDRATO", null, null, null, null, null, null, null, null, null, null, null, null, null);
+        CreateFoodRequest createReq = new CreateFoodRequest("Arroz branco", "CARBOIDRATO", "GRAMAS", new BigDecimal("100"), new BigDecimal("130"), new BigDecimal("2.7"), new BigDecimal("28"), new BigDecimal("0.3"), null, null, null);
         String createResponse = mockMvc.perform(post("/api/v1/foods")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -197,14 +182,8 @@ class FoodControllerTest {
 
     @Test
     void listFoods_withSearchFilter_returnsMatching() throws Exception {
-        CreateFoodRequest req1 = new CreateFoodRequest("BASE", "Arroz branco", "CARBOIDRATO", null, null, null, null, null, null, null, null, null, null, null, null, null);
-        CreateFoodRequest req2 = new CreateFoodRequest(
-                "PRESET", "Feijão preto", "PROTEINA",
-                null, null, null, null, null,
-                new BigDecimal("50"), new BigDecimal("80"), new BigDecimal("5"),
-                new BigDecimal("15"), new BigDecimal("0.5"), "1 concha",
-                null, null
-        );
+        CreateFoodRequest req1 = new CreateFoodRequest("Arroz branco", "CARBOIDRATO", "GRAMAS", new BigDecimal("100"), new BigDecimal("130"), new BigDecimal("2.7"), new BigDecimal("28"), new BigDecimal("0.3"), null, null, null);
+        CreateFoodRequest req2 = new CreateFoodRequest("Feijão preto", "PROTEINA", "GRAMAS", new BigDecimal("50"), new BigDecimal("80"), new BigDecimal("5"), new BigDecimal("15"), new BigDecimal("0.5"), null, null, "1 concha");
 
         mockMvc.perform(post("/api/v1/foods").header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req1)));
