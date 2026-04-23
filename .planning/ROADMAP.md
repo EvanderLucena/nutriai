@@ -38,8 +38,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Monorepo & Infrastructure** - Working dev environment with all services booting together
 - [x] **Phase 2: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
 - [x] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
-- [ ] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
-- [ ] **Phase 5: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
+- [x] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
+- [x] **Phase 5: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
 - [ ] **Phase 6: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
 - [ ] **Phase 7: WhatsApp Intelligence** - AI conversations via WhatsApp with meal extraction and timeline
 - [ ] **Phase 8: Billing & Subscriptions** - Stripe checkout, subscription management, patient limit enforcement
