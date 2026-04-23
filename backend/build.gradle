@@ -79,4 +79,5 @@ dependencies {
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'com.h2database:h2'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
 }

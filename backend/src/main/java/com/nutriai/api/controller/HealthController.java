@@ -1,6 +1,5 @@
 package com.nutriai.api.controller;
 
-import com.nutriai.api.repository.NutritionistRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,6 +7,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.time.Instant;
 import java.util.Map;
 
@@ -15,13 +16,13 @@ import java.util.Map;
 @RequestMapping("/api/v1")
 public class HealthController {
 
-    private final NutritionistRepository nutritionistRepository;
+    private final DataSource dataSource;
 
     @Value("${nutriai.version:0.1.0}")
     private String version;
 
-    public HealthController(NutritionistRepository nutritionistRepository) {
-        this.nutritionistRepository = nutritionistRepository;
+    public HealthController(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     @GetMapping("/health")
@@ -30,8 +31,8 @@ public class HealthController {
         response.put("timestamp", Instant.now().toString());
         response.put("version", version);
 
-        try {
-            nutritionistRepository.count();
+        try (Connection conn = dataSource.getConnection()) {
+            conn.isValid(2);
             response.put("status", "UP");
             response.put("db", "connected");
             return ResponseEntity.ok(response);
