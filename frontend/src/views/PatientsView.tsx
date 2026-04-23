@@ -60,6 +60,9 @@ export function PatientsView() {
   const deactivateMutation = useDeactivatePatient();
   const reactivateMutation = useReactivatePatient();
 
+  const [mode, setMode] = useState<'table' | 'grid'>('table');
+  const [filterOpen, setFilterOpen] = useState(false);
+
   const showInactive = statusFilter === 'inactive';
 
   const patientsList: Patient[] = data?.content.map(mapPatientFromApi) ?? [];
@@ -99,9 +102,6 @@ export function PatientsView() {
       </div>
     );
   }
-
-  const [mode, setMode] = useState<'table' | 'grid'>('table');
-  const [filterOpen, setFilterOpen] = useState(false);
 
   return (
     <div>

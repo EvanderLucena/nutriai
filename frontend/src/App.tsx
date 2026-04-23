@@ -20,13 +20,12 @@ function AuthGuard({ children }: { children: ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isInitializing = useAuthStore((s) => s.isInitializing);
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
 
   if (isInitializing) return null;
 
   if (!isAuthenticated || !user) return <Navigate to="/" replace />;
 
-  // If authenticated but onboarding not completed, redirect to onboarding
-  const location = useLocation();
   if (!user.onboardingCompleted && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }

@@ -22,7 +22,7 @@ export interface CreateFoodRequest {
   portionLabel?: string | null;
 }
 
-export interface UpdateFoodRequest extends Partial<CreateFoodRequest> {}
+export type UpdateFoodRequest = Partial<CreateFoodRequest>;
 
 export async function listFoods(params: ListFoodsParams = {}): Promise<FoodListApiResponse> {
   const response = await apiClient.get<{ success: boolean; data: FoodListApiResponse }>('/foods', { params });
