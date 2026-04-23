@@ -1,0 +1,75 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+  push:
+    branches: [master]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start stack (postgres + backend + frontend)
+        working-directory: docker
+        run: docker compose up --build -d
+
+      - name: Wait for backend health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/api/v1/health | grep -q UP; then
+              echo "Backend is UP"
+              break
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 5
+          done
+          curl -sf http://localhost:8080/api/v1/health || (echo "Backend never became healthy" && exit 1)
+
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:5173 > /dev/null; then
+              echo "Frontend is UP"
+              break
+            fi
+            echo "Waiting for frontend... ($i/20)"
+            sleep 3
+          done
+          curl -sf http://localhost:5173 > /dev/null || (echo "Frontend never became available" && exit 1)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: frontend/test-results/
+          retention-days: 7
+
+      - name: Stop stack
+        if: always()
+        working-directory: docker
+        run: docker compose down -v
