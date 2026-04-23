@@ -1,0 +1,43 @@
+{
+  "forbidden": [
+    {
+      "name": "views-should-not-import-api-directly",
+      "comment": "Views should use stores/hooks, not raw API modules",
+      "severity": "warn",
+      "from": { "path": "^src/views/" },
+      "to": { "path": "^src/api/" }
+    },
+    {
+      "name": "no-circular-dependencies",
+      "comment": "Circular dependencies create coupling and initialization issues",
+      "severity": "error",
+      "from": {},
+      "to": { "circular": true }
+    },
+    {
+      "name": "types-should-not-import-stores",
+      "comment": "Type definitions must stay dependency-free",
+      "severity": "error",
+      "from": { "path": "^src/types/" },
+      "to": { "path": "^src/stores/" }
+    },
+    {
+      "name": "api-should-not-import-views",
+      "comment": "Data layer must not depend on UI layer",
+      "severity": "error",
+      "from": { "path": "^src/api/" },
+      "to": { "path": "^src/views/" }
+    },
+    {
+      "name": "stores-should-not-import-views",
+      "comment": "State layer must not depend on UI layer",
+      "severity": "error",
+      "from": { "path": "^src/stores/" },
+      "to": { "path": "^src/views/" }
+    }
+  ],
+  "options": {
+    "doNotFollow": "node_modules",
+    "exclude": "e2e"
+  }
+}

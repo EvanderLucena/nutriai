@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as authService from '../api/auth';
+import { registerAuthCallbacks } from '../api/client';
 import type { AuthUser, SignupRequest, MeResponse, FieldError } from '../types';
 
 interface AuthState {
@@ -166,3 +167,9 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+registerAuthCallbacks({
+  getToken: () => useAuthStore.getState().accessToken ?? null,
+  refreshAuth: () => useAuthStore.getState().refreshAuth(),
+  logout: () => useAuthStore.getState().logout(),
+});
