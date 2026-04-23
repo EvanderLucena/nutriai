@@ -28,5 +28,8 @@ jobs:
       - name: Compile
         run: ./gradlew compileJava
 
+      - name: Checkstyle
+        run: ./gradlew checkstyleMain
+
       - name: Tests
         run: ./gradlew test
