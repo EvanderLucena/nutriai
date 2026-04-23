@@ -23,8 +23,17 @@ jacoco {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'integration'
+    }
     finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    shouldRunAfter test
 }
 
 tasks.named('jacocoTestReport') {
@@ -52,6 +61,9 @@ repositories {
 }
 
 dependencies {
+    // BOM for testcontainers version management
+    testImplementation platform('org.testcontainers:testcontainers-bom:1.20.6')
+
     // Core Spring Boot starters
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -80,4 +92,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'com.h2database:h2'
     testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
 }
