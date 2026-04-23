@@ -159,10 +159,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'nutriai-auth',
-      // Only persist user info and isAuthenticated — NOT accessToken (stored in memory)
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
+        accessToken: state.accessToken,
       }),
     },
   ),

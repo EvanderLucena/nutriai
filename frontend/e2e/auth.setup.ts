@@ -1,39 +1,35 @@
 import { test as setup, expect } from '@playwright/test';
-import { uniqueEmail } from './helpers';
+import { uniqueEmail, signupViaApi } from './helpers';
 
-const authFile = 'e2e/.auth/user.json';
+const API = 'http://localhost:8080/api/v1';
 
-setup('authenticate', async ({ page }) => {
+setup('authenticate', async ({ page, request }) => {
   const email = uniqueEmail();
   const password = 'SenhaSegura123!';
 
-  const resp = await page.request.post('http://localhost:8080/api/v1/auth/signup', {
-    data: {
-      name: 'E2E Authenticated User',
-      email,
-      password,
-      crn: '99998',
-      crnRegional: 'SP',
-      terms: true,
-    },
-  });
+  const result = await signupViaApi(request, email, password);
 
-  expect(resp.ok(), `Signup failed: ${resp.status()} ${await resp.text().catch(() => '')}`).toBeTruthy();
-  const body = await resp.json();
+  const onboardResp = await request.post(`${API}/auth/onboarding`, {
+    headers: { Authorization: `Bearer ${result.accessToken}` },
+  });
+  expect(onboardResp.ok()).toBeTruthy();
 
   await page.goto('/login');
   await page.waitForLoadState('networkidle');
 
-  await page.evaluate(({ token, user }) => {
+  await page.evaluate(({ token }) => {
     localStorage.setItem('nutriai-auth', JSON.stringify({
       state: {
         isAuthenticated: true,
         accessToken: token,
-        user: { id: user.id, name: user.name, email: user.email, role: user.role, onboardingCompleted: user.onboardingCompleted },
+        user: { id: 'e2e-user', name: 'E2E Auth User', email: 'e2e@test.com', role: 'NUTRITIONIST', onboardingCompleted: true },
       },
       version: 0,
     }));
-  }, { token: body.accessToken, user: body.user });
+  }, { token: result.accessToken });
 
-  await page.context().storageState({ path: authFile });
+  await page.goto('/home');
+  await page.waitForLoadState('networkidle');
+
+  await page.context().storageState({ path: 'e2e/.auth/user.json' });
 });

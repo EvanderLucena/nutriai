@@ -47,10 +47,17 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (originalRequest.url?.startsWith('auth/login') ||
-          originalRequest.url?.startsWith('auth/signup') ||
-          originalRequest.url?.startsWith('auth/refresh')) {
-        return Promise.reject(error);
+      const url = originalRequest.url?.replace(/^\/+/, '') ?? '';
+      if (url.startsWith('auth/login') ||
+          url.startsWith('auth/signup') ||
+          url.startsWith('auth/refresh')) {
+        const data = error.response?.data;
+        return Promise.reject({
+          success: false,
+          message: data?.message || error.message || 'Authentication failed',
+          errors: Array.isArray(data?.errors) ? data.errors : [],
+          status: error.response?.status,
+        });
       }
 
       if (isRefreshing) {

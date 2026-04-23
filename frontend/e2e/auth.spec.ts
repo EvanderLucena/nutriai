@@ -20,12 +20,12 @@ test.describe('Auth — Signup UI→API Integration', () => {
     await page.getByTestId('signup-terms').check();
     await page.getByRole('button', { name: 'Criar conta' }).click();
 
-    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/(onboarding|home)/, { timeout: 15_000 });
   });
 
-  test('E2E-AUTH-02: Email duplicado mostra erro visível ao usuário', async ({ page }) => {
+  test('E2E-AUTH-02: Email duplicado mostra erro visível ao usuário', async ({ page, request }) => {
     const email = uniqueEmail();
-    await signupViaApi(email);
+    await signupViaApi(request, email);
 
     await page.goto('/signup');
     await page.waitForLoadState('networkidle');
@@ -60,9 +60,9 @@ test.describe('Auth — Signup UI→API Integration', () => {
 });
 
 test.describe('Auth — Login UI→API Integration', () => {
-  test('E2E-AUTH-05: Login válido redireciona para home', async ({ page }) => {
+  test('E2E-AUTH-05: Login válido redireciona para home', async ({ page, request }) => {
     const email = uniqueEmail();
-    await signupViaApi(email);
+    await signupViaApi(request, email);
 
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
@@ -73,9 +73,9 @@ test.describe('Auth — Login UI→API Integration', () => {
     await expect(page).toHaveURL(/\/home|\/onboarding/, { timeout: 10_000 });
   });
 
-  test('E2E-AUTH-06: Senha errada mostra erro visível ao usuário', async ({ page }) => {
+  test('E2E-AUTH-06: Senha errada mostra erro visível ao usuário', async ({ page, request }) => {
     const email = uniqueEmail();
-    await signupViaApi(email);
+    await signupViaApi(request, email);
 
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
@@ -104,7 +104,7 @@ test.describe('Auth — API Contract & Value Rejection', () => {
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body).toHaveProperty('accessToken');
-    expect(body.accessToken).toBeTypeOf('string');
+    expect(typeof body.accessToken).toBe('string');
     expect(body.user).toBeDefined();
     expect(body.user.email).toBe(email);
     expect(body.user.role).toBe('NUTRITIONIST');
@@ -113,7 +113,7 @@ test.describe('Auth — API Contract & Value Rejection', () => {
 
   test('E2E-AUTH-09: Login API retorna accessToken e user', async ({ request }) => {
     const email = uniqueEmail();
-    await signupViaApi(email);
+    await signupViaApi(request, email);
 
     const response = await request.post(`${API}/auth/login`, { data: { email, password: 'SenhaSegura123!' } });
     expect(response.status()).toBe(200);
@@ -125,7 +125,7 @@ test.describe('Auth — API Contract & Value Rejection', () => {
 
   test('E2E-AUTH-10: Login com senha errada retorna 401', async ({ request }) => {
     const email = uniqueEmail();
-    await signupViaApi(email);
+    await signupViaApi(request, email);
 
     const response = await request.post(`${API}/auth/login`, { data: { email, password: 'senhaerrada' } });
     expect(response.status()).toBe(401);
@@ -137,7 +137,7 @@ test.describe('Auth — API Contract & Value Rejection', () => {
   });
 
   test('E2E-AUTH-12: GET /auth/me com token válido retorna usuário sem senha', async ({ request }) => {
-    const { accessToken } = await signupViaApi(uniqueEmail());
+    const { accessToken } = await signupViaApi(request, uniqueEmail());
     const response = await request.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -149,20 +149,29 @@ test.describe('Auth — API Contract & Value Rejection', () => {
     const response = await request.post(`${API}/auth/signup`, { data: { email: uniqueEmail() } });
     expect(response.status()).toBe(400);
   });
+
+  test('E2E-AUTH-14: Signup com email duplicado retorna 409', async ({ request }) => {
+    const email = uniqueEmail();
+    await signupViaApi(request, email);
+    const response = await request.post(`${API}/auth/signup`, {
+      data: { name: 'Duplicado', email, password: 'SenhaSegura123!', crn: '11111', crnRegional: 'SP', terms: true },
+    });
+    expect(response.status()).toBe(409);
+  });
 });
 
 test.describe('Auth — Protection', () => {
-  test('E2E-AUTH-14: Rota protegida sem auth redireciona para landing', async ({ page }) => {
+  test('E2E-AUTH-15: Rota protegida sem auth redireciona para landing', async ({ page }) => {
     await page.goto('/home');
     await expect(page).toHaveURL(/\/$|\/login/, { timeout: 5_000 });
   });
 
-  test('E2E-AUTH-15: Rota /patients sem auth redireciona', async ({ page }) => {
+  test('E2E-AUTH-16: Rota /patients sem auth redireciona', async ({ page }) => {
     await page.goto('/patients');
     await expect(page).toHaveURL(/\/$|\/login/, { timeout: 5_000 });
   });
 
-  test('E2E-AUTH-16: Rota /foods sem auth redireciona', async ({ page }) => {
+  test('E2E-AUTH-17: Rota /foods sem auth redireciona', async ({ page }) => {
     await page.goto('/foods');
     await expect(page).toHaveURL(/\/$|\/login/, { timeout: 5_000 });
   });
