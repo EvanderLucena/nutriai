@@ -1,0 +1,16 @@
+import type { Patient } from '../types/patient';
+
+export const PATIENTS: Patient[] = [
+  { id: 'p1', name: 'Ana Beatriz Lopes', initials: 'AL', age: 34, birthDate: '1992-03-15', sex: 'F', heightCm: 168, whatsapp: '(11) 99999-0001', objective: 'Hipertrofia', status: 'ontrack', adherence: 92, weight: 64.2, weightDelta: 0.3, tag: '04 semanas' },
+  { id: 'p2', name: 'Marcos Vieira', initials: 'MV', age: 52, birthDate: '1974-08-22', sex: 'M', heightCm: 175, whatsapp: null, objective: 'Controle glicêmico', status: 'warning', adherence: 71, weight: 88.1, weightDelta: -0.8, tag: '12 semanas' },
+  { id: 'p3', name: 'Carla Moreira', initials: 'CM', age: 28, birthDate: '1998-01-10', sex: 'F', heightCm: 162, whatsapp: null, objective: 'Emagrecimento', status: 'danger', adherence: 54, weight: 78.4, weightDelta: 1.2, tag: '08 semanas' },
+  { id: 'p4', name: 'Rafael Tonioli', initials: 'RT', age: 41, birthDate: '1985-06-03', sex: 'M', heightCm: 182, whatsapp: null, objective: 'Performance esportiva', status: 'ontrack', adherence: 88, weight: 74.5, weightDelta: -0.2, tag: '16 semanas' },
+  { id: 'p5', name: 'Juliana Prado', initials: 'JP', age: 36, birthDate: '1990-11-18', sex: 'F', heightCm: 165, whatsapp: null, objective: 'Reeducação alimentar', status: 'ontrack', adherence: 85, weight: 69.0, weightDelta: -0.5, tag: '06 semanas' },
+  { id: 'p6', name: 'Diogo Campos', initials: 'DC', age: 47, birthDate: '1979-04-27', sex: 'M', heightCm: 178, whatsapp: null, objective: 'Emagrecimento', status: 'warning', adherence: 66, weight: 94.7, weightDelta: 0.4, tag: '10 semanas' },
+  { id: 'p7', name: 'Isabela Nunes', initials: 'IN', age: 31, birthDate: '1995-07-14', sex: 'F', heightCm: 160, whatsapp: null, objective: 'Hipertrofia', status: 'ontrack', adherence: 90, weight: 58.8, weightDelta: 0.6, tag: '07 semanas' },
+  { id: 'p8', name: 'Bruno Sá', initials: 'BS', age: 39, birthDate: '1987-02-09', sex: 'M', heightCm: 176, whatsapp: null, objective: 'Controle pressão', status: 'warning', adherence: 74, weight: 81.2, weightDelta: -0.1, tag: '20 semanas' },
+  { id: 'p9', name: 'Luana Ferreira', initials: 'LF', age: 26, birthDate: '2000-12-05', sex: 'F', heightCm: 158, whatsapp: null, objective: 'Emagrecimento', status: 'danger', adherence: 48, weight: 82.9, weightDelta: 0.9, tag: '14 semanas' },
+  { id: 'p10', name: 'Pedro Henrique', initials: 'PH', age: 29, birthDate: '1997-09-20', sex: 'M', heightCm: 180, whatsapp: null, objective: 'Hipertrofia', status: 'ontrack', adherence: 94, weight: 76.3, weightDelta: 0.4, tag: '05 semanas' },
+  { id: 'p11', name: 'Fernanda Aguiar', initials: 'FA', age: 44, birthDate: '1982-05-01', sex: 'F', heightCm: 163, whatsapp: null, objective: 'Reeducação alimentar', status: 'warning', adherence: 68, weight: 72.1, weightDelta: -0.3, tag: '09 semanas' },
+  { id: 'p12', name: 'Tiago Barros', initials: 'TB', age: 35, birthDate: '1991-10-08', sex: 'M', heightCm: 174, whatsapp: null, objective: 'Performance esportiva', status: 'ontrack', adherence: 87, weight: 79.4, weightDelta: 0, tag: '11 semanas' },
+] as const;

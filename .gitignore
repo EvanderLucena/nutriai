@@ -32,7 +32,7 @@ Desktop.ini
 # Docker
 .docker/
 volumes/
-data/
+/data/
 
 # Logs
 *.log
