@@ -34,6 +34,10 @@ public class AuthController {
     @Value("${nutriai.jwt.cookie.same-site:Lax}")
     private String cookieSameSite;
 
+    // HttpOnly is hardcoded in buildCookieHeaderValue() — always emitted.
+    // The cookieHttpOnly property was removed because it defaulted to true
+    // and was never actually read (the builder appends "; HttpOnly" directly).
+
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
