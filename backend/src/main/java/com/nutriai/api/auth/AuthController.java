@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -110,6 +111,7 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
+    @PreAuthorize("hasRole('NUTRITIONIST')")
     public ResponseEntity<Map<String, Object>> logout(HttpServletResponse response) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         authService.logout(nutritionistId);
@@ -121,6 +123,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasRole('NUTRITIONIST')")
     public ResponseEntity<MeResponse> me() {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         MeResponse meResponse = authService.getCurrentUser(nutritionistId);
@@ -128,6 +131,7 @@ public class AuthController {
     }
 
     @PostMapping("/onboarding")
+    @PreAuthorize("hasRole('NUTRITIONIST')")
     public ResponseEntity<Map<String, Object>> completeOnboarding(@RequestBody(required = false) OnboardingRequest request) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         authService.completeOnboarding(nutritionistId);
