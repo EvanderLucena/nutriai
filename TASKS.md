@@ -1,5 +1,7 @@
 # NutriAI — Tarefas pendentes
 
+> Teste do AI reviewer — linha innocua pra gerar diff no PR
+
 ## Bugs ativos
 
 - [x] `Editar plano` e `Novo registro > Plano alimentar` no topbar do PatientView chamam `setView('plans')` (rota removida). Corrigir para `setTab('plan')`.
@@ -96,6 +98,32 @@
 - **IA:** responde sempre com base no plano alimentar do paciente, nunca inventa; abordagem de redução de danos e dieta flexível
 - **Alimentos porcionados:** cadastrados uma vez, reutilizados em qualquer plano
 - **Timeline biométrica:** peso, dobras, perimetria acompanhados como timeline por consulta, com gráficos de evolução
+
+---
+
+## Code Quality — Próximos passos
+
+### Alto valor (fazer antes da Phase 6)
+
+- [ ] **Coverage floors no CI** — JaCoCo `jacocoTestCoverageVerification` (min 50%) no Gradle + `coverage.thresholds` no vitest. Sem floor, cobertura pode cair silenciosamente.
+- [ ] **`@PreAuthorize` em todos os controllers** — só FoodController tem. PatientController e PlanController dependem só de service-layer checks. Declarative auth = defense-in-depth.
+- [ ] **ArchUnit rules (3-5)** — no controller→repository, `nutritionistId` em queries, sem ciclos. Previne atalhos de IA.
+- [ ] **Husky + lint-staged** — pre-commit: ESLint + prettier nos staged files. Feedback instantâneo pro solo dev.
+
+### Valor médio (fazer junto com Phase 6-7)
+
+- [ ] **JaCoCo HTML report como CI artifact** — upload-artifact no backend-ci. Browsers coverage sem rodar local.
+- [ ] **eslint-plugin-jsx-a11y** — acessibilidade (alt, aria). Importante pra app de saúde e LGPD/inclusão.
+- [ ] **springdoc-openapi** — Swagger UI auto-gerado. Útil quando integração WhatsApp (Phase 7) precisar de contract.
+- [ ] **PMD addon ao Checkstyle** — bugs como empty catch, `==` em strings. Depois que Checkstyle estiver estável.
+
+### Parked (revisitar quando trigger acontecer)
+
+- [ ] **Mutation testing** (PIT + StrykerJS) — quando suite >30 arquivos ou testes de IA fracos detectados
+- [ ] **PostgreSQL RLS** — quando usuários reais chegarem ou auditoria LGPD formal
+- [ ] **Audit logging** — quando dados reais de saúde em produção
+- [ ] **Error Prone** (compilador Java) — depois que PMD estiver estável
+- [ ] **SonarQube Community** — quando time crescer (hoje overhead > valor pra solo dev)
 
 ---
 
