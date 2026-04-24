@@ -39,6 +39,6 @@ export default defineConfig([
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'e2e/**'],
+    ignores: ['dist/**', 'node_modules/**', 'e2e/**', 'coverage/**'],
   },
 ]);
