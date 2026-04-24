@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "depcruise": "depcruise src --config .dependency-cruiser.json"
+    "depcruise": "depcruise src --config .dependency-cruiser.json",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.99.2",
