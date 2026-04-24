@@ -92,7 +92,7 @@ public class FoodService {
         if (req.name() != null) food.setName(req.name());
         if (req.category() != null) {
             validateCategory(req.category());
-            food.setCategory(req.category());
+            food.setCategory(req.category().toUpperCase());
         }
         if (req.unit() != null) {
             validateUnit(req.unit());

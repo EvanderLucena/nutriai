@@ -2,10 +2,13 @@ package com.nutriai.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nutriai.api.auth.AuthService;
+import com.nutriai.api.auth.JwtService;
 import com.nutriai.api.auth.RefreshTokenRepository;
 import com.nutriai.api.auth.dto.SignupRequest;
 import com.nutriai.api.dto.patient.CreatePatientRequest;
 import com.nutriai.api.dto.patient.UpdatePatientRequest;
+import com.nutriai.api.model.Nutritionist;
+import com.nutriai.api.model.UserRole;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
@@ -54,6 +57,9 @@ class PatientControllerTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
 
     private String accessToken;
 
@@ -179,6 +185,27 @@ class PatientControllerTest {
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.active").value(true));
+    }
+
+    @Test
+    void listPatients_forbidsAdminRole() throws Exception {
+        Nutritionist admin = nutritionistRepository.save(Nutritionist.builder()
+                .name("Admin User")
+                .email("admin@role-test.com")
+                .passwordHash(passwordEncoder.encode("senha12345"))
+                .crn("99999")
+                .crnRegional("SP")
+                .role(UserRole.ADMIN)
+                .onboardingCompleted(true)
+                .subscriptionTier("UNLIMITED")
+                .patientLimit(9999)
+                .build());
+
+        String adminToken = jwtService.generateAccessToken(admin);
+
+        mockMvc.perform(get("/api/v1/patients")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isForbidden());
     }
 
     @Test

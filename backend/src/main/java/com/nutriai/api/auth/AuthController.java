@@ -28,14 +28,15 @@ public class AuthController {
     @Value("${nutriai.jwt.cookie.max-age:604800}")
     private int cookieMaxAge;
 
-    @Value("${nutriai.jwt.cookie.http-only:true}")
-    private boolean cookieHttpOnly;
-
     @Value("${nutriai.jwt.cookie.secure:false}")
     private boolean cookieSecure;
 
     @Value("${nutriai.jwt.cookie.same-site:Lax}")
     private String cookieSameSite;
+
+    // HttpOnly is hardcoded in buildCookieHeaderValue() — always emitted.
+    // The cookieHttpOnly property was removed because it defaulted to true
+    // and was never actually read (the builder appends "; HttpOnly" directly).
 
     public AuthController(AuthService authService) {
         this.authService = authService;
@@ -132,7 +133,7 @@ public class AuthController {
 
     @PostMapping("/onboarding")
     @PreAuthorize("hasRole('NUTRITIONIST')")
-    public ResponseEntity<Map<String, Object>> completeOnboarding(@RequestBody(required = false) OnboardingRequest request) {
+    public ResponseEntity<Map<String, Object>> completeOnboarding() {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         authService.completeOnboarding(nutritionistId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Onboarding concluído"));
