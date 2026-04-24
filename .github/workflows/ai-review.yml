@@ -28,9 +28,9 @@ jobs:
         id: model
         run: |
           if [ "${{ steps.diff.outputs.lines }}" -gt 1000 ]; then
-            echo "name=glm-5.1:cloud" >> $GITHUB_OUTPUT
+            echo "name=glm-5.1" >> $GITHUB_OUTPUT
           else
-            echo "name=qwen3.5:27b" >> $GITHUB_OUTPUT
+            echo "name=devstral-small-2:24b" >> $GITHUB_OUTPUT
           fi
 
       - name: Run AI review
