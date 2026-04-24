@@ -38,3 +38,6 @@ jobs:
 
       - name: Integration tests (Testcontainers)
         run: ./gradlew integrationTest
+
+      - name: Coverage verification
+        run: ./gradlew jacocoTestCoverageVerification
