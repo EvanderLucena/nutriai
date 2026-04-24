@@ -115,7 +115,6 @@ class MealPlanServiceTest {
             mf.setId(UUID.randomUUID());
             return mf;
         });
-        when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("200.0"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
@@ -160,7 +159,6 @@ class MealPlanServiceTest {
             mf.setId(UUID.randomUUID());
             return mf;
         });
-        when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("1.5"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
@@ -185,10 +183,10 @@ class MealPlanServiceTest {
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
 
         MealOption opt = MealOption.builder().id(UUID.randomUUID()).mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build();
-        when(mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId())).thenReturn(List.of(opt));
+        when(mealOptionRepository.findAllByMealSlotIds(List.of(slot.getId()))).thenReturn(List.of(opt));
 
         MealFood item = MealFood.builder().id(UUID.randomUUID()).optionId(opt.getId()).foodName("Café").referenceAmount(new BigDecimal("200")).unit("ML").kcal(new BigDecimal("5")).build();
-        when(mealFoodRepository.findByOptionIdOrderBySortOrder(opt.getId())).thenReturn(List.of(item));
+        when(mealFoodRepository.findAllByOptionIds(List.of(opt.getId()))).thenReturn(List.of(item));
 
         PlanResponse resp = mealPlanService.getPlan(nutritionistId, patientId);
 
