@@ -50,3 +50,4 @@
 - Missing i18n (project is intentionally pt-BR only)
 - Existing ESLint/Checkstyle warnings that are already tracked (complexity, max-lines)
 - Test-only helpers or fixtures
+- Files, endpoints, or code NOT present in the diff — only flag what is VISIBLE in the diff
