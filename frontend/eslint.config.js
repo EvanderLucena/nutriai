@@ -4,6 +4,7 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
 
 export default defineConfig([
@@ -24,6 +25,7 @@ export default defineConfig([
       '@typescript-eslint': tseslint,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      'jsx-a11y': jsxA11y,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -36,6 +38,11 @@ export default defineConfig([
       'complexity': ['warn', { max: 12 }],
       'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
       'max-lines': ['warn', { max: 300 }],
+      'jsx-a11y/alt-text': 'warn',
+      'jsx-a11y/aria-props': 'warn',
+      'jsx-a11y/aria-role': 'warn',
+      'jsx-a11y/role-has-required-aria-props': 'warn',
+      'jsx-a11y/no-static-element-interactions': 'off',
     },
   },
   {
