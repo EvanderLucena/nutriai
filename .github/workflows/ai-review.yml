@@ -106,30 +106,34 @@ jobs:
           } >> $GITHUB_OUTPUT
 
           STATUS_LINE=$(echo "$REVIEW" | grep -iE "^STATUS:" | head -1)
-          DECISION="request_changes"
-          if echo "$STATUS_LINE" | grep -qi "APPROVE"; then
-            DECISION="approve"
+          HAS_CRITICAL=$(echo "$REVIEW" | grep -ciE "^- CRITICAL" || true)
+          HAS_HIGH=$(echo "$REVIEW" | grep -ciE "^- HIGH" || true)
+          HAS_MEDIUM=$(echo "$REVIEW" | grep -ciE "^- MEDIUM" || true)
+          HAS_BLOCKER=0
+          if [ "$HAS_CRITICAL" -gt 0 ] || [ "$HAS_HIGH" -gt 0 ]; then
+            HAS_BLOCKER=1
           fi
-          echo "decision=$DECISION" >> $GITHUB_OUTPUT
+          ALL_APPROVE=false
+          if echo "$STATUS_LINE" | grep -qi "APPROVE"; then
+            ALL_APPROVE=true
+          fi
 
-          HAS_FINDINGS=$(echo "$REVIEW" | grep -ciE "^- (CRITICAL|HIGH|MEDIUM)" || true)
-          if [ "$DECISION" = "approve" ] && [ "$HAS_FINDINGS" -gt 0 ]; then
+          if [ "$HAS_BLOCKER" -gt 0 ]; then
             echo "decision=request_changes" >> $GITHUB_OUTPUT
-            HAS_CRITICAL=$(echo "$REVIEW" | grep -ciE "^- CRITICAL" || true)
             if [ "$HAS_CRITICAL" -gt 0 ]; then
               echo "severity=critical" >> $GITHUB_OUTPUT
             else
               echo "severity=high" >> $GITHUB_OUTPUT
             fi
-          elif [ "$DECISION" = "approve" ]; then
+          elif [ "$HAS_MEDIUM" -gt 0 ]; then
+            echo "decision=approve_with_warning" >> $GITHUB_OUTPUT
+            echo "severity=medium" >> $GITHUB_OUTPUT
+          elif [ "$ALL_APPROVE" = true ]; then
+            echo "decision=approve" >> $GITHUB_OUTPUT
             echo "severity=none" >> $GITHUB_OUTPUT
           else
-            HAS_CRITICAL=$(echo "$REVIEW" | grep -ciE "^- CRITICAL" || true)
-            if [ "$HAS_CRITICAL" -gt 0 ]; then
-              echo "severity=critical" >> $GITHUB_OUTPUT
-            else
-              echo "severity=moderate" >> $GITHUB_OUTPUT
-            fi
+            echo "decision=request_changes" >> $GITHUB_OUTPUT
+            echo "severity=moderate" >> $GITHUB_OUTPUT
           fi
           echo "result=success" >> $GITHUB_OUTPUT
 
@@ -200,7 +204,44 @@ jobs:
                 : 'AI review passed - no critical issues found.\n\n⚠️ **External contributor** — a maintainer must also approve before merging.'
             });
 
-      - name: Request changes if issues found
+      - name: Approve with MEDIUM warning
+        if: steps.review.outputs.decision == 'approve_with_warning'
+        uses: actions/github-script@v7
+        env:
+          REVIEW_TEXT: ${{ steps.review.outputs.review }}
+          MODEL_NAME: ${{ steps.model.outputs.name }}
+        with:
+          script: |
+            const review = process.env.REVIEW_TEXT;
+            const model = process.env.MODEL_NAME;
+            const mediumFindings = review.split('\n')
+              .filter(l => /^-\s*MEDIUM:/i.test(l.trim()))
+              .map(l => l.trim());
+            const findingList = mediumFindings.length > 0
+              ? mediumFindings.map(f => `  ${f}`).join('\n')
+              : '(see full review above)';
+            const warning = `⚠️ **MEDIUM findings** — not blocking merge, but please evaluate:\n${findingList}\n\nFull review details are in the comment above.`;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            const author = pr.user.login;
+            const { data: perms } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: author
+            });
+            const isInternal = perms.permission === 'admin' || perms.permission === 'write';
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: warning + (isInternal ? '' : '\n\n⚠️ **External contributor** — a maintainer must also approve before merging.')
+            });
+
+      - name: Request changes for CRITICAL/HIGH findings
         if: steps.review.outputs.decision == 'request_changes'
         uses: actions/github-script@v7
         with:

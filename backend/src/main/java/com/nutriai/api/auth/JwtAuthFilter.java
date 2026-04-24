@@ -1,5 +1,6 @@
 package com.nutriai.api.auth;
 
+import com.nutriai.api.repository.NutritionistRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import jakarta.servlet.FilterChain;
@@ -21,8 +22,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    private final NutritionistRepository nutritionistRepository;
+
+    public JwtAuthFilter(JwtService jwtService, NutritionistRepository nutritionistRepository) {
         this.jwtService = jwtService;
+        this.nutritionistRepository = nutritionistRepository;
     }
 
     @Override
@@ -41,6 +45,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Jws<Claims> claims = jwtService.validateToken(token);
                 UUID nutritionistId = UUID.fromString(claims.getPayload().getSubject());
                 String role = claims.getPayload().get("role", String.class);
+
+                if (!nutritionistRepository.existsById(nutritionistId)) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
