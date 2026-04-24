@@ -95,7 +95,36 @@ Copie `.env.example` e preencha os valores. Nunca commite secrets.
 | 7. WhatsApp Intelligence | Planejada |
 | 8. Billing & Subscriptions | Planejada |
 | 9. LGPD Compliance | Planejada |
-| 10. CI/CD & Deployment | Planejada |
+| 10. CI/CD & Deployment | ✅ (parcial — pipelines + AI reviewer) |
+
+## CI/CD
+
+Toda PR para `main` passa por 3 validações automáticas:
+
+| Pipeline | O que faz |
+|----------|-----------|
+| **frontend-ci** | ESLint, TypeScript, Vitest, Build |
+| **backend-ci** | Checkstyle, Testes unitários, Jacoco |
+| **ai-review** | Review de código com IA (Ollama Cloud) |
+
+E 1 validação condicional:
+
+| Pipeline | O que faz |
+|----------|-----------|
+| **e2e** | Playwright end-to-end (roda só quando frontend ou backend mudam) |
+
+### AI Reviewer
+
+- Usa Ollama Cloud: diffs <1000 linhas → `devstral-small-2:24b`, diffs ≥1000 linhas → `glm-5.1`
+- Regras do projeto em `.github/review-rules.md` (editável sem mudar workflow)
+- Auto-aprova se APPROVE sem findings HIGH+, senão request changes
+- Branch protection: 3 checks obrigatórios (`ai-review`, `frontend`, `backend`) + 1 approval
+
+### Branch Protection
+
+- `main` requer: checks passando + 1 approval (AI conta)
+- Stale reviews são dismissed automaticamente
+- Admins podem bypass (para hotfixes)
 
 ## Licença
 

@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/patients")
+@PreAuthorize("hasRole('NUTRITIONIST')")
 public class PatientController {
 
     private final PatientService patientService;

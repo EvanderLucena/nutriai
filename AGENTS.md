@@ -1,3 +1,88 @@
+# NutriAI — AI Agent Context
+
+> This file is the single source of truth for AI agents working on this project. It is read automatically by OpenAI Codex, Claude Code, and similar tools.
+
+## Quick Reference
+
+| What | Where | Command |
+|------|-------|---------|
+| Frontend | `frontend/` | `npm run dev`, `npm test`, `npx tsc --noEmit`, `npm run lint` |
+| Backend | `backend/` | `./gradlew bootRun`, `./gradlew test`, `./gradlew compileJava` |
+| E2E tests | `frontend/e2e/` | `npm run test:e2e` (requires backend + frontend running) |
+| Docker dev | `docker/` | `docker compose -f docker/docker-compose.dev.yml up -d postgres` |
+| AI reviewer rules | `.github/review-rules.md` | Edit to change what the AI reviewer flags on PRs |
+| CI pipelines | `.github/workflows/` | `frontend-ci.yml`, `backend-ci.yml`, `e2e.yml`, `ai-review.yml` |
+| Project tasks | `TASKS.md` | Tracks bugs, features, and quality next-steps |
+
+## Development Workflow
+
+1. **Create a branch** from `main` (e.g. `feat/my-feature`, `fix/my-bug`)
+2. **Make changes** following conventions in this file
+3. **Verify locally**: `npx tsc --noEmit` (frontend), `./gradlew compileJava` (backend)
+4. **Push and open PR** against `main`
+5. **CI runs automatically**: frontend-ci, backend-ci (path-filtered), ai-review (always)
+6. **AI reviewer** posts findings as PR comment — if APPROVE with no HIGH+ findings, auto-approves
+7. **If REQUEST_CHANGES**: address findings, push, AI re-reviews
+8. **Merge** when all required checks pass + 1 approval (AI counts)
+
+### Required Checks on `main`
+
+- `ai-review` — always required
+- `frontend` — required when `frontend/**` or `.github/workflows/frontend-ci.yml` changed
+- `backend` — required when `backend/**` or `.github/workflows/backend-ci.yml` changed
+- `e2e` — runs conditionally, not required for merge
+
+### Branch Protection
+
+- enforce_admins: **false** (admins can bypass for hotfixes)
+- 1 approval required (AI approval counts)
+- Dismiss stale reviews: yes
+
+## Secrets (never commit these)
+
+| Secret | Environment variable | Where to set |
+|--------|---------------------|--------------|
+| PostgreSQL password | `NUTRIAI_DATASOURCE_PASSWORD` | `.env` or Docker env |
+| JWT signing key | `NUTRIAI_JWT_SECRET` | `.env` or Docker env |
+| Seed admin password | `NUTRIAI_SEED_ADMIN_PASSWORD` | `.env` or Docker env |
+| Ollama Cloud API key | `OLLAMA_API_KEY` | GitHub repo secrets |
+
+## AI Reviewer Rules
+
+The AI reviewer loads `.github/review-rules.md` as part of its system prompt. This file contains:
+- Project-specific security rules (PreAuthorize, tenant isolation, LGPD)
+- Naming conventions (PascalCase components, camelCase variables, kebab-case CSS)
+- Architecture rules (controller→service→repository, View→Store→API)
+- Testing requirements (E2E contracts, enum mapping, error visibility)
+- What NOT to flag (mock data, pt-BR only, existing lint warnings)
+
+To change what the reviewer checks: edit `.github/review-rules.md` and push. No workflow changes needed.
+
+## Key Architecture Patterns (for new agents)
+
+- **Auth flow**: JWT access token (15min) + refresh token (7d, httpOnly cookie). Extract nutritionistId from JWT via `NutritionistAccess.getCurrentNutritionistId()`.
+- **Tenant isolation**: Every DB query MUST include `WHERE nutritionist_id = ?`. ArchUnit tests enforce this at compile time.
+- **API envelope**: Auth endpoints (`/auth/*`) return direct JSON. All other endpoints return `{ "success": true/false, "data": {...} }`.
+- **Frontend state**: Zustand stores with `partialize` for localStorage. `accessToken` MUST be included in `partialize`.
+- **All UI text is pt-BR** — no i18n framework, hard-coded Portuguese.
+- **PreAuthorize**: All controllers except `HealthController` and auth public endpoints (`/auth/signup`, `/auth/login`, `/auth/refresh`) MUST have `@PreAuthorize("hasRole('NUTRITIONIST')")`.
+
+## Frontend Conventions
+
+- TypeScript strict mode
+- Tailwind CSS 4 (no CSS modules, no styled-components)
+- Views in `src/views/`, components in `src/components/`
+- API modules in `src/api/`, Zustand stores in `src/stores/`
+- E2E tests in `e2e/` using Playwright with API helpers (`signupViaApi`, `completeOnboardingViaApi`)
+
+## Backend Conventions
+
+- Java 21 + Spring Boot 3.5 + Gradle
+- Package structure: `controller` → `service` → `repository` (never skip a layer)
+- Flyway migrations in `src/main/resources/db/migration/`
+- Checkstyle enforcement via `./gradlew check`
+- ArchUnit tests in `ArchitectureTest.java` (6 rules): controller↛repository, service↛controller, repository↛service, no package cycles, DTOs↛repositories, controllers must have @PreAuthorize
+
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
@@ -493,7 +578,99 @@ E2E tests são a **única camada que valida alinhamento real entre frontend e ba
 - After modifying backend: `./gradlew compileJava` must pass
 - After completing a task: relevant test suite must pass
 
+## CI/CD Pipeline
 
+### Workflows (GitHub Actions)
+
+| Workflow | Trigger | Path Filter | Required |
+|----------|---------|-------------|----------|
+| `frontend-ci.yml` | push/PR to main | `frontend/**`, `.github/workflows/frontend-ci.yml` | Yes |
+| `backend-ci.yml` | push/PR to main | `backend/**`, `.github/workflows/backend-ci.yml` | Yes |
+| `e2e.yml` | push/PR to main | `frontend/**`, `backend/**` | No (path-filtered, runs when code changes) |
+| `ai-review.yml` | PR opened/sync | All code files (`*.java`, `*.ts`, `*.tsx`, `*.css`, `*.yml`, `*.gradle`, `*.sql`, `*.json`, `*.html`) | Yes |
+
+### Branch Protection (main)
+
+- **Required checks**: `ai-review`, `frontend`, `backend`
+- **1 approval required** (AI approval counts via `github-actions` bot)
+- **Dismiss stale reviews**: yes
+- **enforce_admins**: false (admins can bypass for hotfixes or `.github/`-only changes)
+
+### AI Reviewer (Ollama Cloud)
+
+- **Model selection**: diffs <1000 lines use `devstral-small-2:24b` (fast), diffs ≥1000 lines use `glm-5.1` (powerful)
+- **Decision logic**: 
+  - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve
+  - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
+  - If STATUS: REQUEST_CHANGES → request changes
+- **Prompt injection guard**: diff content is sent as user message, system prompt instructs to analyze code only
+- **Project-specific rules**: loaded from `.github/review-rules.md` as part of the system prompt
+- **To update reviewer rules**: edit `.github/review-rules.md` and push — next PR automatically uses the new rules
+
+### PR Workflow
+
+1. Create branch → push → open PR against `main`
+2. CI checks run automatically (frontend, backend if paths affected)
+3. AI reviewer runs on every PR, posts comment with findings
+4. If APPROVE: `github-actions` bot approves the PR
+5. Developer merges manually (or via `gh pr merge`)
+6. If REQUEST_CHANGES: developer addresses findings → push → AI re-reviews
+
+### Frontend CI (`frontend-ci.yml`)
+
+Steps: checkout → Node 20 setup → npm ci → ESLint → TypeScript type check → Vitest unit tests → Build
+
+### Backend CI (`backend-ci.yml`)
+
+Steps: checkout → Java 21 setup → Gradle cache → `./gradlew check` (unit tests + Checkstyle) → JacocoTestReport upload
+
+### E2E CI (`e2e.yml`)
+
+Steps: checkout → Docker Compose (postgres + backend + frontend) → health checks → Playwright tests → artifact upload on failure
+
+## Development Context for AI Agents
+
+### Repository Structure
+```
+frontend/          React 19 + TypeScript + Vite + Tailwind CSS 4
+  src/
+    api/            Axios client, API modules (auth, patient, food, plan)
+    stores/         Zustand stores (authStore, patientStore, foodStore, planStore)
+    views/          Page-level components
+    components/     Reusable UI components
+    e2e/            Playwright end-to-end tests
+backend/           Java 21 + Spring Boot 3.5 + Gradle
+  src/main/java/com/nutriai/api/
+    auth/           JWT auth, SecurityConfig, NutritionistAccess
+    controller/     REST controllers (PatientController, FoodController, PlanController)
+    service/        Business logic
+    repository/     Spring Data JPA repositories
+    dto/            Request/response DTOs
+    model/          JPA entities
+  src/test/         JUnit 5 + Mockito + Testcontainers
+  src/main/resources/
+    db/migration/   Flyway migrations (V1__... through V6__...)
+docker/            Docker Compose configs
+.github/workflows/ CI pipelines + AI reviewer
+.github/review-rules.md  Project-specific rules for AI reviewer
+brainstorms/       Ideation documents
+.planning/         Roadmap, phase plans, research
+```
+
+### Key Patterns
+
+- **Auth**: JWT access token (15min) + refresh token (7d, httpOnly cookie). `NutritionistAccess.getCurrentNutritionistId()` extracts from SecurityContext.
+- **Tenant isolation**: Every controller extracts `nutritionistId` from JWT. Every service method scopes by `nutritionistId`. Every repository query includes `WHERE nutritionist_id = ?`.
+- **API envelope**: Auth endpoints (`/auth/*`) return direct JSON. All other endpoints return `{ "success": true, "data": {...} }`.
+- **State management (frontend)**: Zustand stores with `partialize` for localStorage persistence. `accessToken` MUST be in `partialize`.
+- **Error handling**: Backend returns `{ "success": false, "message": "..." }` with appropriate HTTP status. Frontend displays error messages via toast/alert.
+
+### Security Invariants (ArchUnit enforced)
+
+- Controllers MUST NOT depend on repositories (must go through services)
+- All controllers (except HealthController) MUST have `@PreAuthorize` annotation
+- No package cycles allowed
+- DTOs MUST NOT depend on repositories
 
 <!-- GSD:profile-start -->
 ## Developer Profile

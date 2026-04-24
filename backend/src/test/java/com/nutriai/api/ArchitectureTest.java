@@ -66,4 +66,14 @@ class ArchitectureTest {
                 .because("DTOs are data transfer objects, not data access")
                 .check(importedClasses);
     }
+
+    @Test
+    void controllersShouldBePreAuthorized() {
+        ArchRuleDefinition.classes()
+                .that().resideInAPackage("..controller..")
+                .and().doNotHaveSimpleName("HealthController")
+                .should().beAnnotatedWith("org.springframework.security.access.prepost.PreAuthorize")
+                .because("All controllers (except health) must have @PreAuthorize for security - defense in depth")
+                .check(importedClasses);
+    }
 }
