@@ -13,19 +13,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get diff
         id: diff
         run: |
-          git fetch origin main
-          DIFF=$(git diff origin/main...HEAD -- '*.java' '*.ts' '*.tsx' '*.css' '*.yml' '*.gradle' '*.sql' '*.json' '*.html')
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- '*.java' '*.ts' '*.tsx' '*.css' '*.yml' '*.gradle' '*.sql' '*.json' '*.html')
           LINES=$(echo "$DIFF" | wc -l)
           echo "lines=$LINES" >> $GITHUB_OUTPUT
-          {
-            echo 'content<<DIFFEOF'
-            echo "$DIFF"
-            echo DIFFEOF
-          } >> $GITHUB_OUTPUT
+          echo "$DIFF" > /tmp/pr_diff.txt
 
       - name: Select model
         id: model
@@ -40,7 +37,8 @@ jobs:
         id: review
         if: steps.diff.outputs.lines > 0
         run: |
-          PROMPT='You are a senior code reviewer for NutriAI — a Brazilian nutritionist SaaS.
+          cat > /tmp/prompt.txt << 'PROMPTEOF'
+          You are a senior code reviewer for NutriAI — a Brazilian nutritionist SaaS.
           Tech stack: React 18 + TypeScript + Vite + Tailwind (frontend), Java 21 + Spring Boot + PostgreSQL (backend).
           All UI text is pt-BR. Row-level tenant isolation via nutritionistId FK.
 
@@ -55,36 +53,45 @@ jobs:
           STATUS: APPROVE or REQUEST_CHANGES
           SUMMARY: one-line summary in pt-BR
           FINDINGS: (list each finding as "- SEVERITY: description" or "none" if clean)
-          SEVERITY is one of: CRITICAL, HIGH, MEDIUM, LOW, INFO'
+          SEVERITY is one of: CRITICAL, HIGH, MEDIUM, LOW, INFO
+          PROMPTEOF
 
-          RESPONSE=$(curl -s https://ollama.com/api/chat \
+          DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
+
+          REQUEST_BODY=$(jq -n \
+            --arg model "${{ steps.model.outputs.name }}" \
+            --argfile prompt /tmp/prompt.txt \
+            --arg diff "$DIFF_CONTENT" \
+            '{
+              model: $model,
+              messages: [
+                {role: "system", content: $prompt[0]},
+                {role: "user", content: ("Review this diff:\n\n" + $diff)}
+              ],
+              stream: false
+            }')
+
+          RESPONSE=$(curl -s --max-time 120 https://ollama.com/api/chat \
             -H "Authorization: Bearer ${{ secrets.OLLAMA_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "$(jq -n \
-              --arg model "${{ steps.model.outputs.name }}" \
-              --arg prompt "$PROMPT" \
-              --arg diff "${{ steps.diff.outputs.content }}" \
-              '{
-                model: $model,
-                messages: [
-                  {role: "system", content: $prompt},
-                  {role: "user", content: ("Review this diff:\n\n" + $diff)}
-                ],
-                stream: false
-              }'
-            )")
+            -d "$REQUEST_BODY")
 
           REVIEW=$(echo "$RESPONSE" | jq -r '.message.content // empty')
 
           if [ -z "$REVIEW" ]; then
-            echo "AI review failed — empty response from Ollama"
+            echo "AI review failed — empty response"
+            echo "response=$RESPONSE" >> $GITHUB_OUTPUT
             echo "result=error" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          echo "review<<REVIEWSCRIPT"
-          echo "$REVIEW"
-          echo "REVIEWSCRIPT" >> $GITHUB_OUTPUT
+          echo "$REVIEW" > /tmp/review.txt
+
+          {
+            echo "review<<REVIEWEOF"
+            echo "$REVIEW"
+            echo "REVIEWEOF"
+          } >> $GITHUB_OUTPUT
 
           STATUS_LINE=$(echo "$REVIEW" | grep -i "^STATUS:" | head -1)
           if echo "$STATUS_LINE" | grep -qi "APPROVE"; then
@@ -92,15 +99,19 @@ jobs:
           else
             echo "decision=request_changes" >> $GITHUB_OUTPUT
           fi
+          echo "result=success" >> $GITHUB_OUTPUT
 
       - name: Post review comment
-        if: steps.review.outputs.result != 'error'
+        if: steps.review.outputs.result == 'success'
         uses: actions/github-script@v7
+        env:
+          REVIEW_TEXT: ${{ steps.review.outputs.review }}
+          MODEL_NAME: ${{ steps.model.outputs.name }}
         with:
           script: |
-            const review = `${{ steps.review.outputs.review }}`;
-            const model = `${{ steps.model.outputs.name }}`;
-            const body = `## 🤖 AI Review (${model})\n\n${review}`;
+            const review = process.env.REVIEW_TEXT;
+            const model = process.env.MODEL_NAME;
+            const body = `## AI Review (${model})\n\n${review}`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -118,7 +129,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'APPROVE',
-              body: '🤖 AI review passed — no critical issues found.'
+              body: 'AI review passed — no critical issues found.'
             });
 
       - name: Request changes if issues found
@@ -131,5 +142,5 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'REQUEST_CHANGES',
-              body: '🤖 AI review found issues — please address before merging.'
+              body: 'AI review found issues — please address before merging.'
             });
