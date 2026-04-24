@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 06 context gathered — ready for planning
-last_updated: "2026-04-24T19:10:00.000Z"
+stopped_at: Phase 06 UI-SPEC approved
+last_updated: "2026-04-24T19:40:00.000Z"
 last_activity: 2026-04-24
 progress:
   total_phases: 10
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 06 — Dashboard & Biometry planning
+**Current focus:** Phase 06 — Dashboard & Biometry planning with UI contract ready
 
 ## Current Position
 
@@ -210,6 +210,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-24T19:10:00.000Z
-Stopped at: Phase 06 context gathered
-Resume file: .planning/phases/06-dashboard-biometry/06-CONTEXT.md
+Last session: 2026-04-24T19:40:00.000Z
+Stopped at: Phase 06 UI-SPEC approved
+Resume file: .planning/phases/06-dashboard-biometry/06-UI-SPEC.md
