@@ -95,7 +95,7 @@ public class MealPlanService {
         Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        MealPlan plan = mealPlanRepository.findByEpisodeId(episode.getId())
+        MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
 
         return buildPlanResponse(plan);
@@ -337,7 +337,7 @@ public class MealPlanService {
         Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        return mealPlanRepository.findByEpisodeId(episode.getId())
+        return mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
     }
 

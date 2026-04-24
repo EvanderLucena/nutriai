@@ -176,7 +176,7 @@ class MealPlanServiceTest {
     void getPlan_returnsFullPlanTree() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
 
         MealSlot slot = MealSlot.builder().id(UUID.randomUUID()).planId(plan.getId()).label("Café").sortOrder(0).build();
         when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of(slot));
@@ -257,7 +257,7 @@ class MealPlanServiceTest {
     void addExtra_createsExtraForPlan() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
         when(planExtraRepository.save(any(PlanExtra.class))).thenAnswer(inv -> {
             PlanExtra e = inv.getArgument(0);
@@ -330,7 +330,7 @@ class MealPlanServiceTest {
     void updatePlan_changesTitleAndTargets() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
         when(mealPlanRepository.save(any(MealPlan.class))).thenAnswer(inv -> inv.getArgument(0));
         when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
