@@ -37,31 +37,13 @@ jobs:
         id: review
         if: steps.diff.outputs.lines > 0
         run: |
-          cat > /tmp/prompt.txt << 'PROMPTEOF'
-          You are a senior code reviewer for NutriAI — a Brazilian nutritionist SaaS.
-          Tech stack: React 18 + TypeScript + Vite + Tailwind (frontend), Java 21 + Spring Boot + PostgreSQL (backend).
-          All UI text is pt-BR. Row-level tenant isolation via nutritionistId FK.
+          PROMPT='You are a senior code reviewer for NutriAI - a Brazilian nutritionist SaaS. Tech stack: React 18 + TypeScript + Vite + Tailwind (frontend), Java 21 + Spring Boot + PostgreSQL (backend). All UI text is pt-BR. Row-level tenant isolation via nutritionistId FK. Review this diff for: 1. BUGS - logic errors, null safety, race conditions, missing error handling 2. SECURITY - missing auth checks, injection, data leakage across tenants 3. ARCHITECTURE - layer violations (controller to repo, view to api), circular deps 4. LGPD - hardcoded PII, missing consent checks, data exposure in logs 5. REACT - hooks rules violations, missing deps in useEffect, stale closures. Respond in this EXACT format: STATUS: APPROVE or REQUEST_CHANGES SUMMARY: one-line summary in pt-BR FINDINGS: list each finding as "- SEVERITY: description" or "none" if clean. SEVERITY is one of: CRITICAL HIGH MEDIUM LOW INFO'
 
-          Review this diff for:
-          1. BUGS — logic errors, null safety, race conditions, missing error handling
-          2. SECURITY — missing auth checks (@PreAuthorize), injection, data leakage across tenants
-          3. ARCHITECTURE — layer violations (controller→repo, view→api), circular deps, missing service layer
-          4. LGPD — hardcoded PII, missing consent checks, data exposure in logs/responses
-          5. REACT — hooks rules violations, missing deps in useEffect, stale closures
-
-          Respond in this EXACT format (no markdown, no code blocks):
-          STATUS: APPROVE or REQUEST_CHANGES
-          SUMMARY: one-line summary in pt-BR
-          FINDINGS: (list each finding as "- SEVERITY: description" or "none" if clean)
-          SEVERITY is one of: CRITICAL, HIGH, MEDIUM, LOW, INFO
-          PROMPTEOF
-
-          DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
-          PROMPT_CONTENT=$(cat /tmp/prompt.txt)
+          DIFF_CONTENT=$(cat /tmp/pr_diff.txt | head -3000)
 
           REQUEST_BODY=$(jq -n \
             --arg model "${{ steps.model.outputs.name }}" \
-            --arg prompt "$PROMPT_CONTENT" \
+            --arg prompt "$PROMPT" \
             --arg diff "$DIFF_CONTENT" \
             '{
               model: $model,
@@ -72,21 +54,24 @@ jobs:
               stream: false
             }')
 
-          RESPONSE=$(curl -s --max-time 120 https://ollama.com/api/chat \
+          echo "$REQUEST_BODY" > /tmp/request_body.json
+
+          HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 120 \
+            https://ollama.com/api/chat \
             -H "Authorization: Bearer ${{ secrets.OLLAMA_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d "$REQUEST_BODY")
+            -d @/tmp/request_body.json)
 
-          REVIEW=$(echo "$RESPONSE" | jq -r '.message.content // empty')
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+
+          REVIEW=$(cat /tmp/response.json | jq -r '.message.content // empty' 2>/dev/null || echo "")
 
           if [ -z "$REVIEW" ]; then
-            echo "AI review failed — empty response"
-            echo "response=$RESPONSE" >> $GITHUB_OUTPUT
+            echo "AI review failed - empty or invalid response (HTTP $HTTP_CODE)"
+            cat /tmp/response.json | head -20
             echo "result=error" >> $GITHUB_OUTPUT
             exit 0
           fi
-
-          echo "$REVIEW" > /tmp/review.txt
 
           {
             echo "review<<REVIEWEOF"
@@ -101,6 +86,18 @@ jobs:
             echo "decision=request_changes" >> $GITHUB_OUTPUT
           fi
           echo "result=success" >> $GITHUB_OUTPUT
+
+      - name: Post error comment
+        if: steps.review.outputs.result == 'error'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'AI review failed - could not get response from Ollama Cloud. Check workflow logs.'
+            });
 
       - name: Post review comment
         if: steps.review.outputs.result == 'success'
@@ -130,7 +127,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'APPROVE',
-              body: 'AI review passed — no critical issues found.'
+              body: 'AI review passed - no critical issues found.'
             });
 
       - name: Request changes if issues found
@@ -143,5 +140,5 @@ jobs:
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'REQUEST_CHANGES',
-              body: 'AI review found issues — please address before merging.'
+              body: 'AI review found issues - please address before merging.'
             });
