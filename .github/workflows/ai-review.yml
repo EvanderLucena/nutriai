@@ -57,14 +57,14 @@ jobs:
           echo "$REQUEST_BODY" > /tmp/request_body.json
 
           HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 120 \
-            https://ollama.com/api/chat \
+            https://ollama.com/v1/chat/completions \
             -H "Authorization: Bearer ${{ secrets.OLLAMA_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d @/tmp/request_body.json)
 
           echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
 
-          REVIEW=$(cat /tmp/response.json | jq -r '.message.content // empty' 2>/dev/null || echo "")
+          REVIEW=$(cat /tmp/response.json | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
 
           if [ -z "$REVIEW" ]; then
             echo "AI review failed - empty or invalid response (HTTP $HTTP_CODE)"
