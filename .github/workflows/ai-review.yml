@@ -57,15 +57,16 @@ jobs:
           PROMPTEOF
 
           DIFF_CONTENT=$(cat /tmp/pr_diff.txt)
+          PROMPT_CONTENT=$(cat /tmp/prompt.txt)
 
           REQUEST_BODY=$(jq -n \
             --arg model "${{ steps.model.outputs.name }}" \
-            --argfile prompt /tmp/prompt.txt \
+            --arg prompt "$PROMPT_CONTENT" \
             --arg diff "$DIFF_CONTENT" \
             '{
               model: $model,
               messages: [
-                {role: "system", content: $prompt[0]},
+                {role: "system", content: $prompt},
                 {role: "user", content: ("Review this diff:\n\n" + $diff)}
               ],
               stream: false
