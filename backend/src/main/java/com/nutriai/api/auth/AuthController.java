@@ -28,9 +28,6 @@ public class AuthController {
     @Value("${nutriai.jwt.cookie.max-age:604800}")
     private int cookieMaxAge;
 
-    @Value("${nutriai.jwt.cookie.http-only:true}")
-    private boolean cookieHttpOnly;
-
     @Value("${nutriai.jwt.cookie.secure:false}")
     private boolean cookieSecure;
 
@@ -132,7 +129,7 @@ public class AuthController {
 
     @PostMapping("/onboarding")
     @PreAuthorize("hasRole('NUTRITIONIST')")
-    public ResponseEntity<Map<String, Object>> completeOnboarding(@RequestBody(required = false) OnboardingRequest request) {
+    public ResponseEntity<Map<String, Object>> completeOnboarding() {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         authService.completeOnboarding(nutritionistId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Onboarding concluído"));

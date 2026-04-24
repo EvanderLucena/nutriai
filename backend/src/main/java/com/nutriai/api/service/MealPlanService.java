@@ -213,7 +213,7 @@ public class MealPlanService {
     public MealFoodResponse addFoodItem(UUID nutritionistId, UUID optionId, AddFoodItemRequest req) {
         MealOption option = findOptionAndVerifyOwnership(nutritionistId, optionId);
 
-        Food food = foodRepository.findById(req.foodId())
+        Food food = foodRepository.findByIdAndNutritionistId(req.foodId(), nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Alimento", req.foodId()));
 
         BigDecimal referenceAmount = req.referenceAmount();
@@ -256,7 +256,7 @@ public class MealPlanService {
         if (req.referenceAmount() != null) {
             item.setReferenceAmount(req.referenceAmount());
             if (item.getFoodId() != null) {
-                foodRepository.findById(item.getFoodId()).ifPresent(food -> {
+                foodRepository.findByIdAndNutritionistId(item.getFoodId(), nutritionistId).ifPresent(food -> {
                     item.setKcal(calculateMacro(food.getKcal(), item.getReferenceAmount(), food.getReferenceAmount()));
                     item.setProt(calculateMacro(food.getProt(), item.getReferenceAmount(), food.getReferenceAmount()));
                     item.setCarb(calculateMacro(food.getCarb(), item.getReferenceAmount(), food.getReferenceAmount()));

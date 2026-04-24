@@ -115,16 +115,16 @@ E 1 validação condicional:
 
 ### AI Reviewer
 
-- Usa Ollama Cloud: diffs <1000 linhas → `devstral-small-2:24b`, diffs ≥1000 linhas → `glm-5.1`
+- Usa Ollama Cloud: modelo `glm-5.1` para todos os diffs (até 3000 linhas; acima disso a parte restante NÃO é revisada e um warning é emitido)
 - Regras do projeto em `.github/review-rules.md` (editável sem mudar workflow)
 - Auto-aprova se APPROVE sem findings HIGH+, senão request changes
-- Branch protection: 3 checks obrigatórios (`ai-review`, `frontend`, `backend`) + 1 approval
+- Branch protection: 3 checks obrigatórios (`ai-review`, `frontend`, `backend`) + 2 approvals (AI conta como 1ª)
 
 ### Branch Protection
 
-- `main` requer: checks passando + 1 approval (AI conta)
+- `main` requer: checks passando + 2 approvals (AI conta como 1ª)
 - Stale reviews são dismissed automaticamente
-- Admins podem bypass (para hotfixes)
+- Owner pode bypass com `--admin` (hotfixes)
 
 ## Licença
 

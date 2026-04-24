@@ -51,7 +51,14 @@ jobs:
             RULES_CONTENT="No project-specific rules found."
           fi
 
-          DIFF_CONTENT=$(cat /tmp/pr_diff.txt | head -3000 | sed 's/```/` ` `/g')
+          TOTAL_LINES=$(wc -l < /tmp/pr_diff.txt)
+          MAX_LINES=3000
+          if [ "$TOTAL_LINES" -gt "$MAX_LINES" ]; then
+            echo "::warning::Diff has $TOTAL_LINES lines; AI reviewer only sees first $MAX_LINES. Changes past that are NOT reviewed."
+            echo "truncated=true" >> $GITHUB_OUTPUT
+            echo "truncated_total=$TOTAL_LINES" >> $GITHUB_OUTPUT
+          fi
+          DIFF_CONTENT=$(head -"$MAX_LINES" /tmp/pr_diff.txt | sed 's/```/` ` `/g')
 
           REQUEST_BODY=$(jq -n \
             --arg model "${{ steps.model.outputs.name }}" \
@@ -144,11 +151,18 @@ jobs:
         env:
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
           MODEL_NAME: ${{ steps.model.outputs.name }}
+          TRUNCATED: ${{ steps.review.outputs.truncated }}
+          TRUNCATED_TOTAL: ${{ steps.review.outputs.truncated_total }}
         with:
           script: |
             const review = process.env.REVIEW_TEXT;
             const model = process.env.MODEL_NAME;
-            const body = `## AI Review (${model})\n\n${review}`;
+            const truncated = process.env.TRUNCATED === 'true';
+            const total = process.env.TRUNCATED_TOTAL;
+            const warn = truncated
+              ? `> ⚠️ Diff truncated: this review covers only the first 3000 of ${total} lines. Split the PR for full coverage.\n\n`
+              : '';
+            const body = `## AI Review (${model})\n\n${warn}${review}`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,

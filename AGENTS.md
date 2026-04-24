@@ -62,7 +62,8 @@ To change what the reviewer checks: edit `.github/review-rules.md` and push. No 
 
 ### AI Reviewer Behavior
 
-- **Model**: `glm-5.1` (anti-hallucination prompt included)
+- **Model**: `glm-5.1` for all diffs (hardcoded; anti-hallucination prompt included)
+- **Diff truncation**: reviewer sees at most first 3000 lines; oversized diffs emit a GitHub warning + inline comment
 - **Decision logic**: 
   - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve (1st approval)
   - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
@@ -604,13 +605,14 @@ E2E tests são a **única camada que valida alinhamento real entre frontend e ba
 ### Branch Protection (main)
 
 - **Required checks**: `ai-review`, `frontend`, `backend`
-- **1 approval required** (AI approval counts via `github-actions` bot)
+- **2 approvals required** (AI approval via `github-actions` bot counts as 1st)
 - **Dismiss stale reviews**: yes
-- **enforce_admins**: false (admins can bypass for hotfixes or `.github/`-only changes)
+- **enforce_admins**: false (owner can bypass 2-approval rule with `--admin` for hotfixes or `.github/`-only changes)
 
 ### AI Reviewer (Ollama Cloud)
 
-- **Model selection**: diffs <1000 lines use `devstral-small-2:24b` (fast), diffs ≥1000 lines use `glm-5.1` (powerful)
+- **Model**: `glm-5.1` for all diffs (hardcoded in `ai-review.yml`)
+- **Diff truncation**: reviewer sees at most first 3000 lines; oversized diffs get a warning comment
 - **Decision logic**: 
   - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve
   - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
@@ -634,7 +636,7 @@ Steps: checkout → Node 20 setup → npm ci → ESLint → TypeScript type chec
 
 ### Backend CI (`backend-ci.yml`)
 
-Steps: checkout → Java 21 setup → Gradle cache → `./gradlew check` (unit tests + Checkstyle) → JacocoTestReport upload
+Steps: checkout → Java 21 setup → Gradle cache → `./gradlew check` (compile + Checkstyle + unit tests + JaCoCo coverage verification) → `./gradlew integrationTest` (Testcontainers) → JaCoCo HTML report artifact upload
 
 ### E2E CI (`e2e.yml`)
 
