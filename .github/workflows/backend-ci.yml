@@ -41,3 +41,11 @@ jobs:
 
       - name: Coverage verification
         run: ./gradlew jacocoTestCoverageVerification
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/build/reports/jacoco/test/html/
+          retention-days: 7
