@@ -1,0 +1,144 @@
+name: AI Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get diff
+        id: diff
+        run: |
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- '*.java' '*.ts' '*.tsx' '*.css' '*.yml' '*.gradle' '*.sql' '*.json' '*.html')
+          LINES=$(echo "$DIFF" | wc -l)
+          echo "lines=$LINES" >> $GITHUB_OUTPUT
+          echo "$DIFF" > /tmp/pr_diff.txt
+
+      - name: Select model
+        id: model
+        run: |
+          if [ "${{ steps.diff.outputs.lines }}" -gt 1000 ]; then
+            echo "name=glm-5.1" >> $GITHUB_OUTPUT
+          else
+            echo "name=devstral-small-2:24b" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run AI review
+        id: review
+        if: steps.diff.outputs.lines > 0
+        run: |
+          PROMPT='You are a senior code reviewer for NutriAI - a Brazilian nutritionist SaaS. Tech stack: React 18 + TypeScript + Vite + Tailwind (frontend), Java 21 + Spring Boot + PostgreSQL (backend). All UI text is pt-BR. Row-level tenant isolation via nutritionistId FK. Review this diff for: 1. BUGS - logic errors, null safety, race conditions, missing error handling 2. SECURITY - missing auth checks, injection, data leakage across tenants 3. ARCHITECTURE - layer violations (controller to repo, view to api), circular deps 4. LGPD - hardcoded PII, missing consent checks, data exposure in logs 5. REACT - hooks rules violations, missing deps in useEffect, stale closures. Respond in this EXACT format: STATUS: APPROVE or REQUEST_CHANGES SUMMARY: one-line summary in pt-BR FINDINGS: list each finding as "- SEVERITY: description" or "none" if clean. SEVERITY is one of: CRITICAL HIGH MEDIUM LOW INFO'
+
+          DIFF_CONTENT=$(cat /tmp/pr_diff.txt | head -3000)
+
+          REQUEST_BODY=$(jq -n \
+            --arg model "${{ steps.model.outputs.name }}" \
+            --arg prompt "$PROMPT" \
+            --arg diff "$DIFF_CONTENT" \
+            '{
+              model: $model,
+              messages: [
+                {role: "system", content: $prompt},
+                {role: "user", content: ("Review this diff:\n\n" + $diff)}
+              ],
+              stream: false
+            }')
+
+          echo "$REQUEST_BODY" > /tmp/request_body.json
+
+          HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 120 \
+            https://ollama.com/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.OLLAMA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/request_body.json)
+
+          echo "http_code=$HTTP_CODE" >> $GITHUB_OUTPUT
+
+          REVIEW=$(cat /tmp/response.json | jq -r '.choices[0].message.content // empty' 2>/dev/null || echo "")
+
+          if [ -z "$REVIEW" ]; then
+            echo "AI review failed - empty or invalid response (HTTP $HTTP_CODE)"
+            cat /tmp/response.json | head -20
+            echo "result=error" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          {
+            echo "review<<REVIEWEOF"
+            echo "$REVIEW"
+            echo "REVIEWEOF"
+          } >> $GITHUB_OUTPUT
+
+          STATUS_LINE=$(echo "$REVIEW" | grep -i "^STATUS:" | head -1)
+          if echo "$STATUS_LINE" | grep -qi "APPROVE"; then
+            echo "decision=approve" >> $GITHUB_OUTPUT
+          else
+            echo "decision=request_changes" >> $GITHUB_OUTPUT
+          fi
+          echo "result=success" >> $GITHUB_OUTPUT
+
+      - name: Post error comment
+        if: steps.review.outputs.result == 'error'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'AI review failed - could not get response from Ollama Cloud. Check workflow logs.'
+            });
+
+      - name: Post review comment
+        if: steps.review.outputs.result == 'success'
+        uses: actions/github-script@v7
+        env:
+          REVIEW_TEXT: ${{ steps.review.outputs.review }}
+          MODEL_NAME: ${{ steps.model.outputs.name }}
+        with:
+          script: |
+            const review = process.env.REVIEW_TEXT;
+            const model = process.env.MODEL_NAME;
+            const body = `## AI Review (${model})\n\n${review}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Auto-approve if clean
+        if: steps.review.outputs.decision == 'approve'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: 'AI review passed - no critical issues found.'
+            });
+
+      - name: Request changes if issues found
+        if: steps.review.outputs.decision == 'request_changes'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'REQUEST_CHANGES',
+              body: 'AI review found issues - please address before merging.'
+            });
