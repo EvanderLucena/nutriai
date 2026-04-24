@@ -95,7 +95,7 @@ public class MealPlanService {
         Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        MealPlan plan = mealPlanRepository.findByEpisodeId(episode.getId())
+        MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
 
         return buildPlanResponse(plan);
@@ -242,8 +242,7 @@ public class MealPlanService {
                 .build();
         MealFood saved = mealFoodRepository.save(item);
 
-        food.setUsedCount(food.getUsedCount() + 1);
-        foodRepository.save(food);
+        foodRepository.incrementUsedCount(food.getId());
 
         logger.info("Food item added: foodId={}, optionId={}, kcal={}", food.getId(), optionId, kcal);
         return MealFoodResponse.from(saved);
@@ -338,7 +337,7 @@ public class MealPlanService {
         Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        return mealPlanRepository.findByEpisodeId(episode.getId())
+        return mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
     }
 
@@ -401,13 +400,15 @@ public class MealPlanService {
         List<MealSlot> slots = mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId());
         List<PlanExtra> extras = planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId());
 
-        List<MealOption> allOptions = slots.stream()
-                .flatMap(s -> mealOptionRepository.findByMealSlotIdOrderBySortOrder(s.getId()).stream())
-                .toList();
+        List<UUID> slotIds = slots.stream().map(MealSlot::getId).toList();
+        List<MealOption> allOptions = slotIds.isEmpty()
+                ? List.of()
+                : mealOptionRepository.findAllByMealSlotIds(slotIds);
 
-        List<MealFood> allItems = allOptions.stream()
-                .flatMap(o -> mealFoodRepository.findByOptionIdOrderBySortOrder(o.getId()).stream())
-                .toList();
+        List<UUID> optionIds = allOptions.stream().map(MealOption::getId).toList();
+        List<MealFood> allItems = optionIds.isEmpty()
+                ? List.of()
+                : mealFoodRepository.findAllByOptionIds(optionIds);
 
         return PlanResponse.from(plan, slots, extras, allOptions, allItems);
     }

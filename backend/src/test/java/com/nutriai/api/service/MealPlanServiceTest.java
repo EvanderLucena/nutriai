@@ -115,7 +115,6 @@ class MealPlanServiceTest {
             mf.setId(UUID.randomUUID());
             return mf;
         });
-        when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("200.0"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
@@ -160,7 +159,6 @@ class MealPlanServiceTest {
             mf.setId(UUID.randomUUID());
             return mf;
         });
-        when(foodRepository.save(any(Food.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AddFoodItemRequest req = new AddFoodItemRequest(foodId, new BigDecimal("1.5"));
         MealFoodResponse resp = mealPlanService.addFoodItem(nutritionistId, optionId, req);
@@ -178,17 +176,17 @@ class MealPlanServiceTest {
     void getPlan_returnsFullPlanTree() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
 
         MealSlot slot = MealSlot.builder().id(UUID.randomUUID()).planId(plan.getId()).label("Café").sortOrder(0).build();
         when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of(slot));
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
 
         MealOption opt = MealOption.builder().id(UUID.randomUUID()).mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build();
-        when(mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId())).thenReturn(List.of(opt));
+        when(mealOptionRepository.findAllByMealSlotIds(List.of(slot.getId()))).thenReturn(List.of(opt));
 
         MealFood item = MealFood.builder().id(UUID.randomUUID()).optionId(opt.getId()).foodName("Café").referenceAmount(new BigDecimal("200")).unit("ML").kcal(new BigDecimal("5")).build();
-        when(mealFoodRepository.findByOptionIdOrderBySortOrder(opt.getId())).thenReturn(List.of(item));
+        when(mealFoodRepository.findAllByOptionIds(List.of(opt.getId()))).thenReturn(List.of(item));
 
         PlanResponse resp = mealPlanService.getPlan(nutritionistId, patientId);
 
@@ -259,7 +257,7 @@ class MealPlanServiceTest {
     void addExtra_createsExtraForPlan() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
         when(planExtraRepository.save(any(PlanExtra.class))).thenAnswer(inv -> {
             PlanExtra e = inv.getArgument(0);
@@ -332,7 +330,7 @@ class MealPlanServiceTest {
     void updatePlan_changesTitleAndTargets() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(episode));
-        when(mealPlanRepository.findByEpisodeId(episodeId)).thenReturn(Optional.of(plan));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
         when(mealPlanRepository.save(any(MealPlan.class))).thenAnswer(inv -> inv.getArgument(0));
         when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
