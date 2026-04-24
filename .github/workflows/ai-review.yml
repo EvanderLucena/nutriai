@@ -68,7 +68,7 @@ jobs:
 
           echo "$REQUEST_BODY" > /tmp/request_body.json
 
-          HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 120 \
+          HTTP_CODE=$(curl -s -w "%{http_code}" -o /tmp/response.json --max-time 300 \
             https://ollama.com/v1/chat/completions \
             -H "Authorization: Bearer ${{ secrets.OLLAMA_API_KEY }}" \
             -H "Content-Type: application/json" \
