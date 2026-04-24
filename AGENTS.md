@@ -21,9 +21,11 @@
 3. **Verify locally**: `npx tsc --noEmit` (frontend), `./gradlew compileJava` (backend)
 4. **Push and open PR** against `main`
 5. **CI runs automatically**: frontend-ci, backend-ci (path-filtered), ai-review (always)
-6. **AI reviewer** posts findings as PR comment — if APPROVE with no HIGH+ findings, auto-approves
+6. **AI reviewer** always posts a review — APPROVE or REQUEST_CHANGES
 7. **If REQUEST_CHANGES**: address findings, push, AI re-reviews
-8. **Merge** when all required checks pass + 1 approval (AI counts)
+8. **Merge** when all required checks pass + required approvals:
+   - **Internal PRs** (owner/collab): 2 approvals, but owner can merge with `--admin` bypass
+   - **External PRs** (third-party): 2 approvals required — AI (1st) + human maintainer (2nd)
 
 ### Required Checks on `main`
 
@@ -34,8 +36,8 @@
 
 ### Branch Protection
 
-- enforce_admins: **false** (admins can bypass for hotfixes)
-- 1 approval required (AI approval counts)
+- enforce_admins: **false** (owner can bypass 2-approval rule with `--admin`)
+- 2 approvals required (AI approval counts as 1)
 - Dismiss stale reviews: yes
 
 ## Secrets (never commit these)
@@ -57,6 +59,16 @@ The AI reviewer loads `.github/review-rules.md` as part of its system prompt. Th
 - What NOT to flag (mock data, pt-BR only, existing lint warnings)
 
 To change what the reviewer checks: edit `.github/review-rules.md` and push. No workflow changes needed.
+
+### AI Reviewer Behavior
+
+- **Model**: `glm-5.1` (anti-hallucination prompt included)
+- **Decision logic**: 
+  - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve (1st approval)
+  - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
+  - If STATUS: REQUEST_CHANGES → request changes
+- **External contributors**: AI always approves (counts as 1st approval), but adds a warning comment. 2nd approval must come from a human maintainer.
+- **Findings tracking**: HIGH+ findings are auto-created as GitHub Issues with `ai-review` label. Close the issue when findings are addressed.
 
 ## Key Architecture Patterns (for new agents)
 
