@@ -61,6 +61,14 @@ export function PatientView() {
   };
 
   const patientId = id ?? patient.id;
+  const latestBiometryWeight =
+    patient.biometry[patient.biometry.length - 1]?.weight ?? patient.weight;
+  const previousBiometryWeight =
+    patient.biometry.length > 1 ? patient.biometry[patient.biometry.length - 2]?.weight : null;
+  const latestWeightDelta =
+    previousBiometryWeight != null
+      ? latestBiometryWeight - previousBiometryWeight
+      : patient.weightDelta;
 
   if (isLoading) {
     return (
@@ -142,7 +150,7 @@ export function PatientView() {
               </span>
               <span>·</span>
               <span>
-                {patient.heightCm ?? patient.height} cm · {patient.weight} kg
+                {patient.heightCm ?? patient.height} cm · {latestBiometryWeight} kg
               </span>
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>
@@ -164,7 +172,12 @@ export function PatientView() {
               className="patient-header-dividers"
               style={{ width: 1, height: 44, background: 'var(--border)' }}
             />
-            <HeaderStat label="Peso" value="64.2 kg" sub="-1.6 kg / 30d" good />
+            <HeaderStat
+              label="Peso"
+              value={`${latestBiometryWeight.toFixed(1)} kg`}
+              sub={`${latestWeightDelta >= 0 ? '+' : ''}${latestWeightDelta.toFixed(1)} kg / 30d`}
+              good={latestWeightDelta <= 0}
+            />
             <div
               className="patient-header-dividers"
               style={{ width: 1, height: 44, background: 'var(--border)' }}

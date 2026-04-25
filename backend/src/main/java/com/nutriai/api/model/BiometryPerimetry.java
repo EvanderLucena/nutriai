@@ -58,6 +58,9 @@ public class BiometryPerimetry {
 
     @PrePersist
     protected void onCreate() {
+        if (nutritionistId == null && assessment != null) {
+            nutritionistId = assessment.getNutritionistId();
+        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

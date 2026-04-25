@@ -1,14 +1,17 @@
 package com.nutriai.api.repository;
 
 import com.nutriai.api.model.EpisodeHistoryEvent;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.repository.RepositoryDefinition;
 
 import java.util.List;
 import java.util.UUID;
 
-@Repository
-public interface EpisodeHistoryEventRepository extends JpaRepository<EpisodeHistoryEvent, UUID> {
+@RepositoryDefinition(domainClass = EpisodeHistoryEvent.class, idClass = UUID.class)
+public interface EpisodeHistoryEventRepository {
+
+    EpisodeHistoryEvent save(EpisodeHistoryEvent event);
+
+    void deleteAll();
 
     List<EpisodeHistoryEvent> findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(
             UUID episodeId,

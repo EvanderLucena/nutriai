@@ -7,7 +7,11 @@ import com.nutriai.api.auth.dto.SignupRequest;
 import com.nutriai.api.model.*;
 import com.nutriai.api.repository.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +21,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -82,6 +84,52 @@ class DashboardControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.kpis.activePatients").value(2))
                 .andExpect(jsonPath("$.data.kpis.attentionPatients").value(1));
+    }
+
+    @Test
+    void getDashboard_ignoresOtherNutritionistPatients() throws Exception {
+        SignupRequest otherSignup = new SignupRequest(
+                "Dr. Other",
+                "other-dashboard@test.com",
+                "senha12345",
+                "54321",
+                "SP",
+                "Nutrição",
+                null,
+                true);
+        authService.signup(otherSignup);
+        UUID otherNutritionistId = nutritionistRepository.findByEmail("other-dashboard@test.com")
+                .orElseThrow()
+                .getId();
+
+        Patient otherPatient = patientRepository.save(Patient.builder()
+                .nutritionistId(otherNutritionistId)
+                .name("Paciente Intruso")
+                .objective(PatientObjective.EMAGRECIMENTO)
+                .status(PatientStatus.ONTRACK)
+                .active(true)
+                .build());
+
+        Episode otherEpisode = episodeRepository.save(Episode.builder()
+                .patientId(otherPatient.getId())
+                .nutritionistId(otherNutritionistId)
+                .startDate(LocalDateTime.now())
+                .build());
+
+        assessmentRepository.save(BiometryAssessment.builder()
+                .patientId(otherPatient.getId())
+                .episodeId(otherEpisode.getId())
+                .nutritionistId(otherNutritionistId)
+                .assessmentDate(LocalDate.now())
+                .weight(new BigDecimal("81.2"))
+                .bodyFatPercent(new BigDecimal("27.4"))
+                .build());
+
+        mockMvc.perform(get("/api/v1/dashboard")
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.kpis.activePatients").value(0))
+                .andExpect(jsonPath("$.data.recentEvaluations").isEmpty());
     }
 
     @Test

@@ -72,9 +72,11 @@ public class PatientService {
         Patient saved = patientRepository.save(patient);
         logger.info("Patient created: id={}, name={}, nutritionistId={}", saved.getId(), saved.getName(), nutritionistId);
 
+        LocalDateTime now = LocalDateTime.now();
         Episode episode = Episode.builder()
                 .patientId(saved.getId())
                 .nutritionistId(nutritionistId)
+                .startDate(now)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
 
@@ -82,7 +84,7 @@ public class PatientService {
                 .episodeId(savedEpisode.getId())
                 .nutritionistId(nutritionistId)
                 .eventType("EPISODE_OPENED")
-                .eventAt(savedEpisode.getStartDate() != null ? savedEpisode.getStartDate() : LocalDateTime.now())
+                .eventAt(now)
                 .title("Período iniciado")
                 .description("Cadastro do paciente ativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
@@ -184,9 +186,11 @@ public class PatientService {
 
         patient.reactivate();
 
+        LocalDateTime now = LocalDateTime.now();
         Episode episode = Episode.builder()
                 .patientId(patient.getId())
                 .nutritionistId(nutritionistId)
+                .startDate(now)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
 
@@ -194,7 +198,7 @@ public class PatientService {
                 .episodeId(savedEpisode.getId())
                 .nutritionistId(nutritionistId)
                 .eventType("EPISODE_OPENED")
-                .eventAt(LocalDateTime.now())
+                .eventAt(now)
                 .title("Período iniciado")
                 .description("Cadastro do paciente reativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
