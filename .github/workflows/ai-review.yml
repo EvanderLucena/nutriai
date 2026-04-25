@@ -25,6 +25,8 @@ jobs:
       AI_REVIEW_MAX_CHUNKS: 10
       AI_REVIEW_MAX_VISIBLE_FINDINGS: 8
       AI_REVIEW_MAX_FINDING_CHARS: 280
+      AI_REVIEW_PROVIDER_MAX_TIME: 120
+      AI_REVIEW_PROVIDER_RETRIES: 2
 
     steps:
       - uses: actions/checkout@v4
@@ -382,9 +384,8 @@ jobs:
               });
             }
 
-      - name: Fail workflow on AI review infrastructure error
+      - name: Log AI review infrastructure error
         if: steps.review.outputs.result == 'error'
         shell: bash
         run: |
-          echo "${{ steps.review.outputs.error_message }}"
-          exit 1
+          echo "::warning::${{ steps.review.outputs.error_message }}"

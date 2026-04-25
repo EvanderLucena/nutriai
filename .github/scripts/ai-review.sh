@@ -37,6 +37,8 @@ FALLBACK_PROVIDER="${AI_REVIEW_FALLBACK_PROVIDER:-openai}"
 FALLBACK_MODEL="${AI_REVIEW_FALLBACK_MODEL:-gpt-5.4-mini}"
 MAX_VISIBLE_FINDINGS="${AI_REVIEW_MAX_VISIBLE_FINDINGS:-8}"
 MAX_FINDING_CHARS="${AI_REVIEW_MAX_FINDING_CHARS:-280}"
+PROVIDER_MAX_TIME="${AI_REVIEW_PROVIDER_MAX_TIME:-120}"
+PROVIDER_RETRIES="${AI_REVIEW_PROVIDER_RETRIES:-2}"
 
 LAST_PROVIDER_ERROR=""
 
@@ -73,6 +75,7 @@ request_review() {
   local curl_status
   local url
   local auth_header
+  local attempt=1
 
   request_file=$(mktemp)
   response_file=$(mktemp)
@@ -114,38 +117,37 @@ request_review() {
       stream: false
     }' > "$request_file"
 
-  set +e
-  http_code=$(curl -sS -w "%{http_code}" -o "$response_file" \
-    --connect-timeout 20 \
-    --max-time 180 \
-    "$url" \
-    -H "$auth_header" \
-    -H "Content-Type: application/json" \
-    -d @"$request_file")
-  curl_status=$?
-  set -e
+  while (( attempt <= PROVIDER_RETRIES )); do
+    set +e
+    http_code=$(curl -sS -w "%{http_code}" -o "$response_file" \
+      --connect-timeout 20 \
+      --max-time "$PROVIDER_MAX_TIME" \
+      "$url" \
+      -H "$auth_header" \
+      -H "Content-Type: application/json" \
+      -d @"$request_file")
+    curl_status=$?
+    set -e
 
-  if (( curl_status != 0 )); then
-    LAST_PROVIDER_ERROR="${provider}/${model}: curl exit ${curl_status}"
-    return 1
-  fi
+    if (( curl_status != 0 )); then
+      LAST_PROVIDER_ERROR="${provider}/${model}: curl exit ${curl_status}"
+    elif [[ ! "$http_code" =~ ^2 ]]; then
+      LAST_PROVIDER_ERROR="${provider}/${model}: HTTP ${http_code}"
+    elif ! jq -r '.choices[0].message.content // empty' < "$response_file" > "$output_file"; then
+      LAST_PROVIDER_ERROR="${provider}/${model}: resposta JSON invalida"
+    elif [[ ! -s "$output_file" ]]; then
+      LAST_PROVIDER_ERROR="${provider}/${model}: resposta vazia"
+    else
+      return 0
+    fi
 
-  if [[ ! "$http_code" =~ ^2 ]]; then
-    LAST_PROVIDER_ERROR="${provider}/${model}: HTTP ${http_code}"
-    return 1
-  fi
+    attempt=$((attempt + 1))
+    if (( attempt <= PROVIDER_RETRIES )); then
+      sleep 2
+    fi
+  done
 
-  if ! jq -r '.choices[0].message.content // empty' < "$response_file" > "$output_file"; then
-    LAST_PROVIDER_ERROR="${provider}/${model}: resposta JSON invalida"
-    return 1
-  fi
-
-  if [[ ! -s "$output_file" ]]; then
-    LAST_PROVIDER_ERROR="${provider}/${model}: resposta vazia"
-    return 1
-  fi
-
-  return 0
+  return 1
 }
 
 review_with_fallback() {
