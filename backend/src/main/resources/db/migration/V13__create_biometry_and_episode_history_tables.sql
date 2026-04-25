@@ -56,7 +56,7 @@ CREATE TABLE episode_history_event (
     title VARCHAR(200) NOT NULL,
     description TEXT,
     source_ref VARCHAR(200),
-    metadata_json JSONB,
+    metadata_json TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
