@@ -56,6 +56,7 @@ class DashboardServiceTest {
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
 
         assertEquals(3, response.kpis().activePatients());
+        assertEquals(1, response.kpis().onTrackPatients());
         assertEquals(1, response.kpis().attentionPatients());
         assertEquals(1, response.kpis().criticalPatients());
     }
@@ -74,7 +75,7 @@ class DashboardServiceTest {
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
 
-        assertEquals(90.0, response.kpis().averageAdherence());
+        assertEquals(new BigDecimal("90.0"), response.kpis().averageAdherence());
     }
 
     @Test
@@ -85,6 +86,7 @@ class DashboardServiceTest {
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
 
         assertEquals(0, response.kpis().activePatients());
+        assertEquals(0, response.kpis().onTrackPatients());
         assertEquals(0, response.kpis().attentionPatients());
         assertEquals(0, response.kpis().criticalPatients());
         assertNull(response.kpis().averageAdherence());
@@ -115,6 +117,7 @@ class DashboardServiceTest {
 
         assertEquals(1, response.recentEvaluations().size());
         assertEquals(patientId, response.recentEvaluations().get(0).patientId());
+        assertEquals(1, response.kpis().onTrackPatients());
         assertEquals(1, response.kpis().assessedInLast30Days());
     }
 
@@ -132,5 +135,6 @@ class DashboardServiceTest {
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
 
         assertEquals(1, response.kpis().pendingAssessmentCount());
+        assertEquals(1, response.kpis().onTrackPatients());
     }
 }

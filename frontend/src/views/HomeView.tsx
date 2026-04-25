@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import * as React from 'react';
 import { useNavigate } from 'react-router';
 import { usePatients } from '../stores/patientStore';
 import { useAuthStore } from '../stores/authStore';
@@ -140,7 +140,7 @@ export function HomeView() {
   const user = useAuthStore((s) => s.user);
   const { data, isLoading } = usePatients();
   const { data: dashboardData } = useDashboard();
-  const activePats = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
+  const activePats = React.useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const patientSlice = activePats.slice(0, PAGE_SIZE);
 
   const handleNavigate = (id: string) => {
@@ -148,9 +148,7 @@ export function HomeView() {
   };
 
   const kpis = dashboardData?.kpis;
-  const onTrack = kpis
-    ? kpis.activePatients - kpis.attentionPatients - kpis.criticalPatients
-    : activePats.filter((p) => p.status === 'ontrack').length;
+  const onTrack = kpis?.onTrackPatients ?? activePats.filter((p) => p.status === 'ontrack').length;
   const warning =
     kpis?.attentionPatients ?? activePats.filter((p) => p.status === 'warning').length;
   const danger = kpis?.criticalPatients ?? activePats.filter((p) => p.status === 'danger').length;

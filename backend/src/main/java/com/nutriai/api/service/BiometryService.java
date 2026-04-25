@@ -54,10 +54,10 @@ public class BiometryService {
 
     @Transactional
     public BiometryAssessmentResponse createAssessment(UUID nutritionistId, UUID patientId, CreateBiometryAssessmentRequest request) {
-        Patient patient = patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
+        patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode activeEpisode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
+        Episode activeEpisode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Paciente não possui episódio ativo"));
 
@@ -172,7 +172,7 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode activeEpisode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
+        Episode activeEpisode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Paciente não possui episódio ativo"));
 
@@ -187,9 +187,8 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        List<Episode> closedEpisodes = episodeRepository.findByPatientIdAndNutritionistIdOrderByStartDateDesc(patientId, nutritionistId).stream()
-                .filter(e -> e.getEndDate() != null)
-                .toList();
+        List<Episode> closedEpisodes = episodeRepository
+                .findByPatientIdAndNutritionistIdAndEndDateIsNotNullOrderByStartDateDesc(patientId, nutritionistId);
 
         List<UUID> episodeIds = closedEpisodes.stream().map(Episode::getId).toList();
         List<BiometryAssessment> allAssessments = episodeIds.isEmpty()
@@ -217,7 +216,7 @@ public class BiometryService {
 
     @Transactional(readOnly = true)
     public BiometryHistorySnapshotResponse getHistorySnapshot(UUID nutritionistId, UUID patientId, UUID episodeId) {
-        patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
+        Patient patient = patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
         Episode episode = episodeRepository.findByIdAndPatientIdAndNutritionistId(
@@ -251,7 +250,8 @@ public class BiometryService {
                         e.getTitle(), e.getDescription(), e.getSourceRef())).toList();
 
         return new BiometryHistorySnapshotResponse(
-                episodeId, episode.getStartDate(), episode.getEndDate(), null,
+                episodeId, episode.getStartDate(), episode.getEndDate(),
+                patient.getObjective() != null ? patient.getObjective().getPortugueseLabel() : null,
                 mealSlotCount, foodItemCount, assessmentResponses, eventResponses);
     }
 

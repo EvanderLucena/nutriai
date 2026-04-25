@@ -11,6 +11,8 @@ import com.nutriai.api.repository.PatientRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,14 +37,20 @@ public class DashboardService {
         List<Patient> allPatients = patientRepository.findAllByNutritionistId(nutritionistId);
 
         long activePatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive())).count();
+        long onTrackPatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive()) && p.getStatus() == PatientStatus.ONTRACK).count();
         long attentionPatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive()) && p.getStatus() == PatientStatus.WARNING).count();
         long criticalPatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive()) && p.getStatus() == PatientStatus.DANGER).count();
 
-        Double averageAdherence = allPatients.stream()
+        BigDecimal averageAdherence = null;
+        List<Integer> adherenceValues = allPatients.stream()
                 .filter(p -> Boolean.TRUE.equals(p.getActive()) && p.getAdherence() != null)
-                .mapToInt(Patient::getAdherence)
-                .average()
-                .stream().boxed().findFirst().orElse(null);
+                .map(Patient::getAdherence)
+                .toList();
+        if (!adherenceValues.isEmpty()) {
+            int adherenceSum = adherenceValues.stream().mapToInt(Integer::intValue).sum();
+            averageAdherence = BigDecimal.valueOf(adherenceSum)
+                    .divide(BigDecimal.valueOf(adherenceValues.size()), 1, RoundingMode.HALF_UP);
+        }
 
         LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
         int assessedInLast30Days = 0;
@@ -104,7 +112,7 @@ public class DashboardService {
         }
 
         DashboardResponse.Kpis kpis = new DashboardResponse.Kpis(
-                activePatients, attentionPatients, criticalPatients, averageAdherence,
+                activePatients, onTrackPatients, attentionPatients, criticalPatients, averageAdherence,
                 assessedInLast30Days, pendingAssessmentCount);
 
         return new DashboardResponse(kpis, recentEvals);

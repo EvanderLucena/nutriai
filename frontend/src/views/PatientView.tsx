@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { useParams } from 'react-router';
 import { ANA } from '../data/ana';
 import { usePatient } from '../stores/patientStore';
@@ -25,14 +25,15 @@ import {
   useHistoricalEpisode,
 } from '../stores/clinicalStore';
 import { PlansView } from './PlansView';
+import type { PatientStatus } from '../types/patient';
 
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
 
 export function PatientView() {
   const { id } = useParams();
   const { data: apiData, isLoading } = usePatient(id ?? null);
-  const [tab, setTab] = useState<Tab>('today');
-  const [editOpen, setEditOpen] = useState(false);
+  const [tab, setTab] = React.useState<Tab>('today');
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const mappedApiData = apiData ? mapPatientFromApi(apiData) : null;
 
@@ -209,7 +210,7 @@ export function PatientView() {
         </div>
       </div>
       {tab === 'today' && <TodayTab patient={patient} onSetTab={setTab} />}
-      {tab === 'plan' && <PlansView patientId={id!} />}
+      {tab === 'plan' && <PlansView patientId={patientId} />}
       {tab === 'biometry' && <BiometryTab patientId={patientId} patientStatus={patient.status} />}
       {tab === 'insights' && <InsightsTab />}
       {tab === 'history' && <HistoryTab patientId={patientId} />}
@@ -493,11 +494,17 @@ function HeaderStat({
   );
 }
 
-function BiometryTab({ patientId, patientStatus }: { patientId: string; patientStatus: string }) {
+function BiometryTab({
+  patientId,
+  patientStatus,
+}: {
+  patientId: string;
+  patientStatus: PatientStatus;
+}) {
   const { data: assessments, isLoading } = usePatientBiometry(patientId);
-  const [metric, setMetric] = useState('all');
-  const [newEvalOpen, setNewEvalOpen] = useState(false);
-  const [statusReviewOpen, setStatusReviewOpen] = useState(false);
+  const [metric, setMetric] = React.useState('all');
+  const [newEvalOpen, setNewEvalOpen] = React.useState(false);
+  const [statusReviewOpen, setStatusReviewOpen] = React.useState(false);
   const createBiometry = useCreateBiometry(patientId);
 
   const list: BiometryAssessmentDTO[] = assessments ?? [];
@@ -538,7 +545,6 @@ function BiometryTab({ patientId, patientStatus }: { patientId: string; patientS
         </div>
         {newEvalOpen && (
           <NewBiometryModal
-            patientId={patientId}
             createMutation={createBiometry}
             onSuccess={handleSaveSuccess}
             onClose={() => setNewEvalOpen(false)}
@@ -547,7 +553,7 @@ function BiometryTab({ patientId, patientStatus }: { patientId: string; patientS
         {statusReviewOpen && (
           <StatusReviewModal
             patientId={patientId}
-            currentStatus={patientStatus as 'ontrack' | 'warning' | 'danger'}
+            currentStatus={patientStatus}
             onClose={() => setStatusReviewOpen(false)}
           />
         )}
@@ -916,7 +922,6 @@ function BiometryTab({ patientId, patientStatus }: { patientId: string; patientS
       </div>
       {newEvalOpen && (
         <NewBiometryModal
-          patientId={patientId}
           createMutation={createBiometry}
           onSuccess={handleSaveSuccess}
           onClose={() => setNewEvalOpen(false)}
@@ -925,7 +930,7 @@ function BiometryTab({ patientId, patientStatus }: { patientId: string; patientS
       {statusReviewOpen && (
         <StatusReviewModal
           patientId={patientId}
-          currentStatus={patientStatus as 'ontrack' | 'warning' | 'danger'}
+          currentStatus={patientStatus}
           onClose={() => setStatusReviewOpen(false)}
         />
       )}
@@ -1032,7 +1037,7 @@ function InsightsTab() {
 
 function HistoryTab({ patientId }: { patientId: string }) {
   const { data: episodes, isLoading } = usePatientHistoryEpisodes(patientId);
-  const [selectedEpisodeId, setSelectedEpisodeId] = useState<string | null>(null);
+  const [selectedEpisodeId, setSelectedEpisodeId] = React.useState<string | null>(null);
   const { data: snapshot, isLoading: snapshotLoading } = useHistoricalEpisode(
     patientId,
     selectedEpisodeId,

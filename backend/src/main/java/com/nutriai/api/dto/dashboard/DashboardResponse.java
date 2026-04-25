@@ -11,9 +11,10 @@ public record DashboardResponse(
 ) {
     public record Kpis(
             long activePatients,
+            long onTrackPatients,
             long attentionPatients,
             long criticalPatients,
-            Double averageAdherence,
+            BigDecimal averageAdherence,
             int assessedInLast30Days,
             int pendingAssessmentCount
     ) {}

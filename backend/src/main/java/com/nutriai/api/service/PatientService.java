@@ -83,7 +83,7 @@ public class PatientService {
                 .eventType("EPISODE_OPENED")
                 .eventAt(savedEpisode.getStartDate() != null ? savedEpisode.getStartDate() : LocalDateTime.now())
                 .title("Período iniciado")
-                .description("Paciente " + saved.getName() + " ativado")
+                .description("Cadastro do paciente ativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
                 .build());
 
@@ -155,7 +155,7 @@ public class PatientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", id));
 
         patient.softDelete();
-        episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patient.getId(), nutritionistId)
+        episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patient.getId(), nutritionistId)
                 .ifPresent(e -> {
                     e.close();
                     logger.info("Episode closed: id={}, patientId={}", e.getId(), id);
@@ -165,7 +165,7 @@ public class PatientService {
                             .eventType("EPISODE_CLOSED")
                             .eventAt(LocalDateTime.now())
                             .title("Período encerrado")
-                            .description("Paciente " + patient.getName() + " desativado")
+                            .description("Cadastro do paciente desativado")
                             .sourceRef("Episode:" + e.getId())
                             .build());
                 });
@@ -193,7 +193,7 @@ public class PatientService {
                 .eventType("EPISODE_OPENED")
                 .eventAt(LocalDateTime.now())
                 .title("Período iniciado")
-                .description("Paciente " + patient.getName() + " reativado")
+                .description("Cadastro do paciente reativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
                 .build());
 

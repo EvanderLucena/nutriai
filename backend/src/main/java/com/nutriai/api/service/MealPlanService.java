@@ -106,7 +106,7 @@ public class MealPlanService {
     public PlanResponse getPlan(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
 
-        Episode episode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
+        Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
         MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
@@ -348,7 +348,7 @@ public class MealPlanService {
     private MealPlan getPlanAndVerifyOwnership(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
 
-        Episode episode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
+        Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
         return mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)

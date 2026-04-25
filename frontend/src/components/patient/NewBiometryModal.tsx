@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { BiometryAssessmentDTO, CreateBiometryAssessmentRequest } from '../../types/patient';
 import { IconPlus, IconX } from '../icons';
@@ -44,14 +44,13 @@ const PERIMETRY_LABELS: Record<string, string> = {
 };
 
 interface NewBiometryModalProps {
-  patientId: string;
   createMutation: UseMutationResult<BiometryAssessmentDTO, Error, CreateBiometryAssessmentRequest>;
   onSuccess: () => void;
   onClose: () => void;
 }
 
 export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiometryModalProps) {
-  const [form, setForm] = useState({
+  const [form, setForm] = React.useState({
     assessmentDate: new Date().toISOString().slice(0, 10),
     weight: '',
     bodyFatPercent: '',
@@ -62,9 +61,9 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
     device: '',
     notes: '',
   });
-  const [skinfoldValues, setSkinfoldValues] = useState<Record<string, string>>({});
-  const [perimetryValues, setPerimetryValues] = useState<Record<string, string>>({});
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [skinfoldValues, setSkinfoldValues] = React.useState<Record<string, string>>({});
+  const [perimetryValues, setPerimetryValues] = React.useState<Record<string, string>>({});
+  const [validationError, setValidationError] = React.useState<string | null>(null);
 
   const set = (k: string, v: string) => {
     setValidationError(null);
@@ -98,8 +97,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       setValidationError('Informe um valor numérico válido para % de gordura.');
       return;
     }
-    if (bodyFatPercent != null && (bodyFatPercent < 0 || bodyFatPercent > 100)) {
-      setValidationError('% de gordura deve estar entre 0 e 100.');
+    if (bodyFatPercent != null && (bodyFatPercent <= 0 || bodyFatPercent > 100)) {
+      setValidationError('% de gordura deve estar entre 0,01 e 100.');
       return;
     }
 
@@ -208,6 +207,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
   };
 
   const isSubmitting = createMutation.isPending;
+  const parsedWeight = parseDecimal(form.weight);
+  const canSubmit = Boolean(form.assessmentDate) && parsedWeight != null && parsedWeight > 0;
 
   return (
     <div
@@ -423,8 +424,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
-            disabled={!form.assessmentDate || !form.weight || isSubmitting}
-            style={{ opacity: !form.assessmentDate || !form.weight || isSubmitting ? 0.5 : 1 }}
+            disabled={!canSubmit || isSubmitting}
+            style={{ opacity: !canSubmit || isSubmitting ? 0.5 : 1 }}
           >
             <IconPlus size={13} /> {isSubmitting ? 'Salvando...' : 'Registrar avaliação'}
           </button>

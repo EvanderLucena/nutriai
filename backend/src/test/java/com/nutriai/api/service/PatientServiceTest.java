@@ -166,8 +166,8 @@ class PatientServiceTest {
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
-        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
-                .thenReturn(Optional.of(currentEpisode));
+        when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
+                  .thenReturn(Optional.of(currentEpisode));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
 
         patientService.deactivatePatient(samplePatient.getId(), nutritionistId);
@@ -285,8 +285,8 @@ class PatientServiceTest {
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
-        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
-                .thenReturn(Optional.of(currentEpisode));
+        when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
+                  .thenReturn(Optional.of(currentEpisode));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
         when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
 

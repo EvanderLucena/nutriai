@@ -15,7 +15,7 @@ import java.util.List;
 public record CreateBiometryAssessmentRequest(
         @NotNull LocalDate assessmentDate,
         @NotNull @DecimalMin("0.1") BigDecimal weight,
-        @NotNull @DecimalMin("0") @DecimalMax("100") BigDecimal bodyFatPercent,
+        @NotNull @DecimalMin("0.01") @DecimalMax("100") BigDecimal bodyFatPercent,
         @DecimalMin("0") BigDecimal leanMassKg,
         @DecimalMin("0") @DecimalMax("100") BigDecimal waterPercent,
         @PositiveOrZero Integer visceralFatLevel,

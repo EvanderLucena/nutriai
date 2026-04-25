@@ -147,6 +147,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('kpis');
     expect(body.data.kpis).toHaveProperty('activePatients');
+    expect(body.data.kpis).toHaveProperty('onTrackPatients');
     expect(body.data.kpis).toHaveProperty('attentionPatients');
     expect(body.data.kpis).toHaveProperty('criticalPatients');
     expect(body.data.kpis).toHaveProperty('averageAdherence');

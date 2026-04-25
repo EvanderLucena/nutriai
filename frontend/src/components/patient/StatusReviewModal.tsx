@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { useUpdatePatient } from '../../stores/patientStore';
 import { useToastStore } from '../../stores/toastStore';
 import type { PatientStatus } from '../../types/patient';
@@ -15,11 +15,11 @@ const STATUS_OPTIONS: PatientStatus[] = ['ontrack', 'warning', 'danger'];
 
 export function StatusReviewModal({ patientId, currentStatus, onClose }: StatusReviewModalProps) {
   const updateMutation = useUpdatePatient();
-  const [selected, setSelected] = useState<PatientStatus>(currentStatus);
+  const [selected, setSelected] = React.useState<PatientStatus>(currentStatus);
 
   const handleConfirm = () => {
     updateMutation.mutate(
-      { id: patientId, data: { status: selected.toUpperCase() } },
+      { id: patientId, data: { status: selected } },
       {
         onSuccess: () => {
           useToastStore.getState().showSuccess('Status atualizado com sucesso');

@@ -182,6 +182,7 @@ export interface DetailedPatient extends Patient {
 
 export interface DashboardKPIs {
   activePatients: number;
+  onTrackPatients: number;
   attentionPatients: number;
   criticalPatients: number;
   averageAdherence: number;
