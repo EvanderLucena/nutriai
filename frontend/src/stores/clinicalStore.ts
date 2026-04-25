@@ -7,6 +7,7 @@ import type {
   UpdateBiometryAssessmentRequest,
 } from '../types/patient';
 import { useToastStore } from './toastStore';
+import { resolveMutationErrorMessage } from './patientStore';
 
 interface ClinicalUIState {
   selectedHistoryEpisodeId: string | null;
@@ -54,8 +55,12 @@ export function useCreateBiometry(patientId: string) {
       queryClient.invalidateQueries({ queryKey: ['patient-biometry', patientId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
-    onError: () => {
-      useToastStore.getState().showError('Erro ao salvar avaliação — tente novamente');
+    onError: (error) => {
+      useToastStore
+        .getState()
+        .showError(
+          resolveMutationErrorMessage(error, 'Erro ao salvar avaliação — tente novamente'),
+        );
     },
   });
 }
@@ -74,8 +79,12 @@ export function useUpdateBiometry(patientId: string) {
       queryClient.invalidateQueries({ queryKey: ['patient-biometry', patientId] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
-    onError: () => {
-      useToastStore.getState().showError('Erro ao atualizar avaliação — tente novamente');
+    onError: (error) => {
+      useToastStore
+        .getState()
+        .showError(
+          resolveMutationErrorMessage(error, 'Erro ao atualizar avaliação — tente novamente'),
+        );
     },
   });
 }

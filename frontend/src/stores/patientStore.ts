@@ -42,7 +42,7 @@ export const usePatientUIStore = create<PatientUIState>()((set) => ({
   setTogglingPatientId: (id) => set({ togglingPatientId: id }),
 }));
 
-function resolveMutationErrorMessage(error: unknown, fallbackMessage: string) {
+export function resolveMutationErrorMessage(error: unknown, fallbackMessage: string) {
   if (error && typeof error === 'object') {
     const apiError = error as ApiResponse<null> & {
       errors?: FieldError[];

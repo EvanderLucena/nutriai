@@ -1,6 +1,7 @@
 import * as React from 'react';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { BiometryAssessmentDTO, CreateBiometryAssessmentRequest } from '../../types/patient';
+import { resolveMutationErrorMessage } from '../../stores/patientStore';
 import { IconPlus, IconX } from '../icons';
 
 const SKINFOLD_KEYS = [
@@ -202,6 +203,14 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
     createMutation.mutate(payload, {
       onSuccess: () => {
         onSuccess();
+      },
+      onError: (error) => {
+        setValidationError(
+          resolveMutationErrorMessage(
+            error,
+            'Não foi possível salvar a avaliação. Tente novamente.',
+          ),
+        );
       },
     });
   };
