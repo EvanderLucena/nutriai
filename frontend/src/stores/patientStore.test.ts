@@ -160,5 +160,28 @@ describe('usePatientUIStore', () => {
 
       expect(showErrorMock).toHaveBeenCalledWith('Consentimento LGPD é obrigatório');
     });
+
+    it('shows LGPD validation error when API data comes nested in response.data', () => {
+      useCreatePatient();
+
+      const mutationOptions = vi.mocked(useMutation).mock.calls.at(-1)?.[0] as
+        | { onError?: (error: unknown) => void }
+        | undefined;
+
+      mutationOptions?.onError?.({
+        message: 'Request failed with status code 400',
+        response: {
+          data: {
+            success: false,
+            message: 'Erro de validação',
+            errors: [{ field: 'terms', message: 'Consentimento LGPD é obrigatório' }],
+            data: null,
+            status: 400,
+          },
+        },
+      });
+
+      expect(showErrorMock).toHaveBeenCalledWith('Consentimento LGPD é obrigatório');
+    });
   });
 });

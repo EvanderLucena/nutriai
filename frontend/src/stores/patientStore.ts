@@ -44,8 +44,20 @@ export const usePatientUIStore = create<PatientUIState>()((set) => ({
 
 function resolveMutationErrorMessage(error: unknown, fallbackMessage: string) {
   if (error && typeof error === 'object') {
-    const apiError = error as ApiResponse<null> & { errors?: FieldError[] };
-    return apiError.errors?.[0]?.message ?? apiError.message ?? fallbackMessage;
+    const apiError = error as ApiResponse<null> & {
+      errors?: FieldError[];
+      response?: {
+        data?: ApiResponse<null> & { errors?: FieldError[] };
+      };
+    };
+    const responseData = apiError.response?.data;
+    return (
+      responseData?.errors?.[0]?.message ??
+      responseData?.message ??
+      apiError.errors?.[0]?.message ??
+      apiError.message ??
+      fallbackMessage
+    );
   }
   return fallbackMessage;
 }

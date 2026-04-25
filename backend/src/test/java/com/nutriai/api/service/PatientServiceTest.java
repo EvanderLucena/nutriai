@@ -319,6 +319,10 @@ class PatientServiceTest {
 
         patientService.reactivatePatient(samplePatient.getId(), nutritionistId);
 
+        verify(episodeRepository).save(argThat(e ->
+                nutritionistId.equals(e.getNutritionistId()) &&
+                        samplePatient.getId().equals(e.getPatientId()) &&
+                        e.getEndDate() == null));
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_OPENED") &&
                         e.getTitle().equals("Período iniciado") &&
