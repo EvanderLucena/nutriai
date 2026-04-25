@@ -21,6 +21,14 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     patientId = (await createResp.json()).data.id;
   });
 
+  test('E2E-BIO-00: Create patient with pt-BR objective label returns 400', async ({ request }) => {
+    const resp = await request.post(`${API}/patients`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: { name: 'Paciente Label', objective: 'Emagrecimento' },
+    });
+    expect(resp.status()).toBe(400);
+  });
+
   test('E2E-BIO-01: Create biometry assessment succeeds', async ({ request }) => {
     const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -124,11 +132,23 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-06: Cross-nutritionist biometry access returns 403/404', async ({ request }) => {
+    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        assessmentDate: '2026-04-24',
+        weight: 72.5,
+        bodyFatPercent: 28.3,
+      },
+    });
+    expect(createResp.status()).toBe(201);
+    const assessmentId = (await createResp.json()).data.id as string;
+
     const otherResult = await signupViaApi(request, uniqueEmail());
     await completeOnboardingViaApi(request, otherResult.accessToken);
 
-    const resp = await request.get(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.patch(`${API}/patients/${patientId}/biometry/${assessmentId}`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      data: { weight: 71.2, bodyFatPercent: 27.4 },
     });
     expect([403, 404]).toContain(resp.status());
   });

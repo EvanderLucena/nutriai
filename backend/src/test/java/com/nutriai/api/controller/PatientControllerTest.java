@@ -9,7 +9,6 @@ import com.nutriai.api.dto.patient.CreatePatientRequest;
 import com.nutriai.api.dto.patient.UpdatePatientRequest;
 import com.nutriai.api.model.Nutritionist;
 import com.nutriai.api.model.UserRole;
-import com.nutriai.api.repository.EpisodeHistoryEventRepository;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.MealFoodRepository;
 import com.nutriai.api.repository.MealOptionRepository;
@@ -54,9 +53,6 @@ class PatientControllerTest {
 
     @Autowired
     private EpisodeRepository episodeRepository;
-
-    @Autowired
-    private EpisodeHistoryEventRepository historyEventRepository;
 
     @Autowired
     private MealFoodRepository mealFoodRepository;

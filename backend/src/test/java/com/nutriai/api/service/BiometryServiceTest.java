@@ -80,7 +80,8 @@ class BiometryServiceTest {
 
         assertNotNull(response);
         assertEquals(LocalDate.of(2025, 1, 10), response.assessmentDate());
-        verify(assessmentRepository).save(argThat(a -> patientId.equals(a.getPatientId())));
+        verify(assessmentRepository).save(argThat(a ->
+                patientId.equals(a.getPatientId()) && nutritionistId.equals(a.getNutritionistId())));
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_BIOMETRY_CREATED") && e.getEventAt() != null));
     }
@@ -126,6 +127,7 @@ class BiometryServiceTest {
         verify(assessmentRepository).save(assessmentCaptor.capture());
         BiometryAssessment savedAssessment = assessmentCaptor.getValue();
         assertEquals(patientId, savedAssessment.getPatientId());
+        assertEquals(nutritionistId, savedAssessment.getNutritionistId());
         assertEquals(1, savedAssessment.getSkinfolds().size());
         assertEquals("triceps", savedAssessment.getSkinfolds().get(0).getMeasureKey());
         assertEquals(nutritionistId, savedAssessment.getSkinfolds().get(0).getNutritionistId());

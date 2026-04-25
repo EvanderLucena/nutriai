@@ -65,9 +65,6 @@ class PlanControllerTest {
     private EpisodeRepository episodeRepository;
 
     @Autowired
-    private EpisodeHistoryEventRepository historyEventRepository;
-
-    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired

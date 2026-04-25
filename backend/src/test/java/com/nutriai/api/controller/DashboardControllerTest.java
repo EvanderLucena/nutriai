@@ -35,7 +35,6 @@ class DashboardControllerTest {
     @Autowired private AuthService authService;
     @Autowired private PatientRepository patientRepository;
     @Autowired private EpisodeRepository episodeRepository;
-    @Autowired private EpisodeHistoryEventRepository historyEventRepository;
     @Autowired private BiometryAssessmentRepository assessmentRepository;
     @Autowired private BiometrySkinfoldRepository skinfoldRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;

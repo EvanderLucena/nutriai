@@ -42,6 +42,7 @@ public class BiometryPerimetry {
     @Column(name = "value_cm", nullable = false, precision = 5, scale = 2)
     private BigDecimal valueCm;
 
+    @NotNull
     @Column(name = "nutritionist_id", nullable = false)
     private UUID nutritionistId;
 
@@ -57,9 +58,6 @@ public class BiometryPerimetry {
 
     @PrePersist
     protected void onCreate() {
-        if (nutritionistId == null && assessment != null) {
-            nutritionistId = assessment.getNutritionistId();
-        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
