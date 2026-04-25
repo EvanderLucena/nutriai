@@ -323,7 +323,6 @@ class BiometryServiceTest {
         verify(mealSlotRepository).findByPlanIdAndNutritionistIdOrderBySortOrder(planId, nutritionistId);
         verify(mealOptionRepository).findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(planId, nutritionistId);
         verify(mealSlotRepository, never()).findByPlanIdOrderBySortOrder(any());
-        verify(mealOptionRepository, never()).findAllByMealSlotIds(anyList());
     }
 
     @Test

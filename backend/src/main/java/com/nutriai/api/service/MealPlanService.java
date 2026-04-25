@@ -411,13 +411,15 @@ public class MealPlanService {
     }
 
     private PlanResponse buildPlanResponse(MealPlan plan) {
-        List<MealSlot> slots = mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId());
+        List<MealSlot> slots = mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(
+                plan.getId(), plan.getNutritionistId());
         List<PlanExtra> extras = planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId());
 
         List<UUID> slotIds = slots.stream().map(MealSlot::getId).toList();
         List<MealOption> allOptions = slotIds.isEmpty()
                 ? List.of()
-                : mealOptionRepository.findAllByMealSlotIds(slotIds);
+                : mealOptionRepository.findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(
+                        plan.getId(), plan.getNutritionistId());
 
         List<UUID> optionIds = allOptions.stream().map(MealOption::getId).toList();
         List<MealFood> allItems = optionIds.isEmpty()

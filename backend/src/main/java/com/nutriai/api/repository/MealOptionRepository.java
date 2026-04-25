@@ -28,7 +28,4 @@ public interface MealOptionRepository extends JpaRepository<MealOption, UUID> {
     List<MealOption> findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(
             @Param("planId") UUID planId,
             @Param("nutritionistId") UUID nutritionistId);
-
-    @Query("SELECT o FROM MealOption o WHERE o.mealSlotId IN :slotIds ORDER BY o.mealSlotId, o.sortOrder")
-    List<MealOption> findAllByMealSlotIds(@Param("slotIds") List<UUID> slotIds);
 }

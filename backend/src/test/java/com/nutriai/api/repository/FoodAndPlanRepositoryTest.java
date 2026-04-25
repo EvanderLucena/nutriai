@@ -234,7 +234,7 @@ class FoodAndPlanRepositoryTest {
             mealFoodRepository.deleteAllByOptionId(opt.getId());
         }
         mealOptionRepository.deleteAllByMealSlotId(slot.getId());
-        mealSlotRepository.deleteAllByPlanId(plan.getId());
+        mealSlotRepository.delete(slot);
         mealPlanRepository.delete(plan);
 
         assertTrue(mealSlotRepository.findById(slot.getId()).isEmpty());

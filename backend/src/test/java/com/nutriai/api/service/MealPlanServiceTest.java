@@ -185,11 +185,11 @@ class MealPlanServiceTest {
         when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
 
         MealSlot slot = MealSlot.builder().id(UUID.randomUUID()).planId(plan.getId()).label("Café").sortOrder(0).build();
-        when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of(slot));
+        when(mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(plan.getId(), nutritionistId)).thenReturn(List.of(slot));
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
 
         MealOption opt = MealOption.builder().id(UUID.randomUUID()).mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build();
-        when(mealOptionRepository.findAllByMealSlotIds(List.of(slot.getId()))).thenReturn(List.of(opt));
+        when(mealOptionRepository.findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(plan.getId(), nutritionistId)).thenReturn(List.of(opt));
 
         MealFood item = MealFood.builder().id(UUID.randomUUID()).optionId(opt.getId()).foodName("Café").referenceAmount(new BigDecimal("200")).unit("ML").kcal(new BigDecimal("5")).build();
         when(mealFoodRepository.findAllByOptionIds(List.of(opt.getId()))).thenReturn(List.of(item));
@@ -338,7 +338,7 @@ class MealPlanServiceTest {
         when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(episode));
         when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)).thenReturn(Optional.of(plan));
         when(mealPlanRepository.save(any(MealPlan.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
+        when(mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(plan.getId(), nutritionistId)).thenReturn(List.of());
         when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
 
         UpdatePlanRequest req = new UpdatePlanRequest("Novo plano", "Notas importantes", new BigDecimal("2000"), null, null, null);

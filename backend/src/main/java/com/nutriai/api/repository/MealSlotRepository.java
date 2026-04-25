@@ -31,9 +31,4 @@ public interface MealSlotRepository extends JpaRepository<MealSlot, UUID> {
     List<MealSlot> findByPlanIdAndNutritionistIdOrderBySortOrder(
             @Param("planId") UUID planId,
             @Param("nutritionistId") UUID nutritionistId);
-
-    /**
-     * Delete all meal slots for a given plan (service-layer cascade).
-     */
-    void deleteAllByPlanId(UUID planId);
 }
