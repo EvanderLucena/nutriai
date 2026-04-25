@@ -88,6 +88,7 @@ class PatientServiceTest {
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertNotNull(resp);
+        verify(episodeRepository).save(argThat(e -> nutritionistId.equals(e.getNutritionistId())));
         assertEquals("Maria Silva", resp.name());
         assertEquals("EMAGRECIMENTO", resp.objective());
         verify(patientRepository).save(any(Patient.class));
@@ -162,6 +163,7 @@ class PatientServiceTest {
         Episode currentEpisode = Episode.builder()
                 .id(UUID.randomUUID())
                 .patientId(samplePatient.getId())
+                .nutritionistId(nutritionistId)
                 .startDate(java.time.LocalDateTime.now())
                 .build();
 
@@ -283,6 +285,7 @@ class PatientServiceTest {
         Episode currentEpisode = Episode.builder()
                 .id(UUID.randomUUID())
                 .patientId(samplePatient.getId())
+                .nutritionistId(nutritionistId)
                 .startDate(java.time.LocalDateTime.now())
                 .build();
 

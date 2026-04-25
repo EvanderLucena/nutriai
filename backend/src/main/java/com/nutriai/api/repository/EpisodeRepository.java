@@ -15,15 +15,15 @@ import java.util.UUID;
 @Repository
 public interface EpisodeRepository extends JpaRepository<Episode, UUID> {
 
-    @Query("SELECT e FROM Episode e JOIN Patient p ON p.id = e.patientId " +
-            "WHERE e.id = :id AND p.id = :patientId AND p.nutritionistId = :nutritionistId")
+    @Query("SELECT e FROM Episode e " +
+            "WHERE e.id = :id AND e.patientId = :patientId AND e.nutritionistId = :nutritionistId")
     Optional<Episode> findByIdAndPatientIdAndNutritionistId(
             @Param("id") UUID id,
             @Param("patientId") UUID patientId,
             @Param("nutritionistId") UUID nutritionistId);
 
-    @Query("SELECT e FROM Episode e JOIN Patient p ON p.id = e.patientId " +
-            "WHERE p.id = :patientId AND p.nutritionistId = :nutritionistId AND e.endDate IS null " +
+    @Query("SELECT e FROM Episode e " +
+            "WHERE e.patientId = :patientId AND e.nutritionistId = :nutritionistId AND e.endDate IS null " +
             "ORDER BY e.startDate DESC")
     List<Episode> findOpenByPatientIdAndNutritionistId(
             @Param("patientId") UUID patientId,
@@ -38,15 +38,15 @@ public interface EpisodeRepository extends JpaRepository<Episode, UUID> {
                 .findFirst();
     }
 
-    @Query("SELECT e FROM Episode e JOIN Patient p ON p.id = e.patientId " +
-            "WHERE e.patientId IN :patientIds AND p.nutritionistId = :nutritionistId AND e.endDate IS null " +
+    @Query("SELECT e FROM Episode e " +
+            "WHERE e.patientId IN :patientIds AND e.nutritionistId = :nutritionistId AND e.endDate IS null " +
             "ORDER BY e.patientId ASC, e.startDate DESC")
     List<Episode> findActiveByPatientIdsAndNutritionistId(
             @Param("patientIds") List<UUID> patientIds,
             @Param("nutritionistId") UUID nutritionistId);
 
-    @Query("SELECT e FROM Episode e JOIN Patient p ON p.id = e.patientId " +
-            "WHERE p.id = :patientId AND p.nutritionistId = :nutritionistId AND e.endDate IS NOT NULL " +
+    @Query("SELECT e FROM Episode e " +
+            "WHERE e.patientId = :patientId AND e.nutritionistId = :nutritionistId AND e.endDate IS NOT NULL " +
             "ORDER BY e.startDate DESC")
     List<Episode> findByPatientIdAndNutritionistIdAndEndDateIsNotNullOrderByStartDateDesc(
             @Param("patientId") UUID patientId,

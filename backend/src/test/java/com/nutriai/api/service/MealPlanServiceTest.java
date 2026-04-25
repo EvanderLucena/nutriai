@@ -55,6 +55,7 @@ class MealPlanServiceTest {
         episode = Episode.builder()
                 .id(episodeId)
                 .patientId(patientId)
+                .nutritionistId(nutritionistId)
                 .build();
 
         plan = MealPlan.builder()

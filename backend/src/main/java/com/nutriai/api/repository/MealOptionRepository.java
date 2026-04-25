@@ -16,6 +16,19 @@ public interface MealOptionRepository extends JpaRepository<MealOption, UUID> {
 
     void deleteAllByMealSlotId(UUID mealSlotId);
 
+    @Query("""
+            select o
+            from MealOption o
+            join MealSlot s on s.id = o.mealSlotId
+            join MealPlan p on p.id = s.planId
+            where s.planId = :planId
+              and p.nutritionistId = :nutritionistId
+            order by o.mealSlotId asc, o.sortOrder asc
+            """)
+    List<MealOption> findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(
+            @Param("planId") UUID planId,
+            @Param("nutritionistId") UUID nutritionistId);
+
     @Query("SELECT o FROM MealOption o WHERE o.mealSlotId IN :slotIds ORDER BY o.mealSlotId, o.sortOrder")
     List<MealOption> findAllByMealSlotIds(@Param("slotIds") List<UUID> slotIds);
 }

@@ -11,6 +11,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public record UpdateBiometryAssessmentRequest(
         LocalDate assessmentDate,
@@ -26,12 +27,14 @@ public record UpdateBiometryAssessmentRequest(
         @Valid List<PerimetryEntry> perimetry
 ) {
     public record SkinfoldEntry(
+            UUID id,
             @NotBlank String measureKey,
             @NotNull @DecimalMin("0") BigDecimal valueMm,
             @NotNull @Positive Integer sortOrder
     ) {}
 
     public record PerimetryEntry(
+            UUID id,
             @NotBlank String measureKey,
             @NotNull @DecimalMin("0") BigDecimal valueCm,
             @NotNull @Positive Integer sortOrder

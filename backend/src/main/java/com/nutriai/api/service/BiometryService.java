@@ -14,8 +14,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -129,33 +132,15 @@ public class BiometryService {
         if (request.notes() != null) assessment.setNotes(request.notes());
 
         if (request.skinfolds() != null) {
-            skinfoldRepository.deleteAllByAssessmentIdAndNutritionistId(assessmentId, nutritionistId);
+            List<BiometrySkinfold> mergedSkinfolds = mergeSkinfolds(assessment, nutritionistId, request.skinfolds());
             assessment.getSkinfolds().clear();
-            List<BiometrySkinfold> newSkinfolds = request.skinfolds().stream()
-                    .map(s -> BiometrySkinfold.builder()
-                            .assessment(assessment)
-                            .nutritionistId(nutritionistId)
-                            .measureKey(s.measureKey())
-                            .valueMm(s.valueMm())
-                            .sortOrder(s.sortOrder())
-                            .build())
-                    .toList();
-            assessment.getSkinfolds().addAll(newSkinfolds);
+            assessment.getSkinfolds().addAll(mergedSkinfolds);
         }
 
         if (request.perimetry() != null) {
-            perimetryRepository.deleteAllByAssessmentIdAndNutritionistId(assessmentId, nutritionistId);
+            List<BiometryPerimetry> mergedPerimetries = mergePerimetries(assessment, nutritionistId, request.perimetry());
             assessment.getPerimetries().clear();
-            List<BiometryPerimetry> newPerimetries = request.perimetry().stream()
-                    .map(p -> BiometryPerimetry.builder()
-                            .assessment(assessment)
-                            .nutritionistId(nutritionistId)
-                            .measureKey(p.measureKey())
-                            .valueCm(p.valueCm())
-                            .sortOrder(p.sortOrder())
-                            .build())
-                    .toList();
-            assessment.getPerimetries().addAll(newPerimetries);
+            assessment.getPerimetries().addAll(mergedPerimetries);
         }
 
         BiometryAssessment updated = assessmentRepository.save(assessment);
@@ -237,10 +222,9 @@ public class BiometryService {
         int mealSlotCount = 0;
         int foodItemCount = 0;
         if (plan != null) {
-            List<MealSlot> slots = mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId());
+            List<MealSlot> slots = mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(plan.getId(), nutritionistId);
             mealSlotCount = slots.size();
-            List<UUID> slotIds = slots.stream().map(MealSlot::getId).toList();
-            List<MealOption> options = slotIds.isEmpty() ? List.of() : mealOptionRepository.findAllByMealSlotIds(slotIds);
+            List<MealOption> options = mealOptionRepository.findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(plan.getId(), nutritionistId);
             foodItemCount = options.size();
         }
 
@@ -264,6 +248,72 @@ public class BiometryService {
                 perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessment.getId(), nutritionistId))
                 .orElse(List.of());
         return BiometryAssessmentResponse.from(assessment, skinfolds, perimetries);
+    }
+
+    private List<BiometrySkinfold> mergeSkinfolds(BiometryAssessment assessment, UUID nutritionistId,
+                                                  List<UpdateBiometryAssessmentRequest.SkinfoldEntry> entries) {
+        Map<UUID, BiometrySkinfold> existingById = new HashMap<>();
+        for (BiometrySkinfold skinfold : assessment.getSkinfolds()) {
+            if (skinfold.getId() != null) {
+                existingById.put(skinfold.getId(), skinfold);
+            }
+        }
+
+        List<BiometrySkinfold> merged = new ArrayList<>(entries.size());
+        for (UpdateBiometryAssessmentRequest.SkinfoldEntry entry : entries) {
+            BiometrySkinfold skinfold;
+            if (entry.id() != null) {
+                skinfold = existingById.get(entry.id());
+                if (skinfold == null) {
+                    throw new ResourceNotFoundException("Dobra cutânea", entry.id());
+                }
+            } else {
+                skinfold = BiometrySkinfold.builder()
+                        .assessment(assessment)
+                        .nutritionistId(nutritionistId)
+                        .build();
+            }
+            skinfold.setAssessment(assessment);
+            skinfold.setNutritionistId(nutritionistId);
+            skinfold.setMeasureKey(entry.measureKey());
+            skinfold.setValueMm(entry.valueMm());
+            skinfold.setSortOrder(entry.sortOrder());
+            merged.add(skinfold);
+        }
+        return merged;
+    }
+
+    private List<BiometryPerimetry> mergePerimetries(BiometryAssessment assessment, UUID nutritionistId,
+                                                     List<UpdateBiometryAssessmentRequest.PerimetryEntry> entries) {
+        Map<UUID, BiometryPerimetry> existingById = new HashMap<>();
+        for (BiometryPerimetry perimetry : assessment.getPerimetries()) {
+            if (perimetry.getId() != null) {
+                existingById.put(perimetry.getId(), perimetry);
+            }
+        }
+
+        List<BiometryPerimetry> merged = new ArrayList<>(entries.size());
+        for (UpdateBiometryAssessmentRequest.PerimetryEntry entry : entries) {
+            BiometryPerimetry perimetry;
+            if (entry.id() != null) {
+                perimetry = existingById.get(entry.id());
+                if (perimetry == null) {
+                    throw new ResourceNotFoundException("Perimetria", entry.id());
+                }
+            } else {
+                perimetry = BiometryPerimetry.builder()
+                        .assessment(assessment)
+                        .nutritionistId(nutritionistId)
+                        .build();
+            }
+            perimetry.setAssessment(assessment);
+            perimetry.setNutritionistId(nutritionistId);
+            perimetry.setMeasureKey(entry.measureKey());
+            perimetry.setValueCm(entry.valueCm());
+            perimetry.setSortOrder(entry.sortOrder());
+            merged.add(perimetry);
+        }
+        return merged;
     }
 
     private void emitHistoryEvent(UUID episodeId, UUID nutritionistId, String eventType, String title, String sourceRef, UUID sourceId) {

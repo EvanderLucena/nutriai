@@ -99,7 +99,7 @@ class DashboardServiceTest {
         UUID episodeId = UUID.randomUUID();
         Patient p1 = Patient.builder().id(patientId).nutritionistId(nutritionistId).name("Maria")
                 .initials("M").status(PatientStatus.ONTRACK).adherence(90).active(true).build();
-        Episode episode = Episode.builder().id(episodeId).patientId(patientId).build();
+        Episode episode = Episode.builder().id(episodeId).patientId(patientId).nutritionistId(nutritionistId).build();
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .id(UUID.randomUUID()).episodeId(episodeId).patientId(patientId).nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.now().minusDays(5))

@@ -31,6 +31,9 @@ public class Episode {
     @Column(name = "patient_id", nullable = false)
     private UUID patientId;
 
+    @Column(name = "nutritionist_id", nullable = false)
+    private UUID nutritionistId;
+
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

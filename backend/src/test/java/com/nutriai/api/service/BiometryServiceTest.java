@@ -16,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,7 +58,7 @@ class BiometryServiceTest {
                 .name("Maria")
                 .objective(PatientObjective.SAUDE_GERAL)
                 .build();
-        activeEpisode = Episode.builder().id(episodeId).patientId(patientId).build();
+        activeEpisode = Episode.builder().id(episodeId).patientId(patientId).nutritionistId(nutritionistId).build();
     }
 
     @Test
@@ -191,6 +192,68 @@ class BiometryServiceTest {
     }
 
     @Test
+    void updateAssessment_mergesChildRecordsById() {
+        UUID assessmentId = UUID.randomUUID();
+        UUID skinfoldId = UUID.randomUUID();
+        UUID perimetryId = UUID.randomUUID();
+
+        BiometryAssessment existing = BiometryAssessment.builder()
+                .id(assessmentId)
+                .episodeId(episodeId)
+                .patientId(patientId)
+                .nutritionistId(nutritionistId)
+                .assessmentDate(LocalDate.of(2025, 1, 10))
+                .weight(new BigDecimal("75.00"))
+                .bodyFatPercent(new BigDecimal("22.50"))
+                .build();
+
+        BiometrySkinfold skinfold = BiometrySkinfold.builder()
+                .id(skinfoldId)
+                .assessment(existing)
+                .nutritionistId(nutritionistId)
+                .measureKey("triceps")
+                .valueMm(new BigDecimal("12.50"))
+                .sortOrder(1)
+                .build();
+        BiometryPerimetry perimetry = BiometryPerimetry.builder()
+                .id(perimetryId)
+                .assessment(existing)
+                .nutritionistId(nutritionistId)
+                .measureKey("cintura")
+                .valueCm(new BigDecimal("82.30"))
+                .sortOrder(1)
+                .build();
+
+        existing.setSkinfolds(new ArrayList<>(List.of(skinfold)));
+        existing.setPerimetries(new ArrayList<>(List.of(perimetry)));
+
+        when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
+                assessmentId, patientId, nutritionistId)).thenReturn(Optional.of(existing));
+        when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessmentId, nutritionistId))
+                .thenAnswer(inv -> existing.getSkinfolds());
+        when(perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessmentId, nutritionistId))
+                .thenAnswer(inv -> existing.getPerimetries());
+
+        UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
+                null, null, null, null, null, null, null, null, null,
+                List.of(new UpdateBiometryAssessmentRequest.SkinfoldEntry(
+                        skinfoldId, "triceps", new BigDecimal("13.10"), 1)),
+                List.of(new UpdateBiometryAssessmentRequest.PerimetryEntry(
+                        perimetryId, "cintura", new BigDecimal("83.20"), 1)));
+
+        BiometryAssessmentResponse response = biometryService.updateAssessment(nutritionistId, patientId, assessmentId, req);
+
+        assertEquals(skinfoldId, response.skinfolds().get(0).id());
+        assertEquals(new BigDecimal("13.10"), response.skinfolds().get(0).valueMm());
+        assertEquals(perimetryId, response.perimetry().get(0).id());
+        assertEquals(new BigDecimal("83.20"), response.perimetry().get(0).valueCm());
+        verify(skinfoldRepository, never()).deleteAllByAssessmentIdAndNutritionistId(any(), any());
+        verify(perimetryRepository, never()).deleteAllByAssessmentIdAndNutritionistId(any(), any());
+    }
+
+    @Test
     void createAndUpdate_emitHistoryEvents() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
@@ -208,6 +271,62 @@ class BiometryServiceTest {
         biometryService.createAssessment(nutritionistId, patientId, createReq);
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_BIOMETRY_CREATED") && e.getEventAt() != null));
+    }
+
+    @Test
+    void getHistorySnapshot_countsScopedMealData() {
+        UUID closedEpisodeId = UUID.randomUUID();
+        UUID planId = UUID.randomUUID();
+        UUID slotId = UUID.randomUUID();
+        UUID optionId = UUID.randomUUID();
+
+        Episode closedEpisode = Episode.builder()
+                .id(closedEpisodeId)
+                .patientId(patientId)
+                .nutritionistId(nutritionistId)
+                .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .build();
+        MealPlan plan = MealPlan.builder()
+                .id(planId)
+                .episodeId(closedEpisodeId)
+                .nutritionistId(nutritionistId)
+                .build();
+        MealSlot slot = MealSlot.builder()
+                .id(slotId)
+                .planId(planId)
+                .label("Café da manhã")
+                .sortOrder(0)
+                .build();
+        MealOption option = MealOption.builder()
+                .id(optionId)
+                .mealSlotId(slotId)
+                .name("Opção 1")
+                .sortOrder(0)
+                .build();
+
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                closedEpisodeId, patientId, nutritionistId)).thenReturn(Optional.of(closedEpisode));
+        when(assessmentRepository.findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
+                closedEpisodeId, patientId, nutritionistId)).thenReturn(List.of());
+        when(historyEventRepository.findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(
+                closedEpisodeId, nutritionistId)).thenReturn(List.of());
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(closedEpisodeId, nutritionistId))
+                .thenReturn(Optional.of(plan));
+        when(mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(planId, nutritionistId))
+                .thenReturn(List.of(slot));
+        when(mealOptionRepository.findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(planId, nutritionistId))
+                .thenReturn(List.of(option));
+
+        BiometryHistorySnapshotResponse result = biometryService.getHistorySnapshot(nutritionistId, patientId, closedEpisodeId);
+
+        assertEquals(1, result.mealSlotCount());
+        assertEquals(1, result.foodItemCount());
+        verify(mealSlotRepository).findByPlanIdAndNutritionistIdOrderBySortOrder(planId, nutritionistId);
+        verify(mealOptionRepository).findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(planId, nutritionistId);
+        verify(mealSlotRepository, never()).findByPlanIdOrderBySortOrder(any());
+        verify(mealOptionRepository, never()).findAllByMealSlotIds(anyList());
     }
 
     @Test
@@ -243,11 +362,13 @@ class BiometryServiceTest {
 
         Episode closedEpisode = Episode.builder()
                 .id(UUID.randomUUID()).patientId(patientId)
+                .nutritionistId(nutritionistId)
                 .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
                 .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();
         Episode activeEpisode = Episode.builder()
                 .id(episodeId).patientId(patientId)
+                .nutritionistId(nutritionistId)
                 .startDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();
         when(episodeRepository.findByPatientIdAndNutritionistIdAndEndDateIsNotNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(List.of(closedEpisode));
@@ -282,6 +403,7 @@ class BiometryServiceTest {
         UUID closedEpisodeId = UUID.randomUUID();
         Episode closedEpisode = Episode.builder()
                 .id(closedEpisodeId).patientId(patientId)
+                .nutritionistId(nutritionistId)
                 .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
                 .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();

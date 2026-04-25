@@ -74,6 +74,7 @@ public class PatientService {
 
         Episode episode = Episode.builder()
                 .patientId(saved.getId())
+                .nutritionistId(nutritionistId)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
 
@@ -185,6 +186,7 @@ public class PatientService {
 
         Episode episode = Episode.builder()
                 .patientId(patient.getId())
+                .nutritionistId(nutritionistId)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
 
