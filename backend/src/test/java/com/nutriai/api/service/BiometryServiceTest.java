@@ -51,7 +51,12 @@ class BiometryServiceTest {
         nutritionistId = UUID.randomUUID();
         patientId = UUID.randomUUID();
         episodeId = UUID.randomUUID();
-        patient = Patient.builder().id(patientId).nutritionistId(nutritionistId).name("Maria").build();
+        patient = Patient.builder()
+                .id(patientId)
+                .nutritionistId(nutritionistId)
+                .name("Maria")
+                .objective(PatientObjective.SAUDE_GERAL)
+                .build();
         activeEpisode = Episode.builder().id(episodeId).patientId(patientId).build();
     }
 
@@ -102,6 +107,16 @@ class BiometryServiceTest {
         assertEquals("Omron", response.device());
         assertEquals(1, response.skinfolds().size());
         assertEquals(1, response.perimetry().size());
+
+        ArgumentCaptor<BiometryAssessment> assessmentCaptor = ArgumentCaptor.forClass(BiometryAssessment.class);
+        verify(assessmentRepository).save(assessmentCaptor.capture());
+        BiometryAssessment savedAssessment = assessmentCaptor.getValue();
+        assertEquals(1, savedAssessment.getSkinfolds().size());
+        assertEquals("triceps", savedAssessment.getSkinfolds().get(0).getMeasureKey());
+        assertEquals(nutritionistId, savedAssessment.getSkinfolds().get(0).getNutritionistId());
+        assertEquals(1, savedAssessment.getPerimetries().size());
+        assertEquals("cintura", savedAssessment.getPerimetries().get(0).getMeasureKey());
+        assertEquals(nutritionistId, savedAssessment.getPerimetries().get(0).getNutritionistId());
     }
 
     @Test
@@ -143,9 +158,8 @@ class BiometryServiceTest {
         existing.setSkinfolds(List.of());
         existing.setPerimetries(List.of());
 
-        when(assessmentRepository.findByIdAndNutritionistId(existing.getId(), nutritionistId)).thenReturn(Optional.of(existing));
-        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
-                episodeId, patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
+        when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
+                existing.getId(), patientId, nutritionistId)).thenReturn(Optional.of(existing));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> inv.getArgument(0));
         when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -184,7 +198,8 @@ class BiometryServiceTest {
     @Test
     void updateAssessment_failsWhenNotOwnedByNutritionist() {
         UUID assessmentId = UUID.randomUUID();
-        when(assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)).thenReturn(Optional.empty());
+        when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
+                assessmentId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(null, null, null, null, null, null, null, null, null, null, null);
 
@@ -203,9 +218,8 @@ class BiometryServiceTest {
                 .weight(new BigDecimal("75.00"))
                 .bodyFatPercent(new BigDecimal("22.50"))
                 .build();
-        when(assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)).thenReturn(Optional.of(existing));
-        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
-                episodeId, patientId, nutritionistId)).thenReturn(Optional.empty());
+        when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
+                assessmentId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
                 null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null, null);
@@ -230,8 +244,8 @@ class BiometryServiceTest {
                 .startDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();
         when(episodeRepository.findByPatientIdAndNutritionistIdAndEndDateIsNotNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(List.of(closedEpisode));
-        when(assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
-                List.of(closedEpisode.getId()), nutritionistId))
+        when(assessmentRepository.findByEpisodeIdInAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
+                List.of(closedEpisode.getId()), patientId, nutritionistId))
                 .thenReturn(List.of(BiometryAssessment.builder()
                         .id(UUID.randomUUID())
                         .episodeId(closedEpisode.getId())
@@ -267,7 +281,8 @@ class BiometryServiceTest {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
                 closedEpisodeId, patientId, nutritionistId)).thenReturn(Optional.of(closedEpisode));
-        when(assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(closedEpisodeId, nutritionistId))
+        when(assessmentRepository.findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
+                closedEpisodeId, patientId, nutritionistId))
                 .thenReturn(List.of());
         when(historyEventRepository.findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(closedEpisodeId, nutritionistId))
                 .thenReturn(List.of());

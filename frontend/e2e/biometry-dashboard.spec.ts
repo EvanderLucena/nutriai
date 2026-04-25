@@ -255,7 +255,7 @@ test.describe('Biometry — History Episodes', () => {
   });
 
   test('E2E-BIO-08: List history episodes returns array', async ({ request }) => {
-    await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -263,6 +263,12 @@ test.describe('Biometry — History Episodes', () => {
         bodyFatPercent: 28.3,
       },
     });
+    expect(createResp.status()).toBe(201);
+
+    const deactivateResp = await request.patch(`${API}/patients/${patientId}/deactivate`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(deactivateResp.status()).toBe(200);
 
     const resp = await request.get(`${API}/patients/${patientId}/biometry/history/episodes`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -271,21 +277,22 @@ test.describe('Biometry — History Episodes', () => {
     const body = await resp.json();
     expect(body.success).toBe(true);
     expect(Array.isArray(body.data)).toBe(true);
-    if (body.data.length > 0) {
-      const ep = body.data[0];
-      expect(ep).toHaveProperty('episodeId');
-      expect(ep).toHaveProperty('startDate');
-      expect(ep).toHaveProperty('endDate');
-      expect(ep).toHaveProperty('hasBiometry');
-      expect(ep).toHaveProperty('assessmentCount');
-      expect(ep).toHaveProperty('durationDays');
-    }
+    expect(body.data).toHaveLength(1);
+    const ep = body.data[0];
+    expect(ep).toHaveProperty('episodeId');
+    expect(ep).toHaveProperty('startDate');
+    expect(ep).toHaveProperty('endDate');
+    expect(ep).toHaveProperty('hasBiometry');
+    expect(ep).toHaveProperty('assessmentCount');
+    expect(ep).toHaveProperty('durationDays');
+    expect(ep.hasBiometry).toBe(true);
+    expect(ep.assessmentCount).toBe(1);
   });
 
   test('E2E-BIO-09: Get history snapshot for episode returns correct contract', async ({
     request,
   }) => {
-    await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -293,6 +300,12 @@ test.describe('Biometry — History Episodes', () => {
         bodyFatPercent: 28.3,
       },
     });
+    expect(createResp.status()).toBe(201);
+
+    const deactivateResp = await request.patch(`${API}/patients/${patientId}/deactivate`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(deactivateResp.status()).toBe(200);
 
     const episodesResp = await request.get(
       `${API}/patients/${patientId}/biometry/history/episodes`,
@@ -300,28 +313,31 @@ test.describe('Biometry — History Episodes', () => {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
     );
+    expect(episodesResp.status()).toBe(200);
     const episodes = (await episodesResp.json()).data;
-    if (episodes.length > 0) {
-      const episodeId = episodes[0].episodeId;
-      const snapshotResp = await request.get(
-        `${API}/patients/${patientId}/biometry/history/episodes/${episodeId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
-      expect(snapshotResp.status()).toBe(200);
-      const snapshot = (await snapshotResp.json()).data;
-      expect(snapshot).toHaveProperty('episodeId');
-      expect(snapshot).toHaveProperty('startDate');
-      expect(snapshot).toHaveProperty('endDate');
-      expect(snapshot).toHaveProperty('episodeObjective');
-      expect(snapshot).toHaveProperty('mealSlotCount');
-      expect(snapshot).toHaveProperty('foodItemCount');
-      expect(snapshot).toHaveProperty('assessments');
-      expect(snapshot).toHaveProperty('timelineEvents');
-    }
+    expect(episodes).toHaveLength(1);
+
+    const episodeId = episodes[0].episodeId;
+    const snapshotResp = await request.get(
+      `${API}/patients/${patientId}/biometry/history/episodes/${episodeId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    expect(snapshotResp.status()).toBe(200);
+    const snapshot = (await snapshotResp.json()).data;
+    expect(snapshot).toHaveProperty('episodeId');
+    expect(snapshot.episodeId).toBe(episodeId);
+    expect(snapshot).toHaveProperty('startDate');
+    expect(snapshot).toHaveProperty('endDate');
+    expect(snapshot).toHaveProperty('episodeObjective');
+    expect(snapshot.episodeObjective).toBe('Emagrecimento');
+    expect(snapshot).toHaveProperty('mealSlotCount');
+    expect(snapshot).toHaveProperty('foodItemCount');
+    expect(snapshot.assessments).toHaveLength(1);
+    expect(snapshot.timelineEvents.length).toBeGreaterThanOrEqual(2);
   });
 
   test('E2E-BIO-10: Recent evaluations appear in dashboard after biometry', async ({ request }) => {
-    await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -329,21 +345,28 @@ test.describe('Biometry — History Episodes', () => {
         bodyFatPercent: 28.3,
       },
     });
+    expect(createResp.status()).toBe(201);
 
     const dashResp = await request.get(`${API}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    expect(dashResp.status()).toBe(200);
     const dash = (await dashResp.json()).data;
     expect(dash.kpis.assessedInLast30Days).toBeGreaterThanOrEqual(1);
-    if (dash.recentEvaluations.length > 0) {
-      const ev = dash.recentEvaluations[0];
-      expect(ev).toHaveProperty('patientId');
-      expect(ev).toHaveProperty('patientName');
-      expect(ev).toHaveProperty('initials');
-      expect(ev).toHaveProperty('status');
-      expect(ev).toHaveProperty('assessmentDate');
-      expect(ev).toHaveProperty('weight');
-      expect(ev).toHaveProperty('bodyFatPercent');
-    }
+    expect(dash.recentEvaluations).toHaveLength(1);
+    const ev = dash.recentEvaluations[0];
+    expect(ev).toHaveProperty('patientId');
+    expect(ev.patientId).toBe(patientId);
+    expect(ev).toHaveProperty('patientName');
+    expect(ev.patientName).toBe('Paciente Histórico');
+    expect(ev).toHaveProperty('initials');
+    expect(ev.initials).toBe('PH');
+    expect(ev).toHaveProperty('status');
+    expect(ev).toHaveProperty('assessmentDate');
+    expect(ev.assessmentDate).toBe('2026-04-24');
+    expect(ev).toHaveProperty('weight');
+    expect(ev.weight).toBe(72.5);
+    expect(ev).toHaveProperty('bodyFatPercent');
+    expect(ev.bodyFatPercent).toBe(28.3);
   });
 });

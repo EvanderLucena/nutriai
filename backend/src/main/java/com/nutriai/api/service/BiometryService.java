@@ -107,15 +107,13 @@ public class BiometryService {
         emitHistoryEvent(activeEpisode.getId(), nutritionistId, "EPISODE_BIOMETRY_CREATED",
                 "Avaliação biométrica criada", "BiometryAssessment", saved.getId());
 
-        return BiometryAssessmentResponse.from(saved);
+        return toResponse(saved);
     }
 
     @Transactional
     public BiometryAssessmentResponse updateAssessment(UUID nutritionistId, UUID patientId, UUID assessmentId, UpdateBiometryAssessmentRequest request) {
-        BiometryAssessment assessment = assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)
-                .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
-        episodeRepository.findByIdAndPatientIdAndNutritionistId(
-                        assessment.getEpisodeId(), patientId, nutritionistId)
+        BiometryAssessment assessment = assessmentRepository.findByIdAndPatientIdAndNutritionistId(
+                        assessmentId, patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
 
         if (request.assessmentDate() != null) assessment.setAssessmentDate(request.assessmentDate());
@@ -164,7 +162,7 @@ public class BiometryService {
         emitHistoryEvent(updated.getEpisodeId(), nutritionistId, "EPISODE_BIOMETRY_UPDATED",
                 "Avaliação biométrica atualizada", "BiometryAssessment", updated.getId());
 
-        return BiometryAssessmentResponse.from(updated);
+        return toResponse(updated);
     }
 
     @Transactional(readOnly = true)
@@ -176,9 +174,10 @@ public class BiometryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Paciente não possui episódio ativo"));
 
-        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(activeEpisode.getId(), nutritionistId);
+        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
+                activeEpisode.getId(), patientId, nutritionistId);
         return assessments.stream()
-                .map(BiometryAssessmentResponse::from)
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -193,8 +192,8 @@ public class BiometryService {
         List<UUID> episodeIds = closedEpisodes.stream().map(Episode::getId).toList();
         List<BiometryAssessment> allAssessments = episodeIds.isEmpty()
                 ? List.of()
-                : assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
-                        episodeIds, nutritionistId);
+                : assessmentRepository.findByEpisodeIdInAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
+                        episodeIds, patientId, nutritionistId);
 
         return closedEpisodes.stream().map(episode -> {
             long assessmentCount = allAssessments.stream()
@@ -228,7 +227,7 @@ public class BiometryService {
         }
 
         List<BiometryAssessment> assessments = assessmentRepository
-                .findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId, nutritionistId);
+                .findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId, patientId, nutritionistId);
         List<EpisodeHistoryEvent> timelineEvents = historyEventRepository
                 .findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(episodeId, nutritionistId);
 
@@ -244,7 +243,7 @@ public class BiometryService {
         }
 
         List<BiometryAssessmentResponse> assessmentResponses = assessments.stream()
-                .map(BiometryAssessmentResponse::from).toList();
+                .map(this::toResponse).toList();
         List<EpisodeHistoryEventResponse> eventResponses = timelineEvents.stream()
                 .map(e -> new EpisodeHistoryEventResponse(e.getId(), e.getEventType(), e.getEventAt(),
                         e.getTitle(), e.getDescription(), e.getSourceRef())).toList();
@@ -253,6 +252,12 @@ public class BiometryService {
                 episodeId, episode.getStartDate(), episode.getEndDate(),
                 patient.getObjective() != null ? patient.getObjective().getPortugueseLabel() : null,
                 mealSlotCount, foodItemCount, assessmentResponses, eventResponses);
+    }
+
+    private BiometryAssessmentResponse toResponse(BiometryAssessment assessment) {
+        List<BiometrySkinfold> skinfolds = assessment.getSkinfolds() != null ? assessment.getSkinfolds() : List.of();
+        List<BiometryPerimetry> perimetries = assessment.getPerimetries() != null ? assessment.getPerimetries() : List.of();
+        return BiometryAssessmentResponse.from(assessment, skinfolds, perimetries);
     }
 
     private void emitHistoryEvent(UUID episodeId, UUID nutritionistId, String eventType, String title, String sourceRef, UUID sourceId) {

@@ -1,19 +1,24 @@
 -- V14: Add nutritionist_id to biometry child tables for tenant isolation defense-in-depth
 -- Denormalized from parent biometry_assessment to allow scoped repository queries
 
-ALTER TABLE biometry_skinfold ADD COLUMN nutritionist_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
-ALTER TABLE biometry_perimetry ADD COLUMN nutritionist_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE biometry_skinfold ADD COLUMN nutritionist_id UUID;
+ALTER TABLE biometry_perimetry ADD COLUMN nutritionist_id UUID;
 
 -- Backfill from parent assessment
 UPDATE biometry_skinfold s
 SET nutritionist_id = a.nutritionist_id
 FROM biometry_assessment a
-WHERE s.assessment_id = a.id;
+WHERE s.assessment_id = a.id
+  AND s.nutritionist_id IS NULL;
 
 UPDATE biometry_perimetry p
 SET nutritionist_id = a.nutritionist_id
 FROM biometry_assessment a
-WHERE p.assessment_id = a.id;
+WHERE p.assessment_id = a.id
+  AND p.nutritionist_id IS NULL;
+
+ALTER TABLE biometry_skinfold ALTER COLUMN nutritionist_id SET NOT NULL;
+ALTER TABLE biometry_perimetry ALTER COLUMN nutritionist_id SET NOT NULL;
 
 -- Add FK constraints and indexes
 ALTER TABLE biometry_skinfold ADD CONSTRAINT fk_skinfold_nutritionist

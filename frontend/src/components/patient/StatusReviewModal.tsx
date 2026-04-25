@@ -16,14 +16,24 @@ const STATUS_OPTIONS: PatientStatus[] = ['ontrack', 'warning', 'danger'];
 export function StatusReviewModal({ patientId, currentStatus, onClose }: StatusReviewModalProps) {
   const updateMutation = useUpdatePatient();
   const [selected, setSelected] = React.useState<PatientStatus>(currentStatus);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setErrorMessage(null);
+  }, [selected]);
 
   const handleConfirm = () => {
+    setErrorMessage(null);
     updateMutation.mutate(
       { id: patientId, data: { status: selected } },
       {
         onSuccess: () => {
+          setErrorMessage(null);
           useToastStore.getState().showSuccess('Status atualizado com sucesso');
           onClose();
+        },
+        onError: () => {
+          setErrorMessage('Não foi possível atualizar o status. Tente novamente.');
         },
       },
     );
@@ -106,6 +116,24 @@ export function StatusReviewModal({ patientId, currentStatus, onClose }: StatusR
               </button>
             ))}
           </div>
+
+          {errorMessage ? (
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid rgba(255,107,74,0.35)',
+                background: 'rgba(255,107,74,0.08)',
+                color: 'var(--coral)',
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              {errorMessage}
+            </div>
+          ) : null}
         </div>
 
         <div

@@ -1,6 +1,8 @@
 package com.nutriai.api.dto.biometry;
 
 import com.nutriai.api.model.BiometryAssessment;
+import com.nutriai.api.model.BiometryPerimetry;
+import com.nutriai.api.model.BiometrySkinfold;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -36,7 +38,11 @@ public record BiometryAssessmentResponse(
             Integer sortOrder
     ) {}
 
-    public static BiometryAssessmentResponse from(BiometryAssessment a) {
+    public static BiometryAssessmentResponse from(
+            BiometryAssessment a,
+            List<BiometrySkinfold> skinfolds,
+            List<BiometryPerimetry> perimetries
+    ) {
         return new BiometryAssessmentResponse(
                 a.getId(),
                 a.getEpisodeId(),
@@ -49,12 +55,20 @@ public record BiometryAssessmentResponse(
                 a.getBmrKcal(),
                 a.getDevice(),
                 a.getNotes(),
-                a.getSkinfolds() != null ? a.getSkinfolds().stream()
-                        .map(s -> new SkinfoldResponse(s.getId(), s.getMeasureKey(), s.getValueMm(), s.getSortOrder()))
-                        .toList() : List.of(),
-                a.getPerimetries() != null ? a.getPerimetries().stream()
-                        .map(p -> new PerimetryResponse(p.getId(), p.getMeasureKey(), p.getValueCm(), p.getSortOrder()))
-                        .toList() : List.of()
+                mapSkinfolds(skinfolds),
+                mapPerimetries(perimetries)
         );
+    }
+
+    private static List<SkinfoldResponse> mapSkinfolds(List<BiometrySkinfold> skinfolds) {
+        return skinfolds == null ? List.of() : skinfolds.stream()
+                .map(s -> new SkinfoldResponse(s.getId(), s.getMeasureKey(), s.getValueMm(), s.getSortOrder()))
+                .toList();
+    }
+
+    private static List<PerimetryResponse> mapPerimetries(List<BiometryPerimetry> perimetries) {
+        return perimetries == null ? List.of() : perimetries.stream()
+                .map(p -> new PerimetryResponse(p.getId(), p.getMeasureKey(), p.getValueCm(), p.getSortOrder()))
+                .toList();
     }
 }

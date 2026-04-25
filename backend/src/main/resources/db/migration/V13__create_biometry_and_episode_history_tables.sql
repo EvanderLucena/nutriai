@@ -57,8 +57,7 @@ CREATE TABLE episode_history_event (
     description TEXT,
     source_ref VARCHAR(200),
     metadata_json TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_episode_history_episode_at ON episode_history_event(episode_id, event_at);
