@@ -58,13 +58,14 @@ jobs:
             echo "truncated=true" >> $GITHUB_OUTPUT
             echo "truncated_total=$TOTAL_LINES" >> $GITHUB_OUTPUT
           fi
-          DIFF_CONTENT=$(head -"$MAX_LINES" /tmp/pr_diff.txt | sed 's/```/` ` `/g')
+          head -"$MAX_LINES" /tmp/pr_diff.txt | sed 's/```/` ` `/g' > /tmp/pr_diff_limited.txt
+          printf '%s' "$RULES_CONTENT" > /tmp/review_rules.txt
 
           REQUEST_BODY=$(jq -n \
             --arg model "${{ steps.model.outputs.name }}" \
             --arg prompt "$PROMPT" \
-            --arg rules "$RULES_CONTENT" \
-            --arg diff "$DIFF_CONTENT" \
+            --rawfile rules /tmp/review_rules.txt \
+            --rawfile diff /tmp/pr_diff_limited.txt \
             '{
               model: $model,
               messages: [
