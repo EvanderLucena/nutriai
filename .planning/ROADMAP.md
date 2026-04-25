@@ -166,7 +166,7 @@ Plans:
   - **E2E (Playwright)**: record biometry, view evolution chart, dashboard KPIs show real patient data
 **Plans:** 5 plans in 4 waves
 Plans:
-- [ ] 06-01-PLAN.md — Schema, entities, and repositories for biometry and episode history
+- [x] 06-01-PLAN.md — Schema, entities, and repositories for biometry and episode history
 - [ ] 06-02-PLAN.md — Biometry CRUD service, controller, DTOs, and tests
 - [ ] 06-03-PLAN.md — Dashboard aggregate endpoint and closed-cycle history snapshots
 - [ ] 06-04-PLAN.md — Lifecycle event emission (PatientService, MealPlanService)
