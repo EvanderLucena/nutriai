@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ public class MealPlanService {
     private final FoodRepository foodRepository;
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
+    private final EpisodeHistoryEventRepository historyEventRepository;
 
     public MealPlanService(MealPlanRepository mealPlanRepository,
                            MealSlotRepository mealSlotRepository,
@@ -35,7 +37,8 @@ public class MealPlanService {
                            PlanExtraRepository planExtraRepository,
                            FoodRepository foodRepository,
                            PatientRepository patientRepository,
-                           EpisodeRepository episodeRepository) {
+                           EpisodeRepository episodeRepository,
+                           EpisodeHistoryEventRepository historyEventRepository) {
         this.mealPlanRepository = mealPlanRepository;
         this.mealSlotRepository = mealSlotRepository;
         this.mealOptionRepository = mealOptionRepository;
@@ -44,6 +47,7 @@ public class MealPlanService {
         this.foodRepository = foodRepository;
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
+        this.historyEventRepository = historyEventRepository;
     }
 
     @Transactional
@@ -86,6 +90,16 @@ public class MealPlanService {
         }
 
         logger.info("Default plan created: episodeId={}, nutritionistId={}", episodeId, nutritionistId);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(episodeId)
+                .nutritionistId(nutritionistId)
+                .eventType("PLAN_CREATED")
+                .eventAt(LocalDateTime.now())
+                .title("Plano alimentar criado")
+                .description("Plano padrão com 6 refeições criado")
+                .sourceRef("MealPlan:" + savedPlan.getId())
+                .build());
     }
 
     @Transactional(readOnly = true)

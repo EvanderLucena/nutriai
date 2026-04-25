@@ -28,6 +28,7 @@ class MealPlanServiceTest {
     @Mock private FoodRepository foodRepository;
     @Mock private PatientRepository patientRepository;
     @Mock private EpisodeRepository episodeRepository;
+    @Mock private EpisodeHistoryEventRepository historyEventRepository;
 
     @InjectMocks
     private MealPlanService mealPlanService;
@@ -77,12 +78,16 @@ class MealPlanServiceTest {
             return s;
         });
         when(mealOptionRepository.save(any(MealOption.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
 
         mealPlanService.createDefaultPlan(episodeId, nutritionistId);
 
         verify(mealPlanRepository, times(1)).save(any(MealPlan.class));
         verify(mealSlotRepository, times(6)).save(any(MealSlot.class));
         verify(mealOptionRepository, times(6)).save(any(MealOption.class));
+        verify(historyEventRepository).save(argThat(e ->
+                e.getEventType().equals("PLAN_CREATED") &&
+                        e.getEpisodeId().equals(episodeId)));
     }
 
     @Test

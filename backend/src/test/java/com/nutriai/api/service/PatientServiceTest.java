@@ -3,6 +3,7 @@ package com.nutriai.api.service;
 import com.nutriai.api.dto.patient.*;
 import com.nutriai.api.exception.ResourceNotFoundException;
 import com.nutriai.api.model.*;
+import com.nutriai.api.repository.EpisodeHistoryEventRepository;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
@@ -36,6 +37,9 @@ class PatientServiceTest {
 
     @Mock
     private MealPlanService mealPlanService;
+
+    @Mock
+    private EpisodeHistoryEventRepository historyEventRepository;
 
     @InjectMocks
     private PatientService patientService;
@@ -247,5 +251,69 @@ class PatientServiceTest {
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertEquals("JP", resp.initials());
+    }
+
+    @Test
+    void createPatient_emitsEpisodeOpenedEvent() {
+        when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> {
+            Patient p = inv.getArgument(0);
+            p.setId(UUID.randomUUID());
+            return p;
+        });
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> {
+            Episode e = inv.getArgument(0);
+            e.setId(UUID.randomUUID());
+            return e;
+        });
+        when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        patientService.createPatient(nutritionistId, req);
+
+        verify(historyEventRepository).save(argThat(e ->
+                e.getEventType().equals("EPISODE_OPENED") &&
+                        e.getTitle().equals("Período iniciado")));
+    }
+
+    @Test
+    void deactivatePatient_emitsEpisodeClosedEvent() {
+        Episode currentEpisode = Episode.builder()
+                .id(UUID.randomUUID())
+                .patientId(samplePatient.getId())
+                .startDate(java.time.LocalDateTime.now())
+                .build();
+
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId()))
+                .thenReturn(Optional.of(currentEpisode));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        patientService.deactivatePatient(samplePatient.getId(), nutritionistId);
+
+        verify(historyEventRepository).save(argThat(e ->
+                e.getEventType().equals("EPISODE_CLOSED") &&
+                        e.getEpisodeId().equals(currentEpisode.getId())));
+    }
+
+    @Test
+    void reactivatePatient_emitsEpisodeOpenedEvent() {
+        samplePatient.setActive(false);
+
+        when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
+        when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> {
+            Episode e = inv.getArgument(0);
+            e.setId(UUID.randomUUID());
+            return e;
+        });
+        when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        patientService.reactivatePatient(samplePatient.getId(), nutritionistId);
+
+        verify(historyEventRepository).save(argThat(e ->
+                e.getEventType().equals("EPISODE_OPENED") &&
+                        e.getTitle().equals("Período iniciado")));
     }
 }

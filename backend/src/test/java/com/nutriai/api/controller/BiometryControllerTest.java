@@ -43,6 +43,7 @@ class BiometryControllerTest {
     @Autowired private BiometryAssessmentRepository assessmentRepository;
     @Autowired private BiometrySkinfoldRepository skinfoldRepository;
     @Autowired private BiometryPerimetryRepository perimetryRepository;
+    @Autowired private EpisodeHistoryEventRepository historyEventRepository;
     @Autowired private PatientRepository patientRepository;
     @Autowired private EpisodeRepository episodeRepository;
     @Autowired private RefreshTokenRepository refreshTokenRepository;
@@ -60,6 +61,7 @@ class BiometryControllerTest {
         skinfoldRepository.deleteAll();
         perimetryRepository.deleteAll();
         assessmentRepository.deleteAll();
+        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

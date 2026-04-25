@@ -65,6 +65,9 @@ class PlanControllerTest {
     private EpisodeRepository episodeRepository;
 
     @Autowired
+    private EpisodeHistoryEventRepository historyEventRepository;
+
+    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
@@ -85,6 +88,7 @@ class PlanControllerTest {
         planExtraRepository.deleteAll();
         mealPlanRepository.deleteAll();
         foodRepository.deleteAll();
+        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

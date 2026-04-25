@@ -3,9 +3,11 @@ package com.nutriai.api.service;
 import com.nutriai.api.dto.patient.*;
 import com.nutriai.api.exception.ResourceNotFoundException;
 import com.nutriai.api.model.Episode;
+import com.nutriai.api.model.EpisodeHistoryEvent;
 import com.nutriai.api.model.Patient;
 import com.nutriai.api.model.PatientObjective;
 import com.nutriai.api.model.PatientStatus;
+import com.nutriai.api.repository.EpisodeHistoryEventRepository;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.Arrays;
 import java.util.UUID;
@@ -32,15 +35,18 @@ public class PatientService {
     private final EpisodeRepository episodeRepository;
     private final NutritionistRepository nutritionistRepository;
     private final MealPlanService mealPlanService;
+    private final EpisodeHistoryEventRepository historyEventRepository;
 
     public PatientService(PatientRepository patientRepository,
-                          EpisodeRepository episodeRepository,
-                          NutritionistRepository nutritionistRepository,
-                          MealPlanService mealPlanService) {
+                           EpisodeRepository episodeRepository,
+                           NutritionistRepository nutritionistRepository,
+                           MealPlanService mealPlanService,
+                           EpisodeHistoryEventRepository historyEventRepository) {
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
         this.nutritionistRepository = nutritionistRepository;
         this.mealPlanService = mealPlanService;
+        this.historyEventRepository = historyEventRepository;
     }
 
     @Transactional
@@ -70,6 +76,16 @@ public class PatientService {
                 .patientId(saved.getId())
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(savedEpisode.getId())
+                .nutritionistId(nutritionistId)
+                .eventType("EPISODE_OPENED")
+                .eventAt(savedEpisode.getStartDate() != null ? savedEpisode.getStartDate() : LocalDateTime.now())
+                .title("Período iniciado")
+                .description("Paciente " + saved.getName() + " ativado")
+                .sourceRef("Episode:" + savedEpisode.getId())
+                .build());
 
         // D-13/D-14: Auto-create default 6-meal plan
         mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
@@ -143,6 +159,15 @@ public class PatientService {
                 .ifPresent(e -> {
                     e.close();
                     logger.info("Episode closed: id={}, patientId={}", e.getId(), id);
+                    historyEventRepository.save(EpisodeHistoryEvent.builder()
+                            .episodeId(e.getId())
+                            .nutritionistId(nutritionistId)
+                            .eventType("EPISODE_CLOSED")
+                            .eventAt(LocalDateTime.now())
+                            .title("Período encerrado")
+                            .description("Paciente " + patient.getName() + " desativado")
+                            .sourceRef("Episode:" + e.getId())
+                            .build());
                 });
 
         Patient updated = patientRepository.save(patient);
@@ -161,6 +186,16 @@ public class PatientService {
                 .patientId(patient.getId())
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(savedEpisode.getId())
+                .nutritionistId(nutritionistId)
+                .eventType("EPISODE_OPENED")
+                .eventAt(LocalDateTime.now())
+                .title("Período iniciado")
+                .description("Paciente " + patient.getName() + " reativado")
+                .sourceRef("Episode:" + savedEpisode.getId())
+                .build());
 
         mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
 

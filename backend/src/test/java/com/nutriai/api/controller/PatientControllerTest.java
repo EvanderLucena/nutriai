@@ -9,9 +9,15 @@ import com.nutriai.api.dto.patient.CreatePatientRequest;
 import com.nutriai.api.dto.patient.UpdatePatientRequest;
 import com.nutriai.api.model.Nutritionist;
 import com.nutriai.api.model.UserRole;
+import com.nutriai.api.repository.EpisodeHistoryEventRepository;
 import com.nutriai.api.repository.EpisodeRepository;
+import com.nutriai.api.repository.MealFoodRepository;
+import com.nutriai.api.repository.MealOptionRepository;
+import com.nutriai.api.repository.MealPlanRepository;
+import com.nutriai.api.repository.MealSlotRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
+import com.nutriai.api.repository.PlanExtraRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +56,24 @@ class PatientControllerTest {
     private EpisodeRepository episodeRepository;
 
     @Autowired
+    private EpisodeHistoryEventRepository historyEventRepository;
+
+    @Autowired
+    private MealFoodRepository mealFoodRepository;
+
+    @Autowired
+    private MealOptionRepository mealOptionRepository;
+
+    @Autowired
+    private MealSlotRepository mealSlotRepository;
+
+    @Autowired
+    private MealPlanRepository mealPlanRepository;
+
+    @Autowired
+    private PlanExtraRepository planExtraRepository;
+
+    @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
     @Autowired
@@ -65,6 +89,12 @@ class PatientControllerTest {
 
     @BeforeEach
     void setUp() {
+        historyEventRepository.deleteAll();
+        mealFoodRepository.deleteAll();
+        mealOptionRepository.deleteAll();
+        mealSlotRepository.deleteAll();
+        planExtraRepository.deleteAll();
+        mealPlanRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

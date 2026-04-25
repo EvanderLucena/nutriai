@@ -41,6 +41,9 @@ class FoodAndPlanRepositoryTest {
     private EpisodeRepository episodeRepository;
 
     @Autowired
+    private EpisodeHistoryEventRepository historyEventRepository;
+
+    @Autowired
     private PatientRepository patientRepository;
 
     @Autowired
@@ -56,6 +59,7 @@ class FoodAndPlanRepositoryTest {
         mealSlotRepository.deleteAll();
         mealPlanRepository.deleteAll();
         foodRepository.deleteAll();
+        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         nutritionistRepository.deleteAll();

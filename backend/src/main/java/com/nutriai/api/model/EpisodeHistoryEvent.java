@@ -54,7 +54,7 @@ public class EpisodeHistoryEvent {
     @Column(name = "source_ref", length = 200)
     private String sourceRef;
 
-    @Column(name = "metadata_json", columnDefinition = "jsonb")
+    @Column(name = "metadata_json", columnDefinition = "TEXT")
     private String metadataJson;
 
     @Column(name = "created_at", nullable = false, updatable = false)
