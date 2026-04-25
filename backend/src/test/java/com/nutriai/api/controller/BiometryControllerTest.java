@@ -182,4 +182,45 @@ class BiometryControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void listHistoryEpisodes_returnsOnlyClosedEpisodes() throws Exception {
+        episodeRepository.findById(episodeId).orElseThrow().close();
+        episodeRepository.save(episodeRepository.findById(episodeId).orElseThrow());
+
+        mockMvc.perform(get("/api/v1/patients/{patientId}/biometry/history/episodes", patientId)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void listHistoryEpisodes_returnsEmptyWhenNoClosedEpisodes() throws Exception {
+        mockMvc.perform(get("/api/v1/patients/{patientId}/biometry/history/episodes", patientId)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    void getHistorySnapshot_returnsSnapshotForClosedEpisode() throws Exception {
+        Episode episode = episodeRepository.findById(episodeId).orElseThrow();
+        episode.close();
+        episodeRepository.save(episode);
+
+        mockMvc.perform(get("/api/v1/patients/{patientId}/biometry/history/episodes/{episodeId}", patientId, episodeId)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.episodeId").value(episodeId.toString()));
+    }
+
+    @Test
+    void getHistorySnapshot_returns400ForActiveEpisode() throws Exception {
+        mockMvc.perform(get("/api/v1/patients/{patientId}/biometry/history/episodes/{episodeId}", patientId, episodeId)
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isBadRequest());
+    }
 }

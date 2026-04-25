@@ -2,12 +2,7 @@ package com.nutriai.api.service;
 
 import com.nutriai.api.dto.biometry.*;
 import com.nutriai.api.exception.ResourceNotFoundException;
-import com.nutriai.api.model.BiometryAssessment;
-import com.nutriai.api.model.BiometryPerimetry;
-import com.nutriai.api.model.BiometrySkinfold;
-import com.nutriai.api.model.Episode;
-import com.nutriai.api.model.EpisodeHistoryEvent;
-import com.nutriai.api.model.Patient;
+import com.nutriai.api.model.*;
 import com.nutriai.api.repository.*;
 
 import org.slf4j.Logger;
@@ -17,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,19 +27,28 @@ public class BiometryService {
     private final EpisodeHistoryEventRepository historyEventRepository;
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
+    private final MealPlanRepository mealPlanRepository;
+    private final MealSlotRepository mealSlotRepository;
+    private final MealOptionRepository mealOptionRepository;
 
     public BiometryService(BiometryAssessmentRepository assessmentRepository,
                            BiometrySkinfoldRepository skinfoldRepository,
                            BiometryPerimetryRepository perimetryRepository,
                            EpisodeHistoryEventRepository historyEventRepository,
                            PatientRepository patientRepository,
-                           EpisodeRepository episodeRepository) {
+                           EpisodeRepository episodeRepository,
+                           MealPlanRepository mealPlanRepository,
+                           MealSlotRepository mealSlotRepository,
+                           MealOptionRepository mealOptionRepository) {
         this.assessmentRepository = assessmentRepository;
         this.skinfoldRepository = skinfoldRepository;
         this.perimetryRepository = perimetryRepository;
         this.historyEventRepository = historyEventRepository;
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
+        this.mealPlanRepository = mealPlanRepository;
+        this.mealSlotRepository = mealSlotRepository;
+        this.mealOptionRepository = mealOptionRepository;
     }
 
     @Transactional
@@ -167,6 +172,68 @@ public class BiometryService {
         return assessments.stream()
                 .map(BiometryAssessmentResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BiometryHistoryEpisodeResponse> listHistoryEpisodes(UUID nutritionistId, UUID patientId) {
+        patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
+
+        List<Episode> closedEpisodes = episodeRepository.findByPatientIdOrderByStartDateDesc(patientId).stream()
+                .filter(e -> e.getEndDate() != null)
+                .toList();
+
+        return closedEpisodes.stream().map(episode -> {
+            List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(episode.getId());
+            int durationDays = (int) ChronoUnit.DAYS.between(
+                    episode.getStartDate().toLocalDate(),
+                    episode.getEndDate().toLocalDate());
+            return new BiometryHistoryEpisodeResponse(
+                    episode.getId(),
+                    episode.getStartDate(),
+                    episode.getEndDate(),
+                    !assessments.isEmpty(),
+                    assessments.size(),
+                    durationDays
+            );
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public BiometryHistorySnapshotResponse getHistorySnapshot(UUID nutritionistId, UUID patientId, UUID episodeId) {
+        patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
+                .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
+
+        Episode episode = episodeRepository.findById(episodeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Episódio", episodeId));
+
+        if (episode.getEndDate() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Episódio ativo não possui histórico");
+        }
+
+        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdOrderByAssessmentDateAsc(episodeId);
+        List<EpisodeHistoryEvent> timelineEvents = historyEventRepository.findByEpisodeIdOrderByEventAtAsc(episodeId);
+
+        MealPlan plan = mealPlanRepository.findByEpisodeId(episodeId).orElse(null);
+        int mealSlotCount = 0;
+        int foodItemCount = 0;
+        if (plan != null) {
+            List<MealSlot> slots = mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId());
+            mealSlotCount = slots.size();
+            List<UUID> slotIds = slots.stream().map(MealSlot::getId).toList();
+            List<MealOption> options = slotIds.isEmpty() ? List.of() : mealOptionRepository.findAllByMealSlotIds(slotIds);
+            foodItemCount = options.size();
+        }
+
+        List<BiometryAssessmentResponse> assessmentResponses = assessments.stream()
+                .map(BiometryAssessmentResponse::from).toList();
+        List<EpisodeHistoryEventResponse> eventResponses = timelineEvents.stream()
+                .map(e -> new EpisodeHistoryEventResponse(e.getId(), e.getEventType(), e.getEventAt(),
+                        e.getTitle(), e.getDescription(), e.getSourceRef())).toList();
+
+        return new BiometryHistorySnapshotResponse(
+                episodeId, episode.getStartDate(), episode.getEndDate(), null,
+                mealSlotCount, foodItemCount, assessmentResponses, eventResponses);
     }
 
     private void emitHistoryEvent(UUID episodeId, UUID nutritionistId, String eventType, String title, String sourceRef, UUID sourceId) {

@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +33,9 @@ class BiometryServiceTest {
     @Mock private EpisodeHistoryEventRepository historyEventRepository;
     @Mock private PatientRepository patientRepository;
     @Mock private EpisodeRepository episodeRepository;
+    @Mock private MealPlanRepository mealPlanRepository;
+    @Mock private MealSlotRepository mealSlotRepository;
+    @Mock private MealOptionRepository mealOptionRepository;
 
     @InjectMocks
     private BiometryService biometryService;
@@ -181,5 +185,84 @@ class BiometryServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.updateAssessment(nutritionistId, patientId, assessmentId, req));
+    }
+
+    @Test
+    void listHistoryEpisodes_returnsOnlyClosedEpisodesWithBiometryInfo() {
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+
+        Episode closedEpisode = Episode.builder()
+                .id(UUID.randomUUID()).patientId(patientId)
+                .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .build();
+        Episode activeEpisode = Episode.builder()
+                .id(episodeId).patientId(patientId)
+                .startDate(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .build();
+        when(episodeRepository.findByPatientIdOrderByStartDateDesc(patientId)).thenReturn(List.of(closedEpisode, activeEpisode));
+        when(assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(closedEpisode.getId()))
+                .thenReturn(List.of(BiometryAssessment.builder().id(UUID.randomUUID()).build()));
+
+        List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);
+
+        assertEquals(1, result.size());
+        assertEquals(closedEpisode.getId(), result.get(0).episodeId());
+        assertTrue(result.get(0).hasBiometry());
+        assertEquals(59, result.get(0).durationDays());
+    }
+
+    @Test
+    void listHistoryEpisodes_returnsEmptyWhenNoClosedEpisodes() {
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findByPatientIdOrderByStartDateDesc(patientId)).thenReturn(List.of(activeEpisode));
+
+        List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getHistorySnapshot_returnsAssessmentsAndTimeline() {
+        UUID closedEpisodeId = UUID.randomUUID();
+        Episode closedEpisode = Episode.builder()
+                .id(closedEpisodeId).patientId(patientId)
+                .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .build();
+
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findById(closedEpisodeId)).thenReturn(Optional.of(closedEpisode));
+        when(assessmentRepository.findByEpisodeIdOrderByAssessmentDateAsc(closedEpisodeId)).thenReturn(List.of());
+        when(historyEventRepository.findByEpisodeIdOrderByEventAtAsc(closedEpisodeId)).thenReturn(List.of());
+        when(mealPlanRepository.findByEpisodeId(closedEpisodeId)).thenReturn(Optional.empty());
+
+        BiometryHistorySnapshotResponse result = biometryService.getHistorySnapshot(nutritionistId, patientId, closedEpisodeId);
+
+        assertNotNull(result);
+        assertEquals(closedEpisodeId, result.episodeId());
+        assertEquals(0, result.assessments().size());
+        assertEquals(0, result.timelineEvents().size());
+        assertEquals(0, result.mealSlotCount());
+    }
+
+    @Test
+    void getHistorySnapshot_failsForActiveEpisode() {
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findById(episodeId)).thenReturn(Optional.of(activeEpisode));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> biometryService.getHistorySnapshot(nutritionistId, patientId, episodeId));
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+    }
+
+    @Test
+    void getHistorySnapshot_failsForNonexistentEpisode() {
+        UUID randomId = UUID.randomUUID();
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findById(randomId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> biometryService.getHistorySnapshot(nutritionistId, patientId, randomId));
     }
 }

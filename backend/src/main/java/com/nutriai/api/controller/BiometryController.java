@@ -3,6 +3,8 @@ package com.nutriai.api.controller;
 import com.nutriai.api.auth.NutritionistAccess;
 import com.nutriai.api.dto.ApiResponse;
 import com.nutriai.api.dto.biometry.BiometryAssessmentResponse;
+import com.nutriai.api.dto.biometry.BiometryHistoryEpisodeResponse;
+import com.nutriai.api.dto.biometry.BiometryHistorySnapshotResponse;
 import com.nutriai.api.dto.biometry.CreateBiometryAssessmentRequest;
 import com.nutriai.api.dto.biometry.UpdateBiometryAssessmentRequest;
 import com.nutriai.api.service.BiometryService;
@@ -55,6 +57,25 @@ public class BiometryController {
     ) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         List<BiometryAssessmentResponse> response = biometryService.listAssessments(nutritionistId, patientId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/history/episodes")
+    public ResponseEntity<ApiResponse<List<BiometryHistoryEpisodeResponse>>> listHistoryEpisodes(
+            @PathVariable UUID patientId
+    ) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        List<BiometryHistoryEpisodeResponse> response = biometryService.listHistoryEpisodes(nutritionistId, patientId);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/history/episodes/{episodeId}")
+    public ResponseEntity<ApiResponse<BiometryHistorySnapshotResponse>> getHistorySnapshot(
+            @PathVariable UUID patientId,
+            @PathVariable UUID episodeId
+    ) {
+        UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
+        BiometryHistorySnapshotResponse response = biometryService.getHistorySnapshot(nutritionistId, patientId, episodeId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }
