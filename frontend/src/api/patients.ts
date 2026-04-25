@@ -9,6 +9,7 @@ export interface CreatePatientRequest {
   whatsapp?: string;
   objective: string;
   weight?: number;
+  terms: boolean;
 }
 
 export interface UpdatePatientRequest {

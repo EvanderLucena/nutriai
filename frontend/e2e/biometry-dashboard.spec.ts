@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, signupViaApi, completeOnboardingViaApi } from './helpers';
+import {
+  completeOnboardingViaApi,
+  createPatientPayload,
+  signupViaApi,
+  uniqueEmail,
+} from './helpers';
 
 const API = 'http://localhost:8080/api/v1';
 
@@ -15,7 +20,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
 
     const createResp = await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente Biometria', objective: 'EMAGRECIMENTO' },
+      data: createPatientPayload({ name: 'Paciente Biometria', objective: 'EMAGRECIMENTO' }),
     });
     expect(createResp.status()).toBe(201);
     patientId = (await createResp.json()).data.id;
@@ -24,7 +29,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   test('E2E-BIO-00: Create patient with pt-BR objective label returns 400', async ({ request }) => {
     const resp = await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente Label', objective: 'Emagrecimento' },
+      data: createPatientPayload({ name: 'Paciente Label', objective: 'Emagrecimento' }),
     });
     expect(resp.status()).toBe(400);
   });
@@ -185,11 +190,11 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   test('E2E-DASH-03: Dashboard reflects created patients', async ({ request }) => {
     await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente Dashboard 1', objective: 'HIPERTROFIA' },
+      data: createPatientPayload({ name: 'Paciente Dashboard 1', objective: 'HIPERTROFIA' }),
     });
     await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente Dashboard 2', objective: 'SAUDE_GERAL' },
+      data: createPatientPayload({ name: 'Paciente Dashboard 2', objective: 'SAUDE_GERAL' }),
     });
 
     const resp = await request.get(`${API}/dashboard`, {
@@ -218,7 +223,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
 
     const otherPatientResp = await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
-      data: { name: 'Paciente Outro Nutri', objective: 'EMAGRECIMENTO' },
+      data: createPatientPayload({ name: 'Paciente Outro Nutri', objective: 'EMAGRECIMENTO' }),
     });
     expect(otherPatientResp.status()).toBe(201);
     const otherPatientId = (await otherPatientResp.json()).data.id as string;
@@ -269,7 +274,7 @@ test.describe('Biometry — History Episodes', () => {
 
     const createResp = await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente Histórico', objective: 'EMAGRECIMENTO' },
+      data: createPatientPayload({ name: 'Paciente Histórico', objective: 'EMAGRECIMENTO' }),
     });
     patientId = (await createResp.json()).data.id;
   });

@@ -83,7 +83,11 @@ class BiometryControllerTest {
         patient = patientRepository.save(patient);
         patientId = patient.getId();
 
-        Episode episode = Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build();
+        Episode episode = Episode.builder()
+                .patientId(patientId)
+                .nutritionistId(nutritionistId)
+                .startDate(LocalDateTime.now())
+                .build();
         episode = episodeRepository.save(episode);
         episodeId = episode.getId();
     }
@@ -201,6 +205,7 @@ class BiometryControllerTest {
         Episode otherEpisode = episodeRepository.save(Episode.builder()
                 .patientId(otherPatient.getId())
                 .nutritionistId(nutritionistId)
+                .startDate(LocalDateTime.now())
                 .build());
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .episodeId(otherEpisode.getId())

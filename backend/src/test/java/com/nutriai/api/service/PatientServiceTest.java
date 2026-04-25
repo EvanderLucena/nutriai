@@ -84,7 +84,7 @@ class PatientServiceTest {
         });
         when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"), true);
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertNotNull(resp);
@@ -99,7 +99,7 @@ class PatientServiceTest {
     void createPatient_throwsWhenNutritionistNotFound() {
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.empty());
 
-        CreatePatientRequest req = new CreatePatientRequest("Test", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest req = new CreatePatientRequest("Test", null, null, null, null, "EMAGRECIMENTO", null, true);
         assertThrows(ResourceNotFoundException.class, () -> patientService.createPatient(nutritionistId, req));
     }
 
@@ -251,7 +251,7 @@ class PatientServiceTest {
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
         when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CreatePatientRequest req = new CreatePatientRequest("João Pedro", null, null, null, null, "HIPERTROFIA", null);
+        CreatePatientRequest req = new CreatePatientRequest("João Pedro", null, null, null, null, "HIPERTROFIA", null, true);
         PatientResponse resp = patientService.createPatient(nutritionistId, req);
 
         assertEquals("JP", resp.initials());
@@ -272,7 +272,7 @@ class PatientServiceTest {
         });
         when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"), true);
         patientService.createPatient(nutritionistId, req);
 
         verify(historyEventRepository).save(argThat(e ->

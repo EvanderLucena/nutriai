@@ -58,7 +58,9 @@ function formatBiometryMeasureLabel(measureKey: string) {
 
 export function PatientView() {
   const { id } = useParams();
+  const patientId = id ?? ANA.id;
   const { data: apiData, isLoading } = usePatient(id ?? null);
+  const { data: biometryAssessments } = usePatientBiometry(patientId);
   const [tab, setTab] = React.useState<Tab>('today');
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -87,11 +89,16 @@ export function PatientView() {
       : {}),
   };
 
-  const patientId = id ?? patient.id;
-  const latestBiometryWeight =
+  const fallbackLatestBiometryWeight =
     patient.biometry[patient.biometry.length - 1]?.weight ?? patient.weight;
-  const previousBiometryWeight =
+  const fallbackPreviousBiometryWeight =
     patient.biometry.length > 1 ? patient.biometry[patient.biometry.length - 2]?.weight : null;
+  const latestBiometryWeight =
+    biometryAssessments?.[biometryAssessments.length - 1]?.weight ?? fallbackLatestBiometryWeight;
+  const previousBiometryWeight =
+    biometryAssessments && biometryAssessments.length > 1
+      ? (biometryAssessments[biometryAssessments.length - 2]?.weight ?? null)
+      : fallbackPreviousBiometryWeight;
   const latestWeightDelta =
     previousBiometryWeight != null
       ? latestBiometryWeight - previousBiometryWeight
@@ -618,6 +625,9 @@ function BiometryTab({
     const d = cur - prev;
     return Math.round(d * 10) / 10;
   };
+  const weightDelta = delta(last?.weight, prev?.weight);
+  const bodyFatDelta = delta(last?.bodyFatPercent, prev?.bodyFatPercent);
+  const leanMassDelta = delta(last?.leanMassKg, prev?.leanMassKg);
 
   return (
     <div style={{ padding: '24px 28px' }}>
@@ -656,30 +666,22 @@ function BiometryTab({
               label="Peso"
               value={last!.weight}
               unit="kg"
-              delta={delta(last!.weight, prev?.weight)}
-              good={
-                delta(last!.weight, prev?.weight) != null && delta(last!.weight, prev?.weight)! <= 0
-              }
+              delta={weightDelta}
+              good={weightDelta != null && weightDelta <= 0}
             />
             <BioCell
               label="% Gordura"
               value={last!.bodyFatPercent ?? 0}
               unit="%"
-              delta={delta(last!.bodyFatPercent, prev?.bodyFatPercent)}
-              good={
-                delta(last!.bodyFatPercent, prev?.bodyFatPercent) != null &&
-                delta(last!.bodyFatPercent, prev?.bodyFatPercent)! < 0
-              }
+              delta={bodyFatDelta}
+              good={bodyFatDelta != null && bodyFatDelta < 0}
             />
             <BioCell
               label="Massa magra"
               value={last!.leanMassKg ?? 0}
               unit="kg"
-              delta={delta(last!.leanMassKg, prev?.leanMassKg)}
-              good={
-                delta(last!.leanMassKg, prev?.leanMassKg) != null &&
-                delta(last!.leanMassKg, prev?.leanMassKg)! > 0
-              }
+              delta={leanMassDelta}
+              good={leanMassDelta != null && leanMassDelta > 0}
             />
             <BioCell label="% Água" value={last!.waterPercent ?? 0} unit="%" />
             <BioCell label="Gordura visceral" value={last!.visceralFatLevel ?? 0} sub="nível" />

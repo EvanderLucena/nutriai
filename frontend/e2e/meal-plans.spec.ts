@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, signupViaApi } from './helpers';
+import { createPatientPayload, signupViaApi, uniqueEmail } from './helpers';
 
 const API = 'http://localhost:8080/api/v1';
 
@@ -14,7 +14,7 @@ test.describe('Meal Plans — API Contract', () => {
 
     const createResp = await request.post(`${API}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Paciente API Plano', objective: 'HIPERTROFIA' },
+      data: createPatientPayload({ name: 'Paciente API Plano', objective: 'HIPERTROFIA' }),
     });
     const created = await createResp.json();
     patientId = created.data.id;
@@ -108,10 +108,13 @@ test.describe('Meal Plans — API Contract', () => {
     const plan = await planResp.json();
     const mealId = plan.data.meals[0].id;
 
-    const response = await request.post(`${API}/patients/${patientId}/plan/meals/${mealId}/options`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      data: { name: 'Opção 2 · Alternativa' },
-    });
+    const response = await request.post(
+      `${API}/patients/${patientId}/plan/meals/${mealId}/options`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        data: { name: 'Opção 2 · Alternativa' },
+      },
+    );
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body.data).toHaveProperty('id');

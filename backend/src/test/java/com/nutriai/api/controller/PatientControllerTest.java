@@ -102,7 +102,7 @@ class PatientControllerTest {
 
     @Test
     void createPatient_returns201() throws Exception {
-        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"), true);
 
         mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
@@ -117,8 +117,8 @@ class PatientControllerTest {
 
     @Test
     void listPatients_returnsPaginatedList() throws Exception {
-        CreatePatientRequest req1 = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
-        CreatePatientRequest req2 = new CreatePatientRequest("José Santos", null, null, null, null, "HIPERTROFIA", null);
+        CreatePatientRequest req1 = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
+        CreatePatientRequest req2 = new CreatePatientRequest("José Santos", null, null, null, null, "HIPERTROFIA", null, true);
 
         mockMvc.perform(post("/api/v1/patients").header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(req1)));
@@ -135,7 +135,7 @@ class PatientControllerTest {
 
     @Test
     void getPatient_returnsPatientDetail() throws Exception {
-        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         String createResponse = mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -153,7 +153,7 @@ class PatientControllerTest {
 
     @Test
     void updatePatient_updatesFields() throws Exception {
-        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         String createResponse = mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -175,7 +175,7 @@ class PatientControllerTest {
 
     @Test
     void deactivatePatient_setsActiveFalse() throws Exception {
-        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         String createResponse = mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -193,7 +193,7 @@ class PatientControllerTest {
 
     @Test
     void reactivatePatient_setsActiveTrue() throws Exception {
-        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         String createResponse = mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -238,7 +238,7 @@ class PatientControllerTest {
         SignupRequest otherNutriReq = new SignupRequest("Other Nutri", "other@test.com", "senha12345", "54321", "RJ", null, null, true);
         var otherResult = authService.signup(otherNutriReq);
 
-        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null);
+        CreatePatientRequest createReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         String createResponse = mockMvc.perform(post("/api/v1/patients")
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON)

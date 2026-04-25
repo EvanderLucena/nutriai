@@ -4,7 +4,22 @@ export function uniqueEmail(): string {
   return `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
 }
 
-export async function signupViaApi(request: APIRequestContext, email: string, password = 'SenhaSegura123!') {
+export function createPatientPayload(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    name: 'Paciente E2E',
+    objective: 'EMAGRECIMENTO',
+    terms: true,
+    ...overrides,
+  };
+}
+
+export async function signupViaApi(
+  request: APIRequestContext,
+  email: string,
+  password = 'SenhaSegura123!',
+) {
   const API = 'http://localhost:8080/api/v1';
   const resp = await request.post(`${API}/auth/signup`, {
     data: {
@@ -31,7 +46,11 @@ export async function completeOnboardingViaApi(request: APIRequestContext, acces
   });
 }
 
-export async function loginViaApi(request: APIRequestContext, email: string, password = 'SenhaSegura123!') {
+export async function loginViaApi(
+  request: APIRequestContext,
+  email: string,
+  password = 'SenhaSegura123!',
+) {
   const API = 'http://localhost:8080/api/v1';
   const resp = await request.post(`${API}/auth/login`, { data: { email, password } });
   const body = await resp.json();
