@@ -177,7 +177,7 @@ jobs:
             }
 
       - name: Cleanup legacy AI review comments
-        if: steps.review.outputs.result == 'success'
+        if: steps.diff.outputs.lines > 0 && (steps.review.outputs.result == 'success' || steps.review.outputs.result == 'error')
         uses: actions/github-script@v7
         with:
           script: |
