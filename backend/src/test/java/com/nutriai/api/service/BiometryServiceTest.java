@@ -88,25 +88,20 @@ class BiometryServiceTest {
 
     @Test
     void createAssessment_succeedsWithAllOptionalFields() {
+        BiometryAssessment[] savedAssessmentRef = new BiometryAssessment[1];
+
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
-        when(skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(any(), eq(nutritionistId)))
-                .thenReturn(List.of(BiometrySkinfold.builder()
-                        .measureKey("triceps")
-                        .valueMm(new BigDecimal("12.50"))
-                        .sortOrder(1)
-                        .build()));
-        when(perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(any(), eq(nutritionistId)))
-                .thenReturn(List.of(BiometryPerimetry.builder()
-                        .measureKey("cintura")
-                        .valueCm(new BigDecimal("82.30"))
-                        .sortOrder(1)
-                        .build()));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> {
             BiometryAssessment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
+            savedAssessmentRef[0] = a;
             return a;
         });
+        when(skinfoldRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(anyList(), eq(nutritionistId)))
+                .thenAnswer(inv -> savedAssessmentRef[0] != null ? savedAssessmentRef[0].getSkinfolds() : List.of());
+        when(perimetryRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(anyList(), eq(nutritionistId)))
+                .thenAnswer(inv -> savedAssessmentRef[0] != null ? savedAssessmentRef[0].getPerimetries() : List.of());
         when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
@@ -233,9 +228,9 @@ class BiometryServiceTest {
                 assessmentId, patientId, nutritionistId)).thenReturn(Optional.of(existing));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> inv.getArgument(0));
         when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessmentId, nutritionistId))
+        when(skinfoldRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(anyList(), eq(nutritionistId)))
                 .thenAnswer(inv -> existing.getSkinfolds());
-        when(perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessmentId, nutritionistId))
+        when(perimetryRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(anyList(), eq(nutritionistId)))
                 .thenAnswer(inv -> existing.getPerimetries());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(

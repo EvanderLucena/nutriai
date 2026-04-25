@@ -163,6 +163,68 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     expect(resp.status()).toBe(401);
   });
 
+  test('E2E-BIO-11: Cross-tenant GETs de biometria e histórico retornam 403/404', async ({
+    request,
+  }) => {
+    const otherResult = await signupViaApi(request, uniqueEmail());
+    await completeOnboardingViaApi(request, otherResult.accessToken);
+
+    const otherPatientResp = await request.post(`${API}/patients`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      data: createPatientPayload({
+        name: 'Paciente Cross Tenant GET',
+        objective: 'EMAGRECIMENTO',
+      }),
+    });
+    expect(otherPatientResp.status()).toBe(201);
+    const otherPatientId = (await otherPatientResp.json()).data.id as string;
+
+    const otherBiometryResp = await request.post(`${API}/patients/${otherPatientId}/biometry`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      data: {
+        assessmentDate: '2026-04-24',
+        weight: 80.4,
+        bodyFatPercent: 30.1,
+      },
+    });
+    expect(otherBiometryResp.status()).toBe(201);
+
+    const deactivateResp = await request.patch(`${API}/patients/${otherPatientId}/deactivate`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+    });
+    expect(deactivateResp.status()).toBe(200);
+
+    const ownListResp = await request.get(`${API}/patients/${otherPatientId}/biometry`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect([403, 404]).toContain(ownListResp.status());
+
+    const ownHistoryResp = await request.get(
+      `${API}/patients/${otherPatientId}/biometry/history/episodes`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect([403, 404]).toContain(ownHistoryResp.status());
+
+    const otherEpisodesResp = await request.get(
+      `${API}/patients/${otherPatientId}/biometry/history/episodes`,
+      {
+        headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      },
+    );
+    expect(otherEpisodesResp.status()).toBe(200);
+    const episodeId = (await otherEpisodesResp.json()).data[0].episodeId as string;
+
+    const ownSnapshotResp = await request.get(
+      `${API}/patients/${otherPatientId}/biometry/history/episodes/${episodeId}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+    expect([403, 404]).toContain(ownSnapshotResp.status());
+  });
+
   test('E2E-DASH-01: Dashboard returns correct KPI contract', async ({ request }) => {
     const resp = await request.get(`${API}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },

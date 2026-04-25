@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class BiometryService {
@@ -167,9 +168,7 @@ public class BiometryService {
 
         List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
                 activeEpisode.getId(), patientId, nutritionistId);
-        return assessments.stream()
-                .map(assessment -> toResponse(assessment, nutritionistId))
-                .toList();
+        return toResponses(assessments, nutritionistId);
     }
 
     @Transactional(readOnly = true)
@@ -232,8 +231,7 @@ public class BiometryService {
             foodItemCount = options.size();
         }
 
-        List<BiometryAssessmentResponse> assessmentResponses = assessments.stream()
-                .map(assessment -> toResponse(assessment, nutritionistId)).toList();
+        List<BiometryAssessmentResponse> assessmentResponses = toResponses(assessments, nutritionistId);
         List<EpisodeHistoryEventResponse> eventResponses = timelineEvents.stream()
                 .map(e -> new EpisodeHistoryEventResponse(e.getId(), e.getEventType(), e.getEventAt(),
                         e.getTitle(), e.getDescription(), e.getSourceRef())).toList();
@@ -273,13 +271,36 @@ public class BiometryService {
     }
 
     private BiometryAssessmentResponse toResponse(BiometryAssessment assessment, UUID nutritionistId) {
-        List<BiometrySkinfold> skinfolds = Optional.ofNullable(
-                skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessment.getId(), nutritionistId))
-                .orElse(List.of());
-        List<BiometryPerimetry> perimetries = Optional.ofNullable(
-                perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessment.getId(), nutritionistId))
-                .orElse(List.of());
-        return BiometryAssessmentResponse.from(assessment, skinfolds, perimetries);
+        return toResponses(List.of(assessment), nutritionistId).get(0);
+    }
+
+    private List<BiometryAssessmentResponse> toResponses(List<BiometryAssessment> assessments, UUID nutritionistId) {
+        if (assessments.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> assessmentIds = assessments.stream()
+                .map(BiometryAssessment::getId)
+                .toList();
+        Map<UUID, List<BiometrySkinfold>> skinfoldsByAssessmentId = Optional.ofNullable(
+                skinfoldRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(
+                        assessmentIds, nutritionistId))
+                .orElse(List.of())
+                .stream()
+                .collect(Collectors.groupingBy(skinfold -> skinfold.getAssessment().getId()));
+        Map<UUID, List<BiometryPerimetry>> perimetriesByAssessmentId = Optional.ofNullable(
+                perimetryRepository.findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(
+                        assessmentIds, nutritionistId))
+                .orElse(List.of())
+                .stream()
+                .collect(Collectors.groupingBy(perimetry -> perimetry.getAssessment().getId()));
+
+        return assessments.stream()
+                .map(assessment -> BiometryAssessmentResponse.from(
+                        assessment,
+                        skinfoldsByAssessmentId.getOrDefault(assessment.getId(), List.of()),
+                        perimetriesByAssessmentId.getOrDefault(assessment.getId(), List.of())))
+                .toList();
     }
 
     private List<BiometrySkinfold> mergeSkinfolds(BiometryAssessment assessment, UUID nutritionistId,

@@ -12,5 +12,9 @@ public interface BiometrySkinfoldRepository extends JpaRepository<BiometrySkinfo
 
     List<BiometrySkinfold> findByAssessmentIdAndNutritionistIdOrderBySortOrder(UUID assessmentId, UUID nutritionistId);
 
+    List<BiometrySkinfold> findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(
+            List<UUID> assessmentIds,
+            UUID nutritionistId);
+
     void deleteAllByAssessmentIdAndNutritionistId(UUID assessmentId, UUID nutritionistId);
 }

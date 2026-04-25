@@ -12,5 +12,9 @@ public interface BiometryPerimetryRepository extends JpaRepository<BiometryPerim
 
     List<BiometryPerimetry> findByAssessmentIdAndNutritionistIdOrderBySortOrder(UUID assessmentId, UUID nutritionistId);
 
+    List<BiometryPerimetry> findByAssessmentIdInAndNutritionistIdOrderByAssessmentIdAscSortOrderAsc(
+            List<UUID> assessmentIds,
+            UUID nutritionistId);
+
     void deleteAllByAssessmentIdAndNutritionistId(UUID assessmentId, UUID nutritionistId);
 }
