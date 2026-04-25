@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePatientUIStore } from './patientStore';
+import { useMutation } from '@tanstack/react-query';
+import { useCreatePatient, usePatientUIStore } from './patientStore';
+
+const showErrorMock = vi.fn();
 
 vi.mock('../api/patients', () => ({
   listPatients: vi.fn(),
@@ -12,7 +15,7 @@ vi.mock('../api/patients', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: vi.fn(),
-  useMutation: vi.fn(() => ({
+  useMutation: vi.fn((_options) => ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
   })),
@@ -21,8 +24,18 @@ vi.mock('@tanstack/react-query', () => ({
   })),
 }));
 
+vi.mock('./toastStore', () => ({
+  useToastStore: {
+    getState: () => ({
+      showError: showErrorMock,
+    }),
+  },
+}));
+
 describe('usePatientUIStore', () => {
   beforeEach(() => {
+    showErrorMock.mockReset();
+    vi.mocked(useMutation).mockClear();
     usePatientUIStore.setState({
       searchQuery: '',
       statusFilter: 'all',
@@ -126,6 +139,26 @@ describe('usePatientUIStore', () => {
       expect(state.newPatientModalOpen).toBe(false);
       expect(state.editingPatientId).toBeNull();
       expect(state.togglingPatientId).toBeNull();
+    });
+  });
+
+  describe('useCreatePatient', () => {
+    it('shows LGPD validation error returned by API', () => {
+      useCreatePatient();
+
+      const mutationOptions = vi.mocked(useMutation).mock.calls.at(-1)?.[0] as
+        | { onError?: (error: unknown) => void }
+        | undefined;
+
+      mutationOptions?.onError?.({
+        success: false,
+        message: 'Erro de validação',
+        errors: [{ field: 'terms', message: 'Consentimento LGPD é obrigatório' }],
+        data: null,
+        status: 400,
+      });
+
+      expect(showErrorMock).toHaveBeenCalledWith('Consentimento LGPD é obrigatório');
     });
   });
 });

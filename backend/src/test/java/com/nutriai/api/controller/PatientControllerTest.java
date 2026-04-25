@@ -116,6 +116,21 @@ class PatientControllerTest {
     }
 
     @Test
+    void createPatient_requiresLgpdConsent() throws Exception {
+        CreatePatientRequest req = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"), false);
+
+        mockMvc.perform(post("/api/v1/patients")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Erro de validação"))
+                .andExpect(jsonPath("$.errors[0].field").value("terms"))
+                .andExpect(jsonPath("$.errors[0].message").value("Consentimento LGPD é obrigatório"));
+    }
+
+    @Test
     void listPatients_returnsPaginatedList() throws Exception {
         CreatePatientRequest req1 = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", null, true);
         CreatePatientRequest req2 = new CreatePatientRequest("José Santos", null, null, null, null, "HIPERTROFIA", null, true);

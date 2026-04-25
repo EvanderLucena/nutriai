@@ -611,8 +611,10 @@ function BiometryTab({
     );
   }
 
-  const fmtDate = (iso: string) => {
+  const fmtDate = (iso: string | null | undefined) => {
+    if (!iso) return '—';
     const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
@@ -1090,8 +1092,10 @@ function HistoryTab({ patientId }: { patientId: string }) {
     selectedEpisodeId,
   );
 
-  const fmtDate = (iso: string) => {
+  const fmtDate = (iso: string | null | undefined) => {
+    if (!iso) return '—';
     const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 

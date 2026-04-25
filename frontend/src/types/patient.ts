@@ -251,7 +251,7 @@ export interface UpdateBiometryAssessmentRequest {
 export interface HistoryEpisodeListItem {
   episodeId: string;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   hasBiometry: boolean;
   assessmentCount: number;
   durationDays: number;
@@ -269,7 +269,7 @@ export interface TimelineEventDTO {
 export interface HistorySnapshot {
   episodeId: string;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   episodeObjective: string | null;
   mealSlotCount: number;
   foodItemCount: number;
