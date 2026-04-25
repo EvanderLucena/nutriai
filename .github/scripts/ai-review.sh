@@ -37,6 +37,7 @@ RULES_FILE="${AI_REVIEW_RULES_FILE:-/tmp/review_rules.txt}"
 MANIFEST_FILE="${AI_REVIEW_MANIFEST_FILE:-/tmp/pr_files.txt}"
 CHUNK_LINES="${AI_REVIEW_CHUNK_LINES:-1200}"
 MAX_CHUNKS="${AI_REVIEW_MAX_CHUNKS:-10}"
+MAX_PARALLEL="${AI_REVIEW_MAX_PARALLEL:-4}"
 PRIMARY_PROVIDER="${AI_REVIEW_PRIMARY_PROVIDER:-ollama}"
 PRIMARY_MODEL="${AI_REVIEW_PRIMARY_MODEL:-glm-5.1}"
 FALLBACK_PROVIDER="${AI_REVIEW_FALLBACK_PROVIDER:-}"
@@ -214,6 +215,96 @@ review_with_fallback() {
   return 1
 }
 
+process_one_chunk() {
+  local chunk_file="$1"
+  local results_dir="$2"
+  local idx="$3"
+
+  local sanitized_chunk
+  local chunk_review="${results_dir}/review-${idx}.txt"
+  local provider_file="${results_dir}/provider-${idx}.txt"
+  local model_file="${results_dir}/model-${idx}.txt"
+  local attempts_file="${results_dir}/attempts-${idx}.txt"
+  local status_file="${results_dir}/status-${idx}.txt"
+
+  sanitized_chunk=$(mktemp)
+  sed 's/```/` ` `/g' "$chunk_file" > "$sanitized_chunk"
+
+  if review_with_fallback "$sanitized_chunk" "$chunk_review" "$provider_file" "$model_file" "$attempts_file"; then
+    printf 'ok\n' > "$status_file"
+  else
+    printf 'fail\n' > "$status_file"
+  fi
+
+  rm -f "$sanitized_chunk"
+}
+
+filter_false_positives() {
+  local findings_file="$1"
+  local diff_file="$2"
+  local manifest_file="$3"
+  local filtered
+  local dropped=0
+  local line
+  local lower
+
+  if [[ ! -s "$findings_file" ]]; then
+    return 0
+  fi
+
+  filtered=$(mktemp)
+
+  while IFS= read -r line; do
+    lower=$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')
+
+    # Rule 1: claims about "missing/ausente migration" — drop if any *.sql file is in the manifest.
+    if [[ "$lower" =~ (missing[[:space:]]+migration|migration[[:space:]]+(not[[:space:]]+visible|missing|ausente)|sem[[:space:]]+migra[cç][aã]o|migra[cç][aã]o[[:space:]]+ausente) ]]; then
+      if [[ -s "$manifest_file" ]] && grep -qE '\.sql$' "$manifest_file"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
+    fi
+
+    # Rule 2: claims about "missing/ausente test" — drop if any *Test*.java or *.spec.ts file is in the manifest.
+    if [[ "$lower" =~ (missing[[:space:]]+tests?|tests?[[:space:]]+(not[[:space:]]+visible|missing|ausente)|sem[[:space:]]+testes?|testes?[[:space:]]+ausentes?|n[aã]o[[:space:]]+inclu[ei]m[[:space:]]+teste|sem[[:space:]]+teste[[:space:]]+(de|para)) ]]; then
+      if [[ -s "$manifest_file" ]] && grep -qE '(Test\.java|\.spec\.(ts|tsx|js)|\.test\.(ts|tsx|js))$' "$manifest_file"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
+    fi
+
+    # Rule 3: claims about "without @Valid / sem @Valid / no validation" — drop if @Valid/@AssertTrue/@NotNull/@NotBlank present in diff.
+    if [[ "$lower" =~ (without[[:space:]]+@?valid|sem[[:space:]]+@?valid|n[aã]o[[:space:]]+valida|no[[:space:]]+validation|missing[[:space:]]+validation|valida[cç][aã]o[[:space:]]+ausente) ]]; then
+      if grep -qE '@Valid|@AssertTrue|@NotNull|@NotBlank|@NotEmpty|@Pattern|@Size|@Min|@Max' "$diff_file"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
+    fi
+
+    # Rule 4: speculation about hasRole('ADMIN') / endpoints that depend on ADMIN — drop if no such reference exists in the diff.
+    if [[ "$lower" =~ (hasrole.*admin|role[[:space:]]+admin|papel[[:space:]]+admin|privil[eé]gio.*admin|endpoints[[:space:]]+(que[[:space:]]+)?dependem.*admin|depend.*role.*admin) ]]; then
+      if ! grep -qE "hasRole\(['\"]ADMIN['\"]\)|hasAuthority\(['\"]ROLE_ADMIN['\"]\)|UserRole\.ADMIN|@PreAuthorize.*ADMIN" "$diff_file"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
+    fi
+
+    # Rule 5: claims that "the test will fail" / "teste falhara" — speculation about test outcomes is forbidden by prompt.
+    if [[ "$lower" =~ (test[[:space:]]+will[[:space:]]+fail|teste[[:space:]]+falhar[aá]|test[[:space:]]+far[aá]|will[[:space:]]+(cause|produce|result[[:space:]]+in)[[:space:]]+(test|teste)) ]]; then
+      dropped=$((dropped + 1))
+      continue
+    fi
+
+    printf '%s\n' "$line" >> "$filtered"
+  done < "$findings_file"
+
+  if (( dropped > 0 )); then
+    printf 'filter_false_positives: dropped %d finding(s) as anchorless or contradicted by diff/manifest\n' "$dropped" >&2
+  fi
+
+  mv "$filtered" "$findings_file"
+}
+
 summarize_success() {
   local total_lines="$1"
   local total_chunks="$2"
@@ -362,11 +453,6 @@ main() {
   local provider_chain
   local had_fallback="false"
   local chunk_file
-  local sanitized_chunk
-  local chunk_review
-  local provider_file
-  local model_file
-  local attempts_file
   local provider
   local model
   local error_message
@@ -407,32 +493,71 @@ main() {
     exit 0
   fi
 
+  local results_dir="${chunks_dir}/results"
+  mkdir -p "$results_dir"
+
+  local -a pids=()
+  local idx=0
+  local chunk_count=0
+
   while IFS= read -r chunk_file; do
-    sanitized_chunk=$(mktemp)
-    chunk_review=$(mktemp)
-    provider_file=$(mktemp)
-    model_file=$(mktemp)
-    attempts_file=$(mktemp)
+    idx=$((idx + 1))
+    chunk_count=$idx
 
-    sed 's/```/` ` `/g' "$chunk_file" > "$sanitized_chunk"
+    process_one_chunk "$chunk_file" "$results_dir" "$idx" &
+    pids+=("$!")
 
-    if ! review_with_fallback "$sanitized_chunk" "$chunk_review" "$provider_file" "$model_file" "$attempts_file"; then
-      error_message="Falha ao revisar chunk $((reviewed_chunks + 1))/${total_chunks}. Tentativas: $(cat "$attempts_file")"
+    # Cap concurrency: when MAX_PARALLEL jobs are in flight, wait for any to finish
+    # before starting the next one.
+    if (( ${#pids[@]} >= MAX_PARALLEL )); then
+      wait -n
+      # Refresh pids array to drop already-finished jobs.
+      local -a still_running=()
+      local pid
+      for pid in "${pids[@]}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+          still_running+=("$pid")
+        fi
+      done
+      pids=("${still_running[@]}")
+    fi
+  done < <(find "$chunks_dir" -maxdepth 1 -type f -name 'chunk-*' | sort)
+
+  # Wait for all remaining background jobs.
+  if (( ${#pids[@]} > 0 )); then
+    wait "${pids[@]}" 2>/dev/null || true
+  fi
+
+  # Aggregate results in chunk order.
+  local i
+  for ((i=1; i<=chunk_count; i++)); do
+    local status_file="${results_dir}/status-${i}.txt"
+    local status="fail"
+    if [[ -s "$status_file" ]]; then
+      status=$(cat "$status_file")
+    fi
+
+    if [[ "$status" != "ok" ]]; then
+      local attempts="(no attempts file)"
+      if [[ -s "${results_dir}/attempts-${i}.txt" ]]; then
+        attempts=$(cat "${results_dir}/attempts-${i}.txt")
+      fi
+      error_message="Falha ao revisar chunk ${i}/${total_chunks}. Tentativas: ${attempts}"
       summarize_error "$error_message" "$total_lines" "$total_chunks" "$reviewed_chunks" "$(provider_chain_display)"
       exit 0
     fi
 
-    provider=$(cat "$provider_file")
-    model=$(cat "$model_file")
+    provider=$(cat "${results_dir}/provider-${i}.txt")
+    model=$(cat "${results_dir}/model-${i}.txt")
     printf '%s/%s\n' "$provider" "$model" >> "$providers_used"
 
     if [[ "$provider" == "$FALLBACK_PROVIDER" && "$model" == "$FALLBACK_MODEL" ]]; then
       had_fallback="true"
     fi
 
-    grep -iE '^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):' "$chunk_review" >> "$findings_raw" || true
+    grep -iE '^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):' "${results_dir}/review-${i}.txt" >> "$findings_raw" || true
     reviewed_chunks=$((reviewed_chunks + 1))
-  done < <(find "$chunks_dir" -maxdepth 1 -type f -name 'chunk-*' | sort)
+  done
 
   if [[ -s "$providers_used" ]]; then
     provider_chain=$(awk '!seen[$0]++' "$providers_used" | paste -sd ', ' -)
@@ -442,6 +567,7 @@ main() {
 
   if [[ -s "$findings_raw" ]]; then
     awk '!seen[$0]++' "$findings_raw" > "$findings_unique"
+    filter_false_positives "$findings_unique" "$DIFF_FILE" "$MANIFEST_FILE"
   else
     : > "$findings_unique"
   fi
