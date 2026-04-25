@@ -120,6 +120,23 @@ class BiometryControllerTest {
     }
 
     @Test
+    void createAssessment_withBodyFatPercentAbove100_returns400() throws Exception {
+        String body = """
+                {
+                  "assessmentDate": "2025-01-10",
+                  "weight": 75.0,
+                  "bodyFatPercent": 120.0
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/patients/{patientId}/biometry", patientId)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void updateAssessment_returnsUpdatedResponse() throws Exception {
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .episodeId(episodeId)
@@ -139,6 +156,36 @@ class BiometryControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.weight").value(74.00));
+    }
+
+    @Test
+    void updateAssessment_withInvalidSkinfoldPayload_returns400() throws Exception {
+        BiometryAssessment assessment = BiometryAssessment.builder()
+                .episodeId(episodeId)
+                .nutritionistId(nutritionistId)
+                .assessmentDate(LocalDate.of(2025, 1, 10))
+                .weight(new BigDecimal("75.00"))
+                .bodyFatPercent(new BigDecimal("22.50"))
+                .build();
+        assessment = assessmentRepository.save(assessment);
+
+        String body = """
+                {
+                  "skinfolds": [
+                    {
+                      "measureKey": "",
+                      "valueMm": -1.0,
+                      "sortOrder": 0
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(patch("/api/v1/patients/{patientId}/biometry/{assessmentId}", patientId, assessment.getId())
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

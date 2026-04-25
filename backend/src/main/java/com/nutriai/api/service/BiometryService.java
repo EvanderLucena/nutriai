@@ -79,6 +79,7 @@ public class BiometryService {
             List<BiometrySkinfold> skinfolds = request.skinfolds().stream()
                     .map(s -> BiometrySkinfold.builder()
                             .assessment(assessment)
+                            .nutritionistId(nutritionistId)
                             .measureKey(s.measureKey())
                             .valueMm(s.valueMm())
                             .sortOrder(s.sortOrder())
@@ -91,6 +92,7 @@ public class BiometryService {
             List<BiometryPerimetry> perimetries = request.perimetry().stream()
                     .map(p -> BiometryPerimetry.builder()
                             .assessment(assessment)
+                            .nutritionistId(nutritionistId)
                             .measureKey(p.measureKey())
                             .valueCm(p.valueCm())
                             .sortOrder(p.sortOrder())
@@ -127,11 +129,12 @@ public class BiometryService {
         if (request.notes() != null) assessment.setNotes(request.notes());
 
         if (request.skinfolds() != null) {
-            skinfoldRepository.deleteAllByAssessmentId(assessmentId);
+            skinfoldRepository.deleteAllByAssessmentIdAndNutritionistId(assessmentId, nutritionistId);
             assessment.getSkinfolds().clear();
             List<BiometrySkinfold> newSkinfolds = request.skinfolds().stream()
                     .map(s -> BiometrySkinfold.builder()
                             .assessment(assessment)
+                            .nutritionistId(nutritionistId)
                             .measureKey(s.measureKey())
                             .valueMm(s.valueMm())
                             .sortOrder(s.sortOrder())
@@ -141,11 +144,12 @@ public class BiometryService {
         }
 
         if (request.perimetry() != null) {
-            perimetryRepository.deleteAllByAssessmentId(assessmentId);
+            perimetryRepository.deleteAllByAssessmentIdAndNutritionistId(assessmentId, nutritionistId);
             assessment.getPerimetries().clear();
             List<BiometryPerimetry> newPerimetries = request.perimetry().stream()
                     .map(p -> BiometryPerimetry.builder()
                             .assessment(assessment)
+                            .nutritionistId(nutritionistId)
                             .measureKey(p.measureKey())
                             .valueCm(p.valueCm())
                             .sortOrder(p.sortOrder())

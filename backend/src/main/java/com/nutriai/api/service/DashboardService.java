@@ -8,8 +8,6 @@ import com.nutriai.api.model.PatientStatus;
 import com.nutriai.api.repository.BiometryAssessmentRepository;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.PatientRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +32,7 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard(UUID nutritionistId) {
-        Page<Patient> allPatientsPage = patientRepository.findByNutritionistId(nutritionistId, Pageable.unpaged());
-        List<Patient> allPatients = allPatientsPage.getContent();
+        List<Patient> allPatients = patientRepository.findAllByNutritionistId(nutritionistId);
 
         long activePatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive())).count();
         long attentionPatients = allPatients.stream().filter(p -> Boolean.TRUE.equals(p.getActive()) && p.getStatus() == PatientStatus.WARNING).count();

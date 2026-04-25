@@ -192,6 +192,7 @@ export interface DashboardKPIs {
 export interface RecentEvaluation {
   patientId: string;
   patientName: string;
+  initials: string;
   assessmentDate: string;
   weight: number;
   bodyFatPercent: number;

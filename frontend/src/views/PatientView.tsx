@@ -1082,7 +1082,7 @@ function HistoryTab({ patientId }: { patientId: string }) {
           <span className="mono tnum" style={{ fontWeight: 600, color: 'var(--fg)' }}>
             {episodeList.length}
           </span>{' '}
-          episódios · clique para ver detalhes
+          {episodeList.length === 1 ? 'episódio' : 'episódios'} · clique para ver detalhes
         </div>
       </div>
 
@@ -1109,8 +1109,8 @@ function HistoryTab({ patientId }: { patientId: string }) {
                   {fmtDate(ep.startDate)} → {fmtDate(ep.endDate)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
-                  {ep.durationDays} dias · {ep.assessmentCount} avaliação
-                  {ep.assessmentCount !== 1 ? 'ões' : ''}
+                  {ep.durationDays} dias · {ep.assessmentCount}{' '}
+                  {ep.assessmentCount === 1 ? 'avaliação' : 'avaliações'}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>

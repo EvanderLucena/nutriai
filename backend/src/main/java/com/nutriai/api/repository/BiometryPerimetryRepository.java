@@ -10,7 +10,7 @@ import java.util.UUID;
 @Repository
 public interface BiometryPerimetryRepository extends JpaRepository<BiometryPerimetry, UUID> {
 
-    List<BiometryPerimetry> findByAssessmentIdOrderBySortOrder(UUID assessmentId);
+    List<BiometryPerimetry> findByAssessmentIdAndNutritionistIdOrderBySortOrder(UUID assessmentId, UUID nutritionistId);
 
-    void deleteAllByAssessmentId(UUID assessmentId);
+    void deleteAllByAssessmentIdAndNutritionistId(UUID assessmentId, UUID nutritionistId);
 }

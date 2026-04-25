@@ -10,7 +10,7 @@ import java.util.UUID;
 @Repository
 public interface BiometrySkinfoldRepository extends JpaRepository<BiometrySkinfold, UUID> {
 
-    List<BiometrySkinfold> findByAssessmentIdOrderBySortOrder(UUID assessmentId);
+    List<BiometrySkinfold> findByAssessmentIdAndNutritionistIdOrderBySortOrder(UUID assessmentId, UUID nutritionistId);
 
-    void deleteAllByAssessmentId(UUID assessmentId);
+    void deleteAllByAssessmentIdAndNutritionistId(UUID assessmentId, UUID nutritionistId);
 }

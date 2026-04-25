@@ -11,8 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,8 +48,8 @@ class DashboardServiceTest {
         Patient p4 = Patient.builder().id(UUID.randomUUID()).nutritionistId(nutritionistId).name("Inactive")
                 .status(PatientStatus.ONTRACK).active(false).build();
 
-        when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
-                .thenReturn(new PageImpl<>(List.of(p1, p2, p3, p4)));
+        when(patientRepository.findAllByNutritionistId(nutritionistId))
+                .thenReturn(List.of(p1, p2, p3, p4));
         when(episodeRepository.findActiveByPatientIdsAndNutritionistId(anyList(), eq(nutritionistId)))
                 .thenReturn(List.of());
 
@@ -69,8 +67,8 @@ class DashboardServiceTest {
         Patient p2 = Patient.builder().id(UUID.randomUUID()).nutritionistId(nutritionistId).name("J")
                 .status(PatientStatus.ONTRACK).adherence(100).active(true).build();
 
-        when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
-                .thenReturn(new PageImpl<>(List.of(p1, p2)));
+        when(patientRepository.findAllByNutritionistId(nutritionistId))
+                .thenReturn(List.of(p1, p2));
         when(episodeRepository.findActiveByPatientIdsAndNutritionistId(anyList(), eq(nutritionistId)))
                 .thenReturn(List.of());
 
@@ -81,8 +79,8 @@ class DashboardServiceTest {
 
     @Test
     void getDashboard_handlesEmptyState() {
-        when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
-                .thenReturn(new PageImpl<>(List.of()));
+        when(patientRepository.findAllByNutritionistId(nutritionistId))
+                .thenReturn(List.of());
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
 
@@ -105,8 +103,8 @@ class DashboardServiceTest {
                 .assessmentDate(LocalDate.now().minusDays(5))
                 .weight(new BigDecimal("75.00")).bodyFatPercent(new BigDecimal("22.50")).build();
 
-        when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
-                .thenReturn(new PageImpl<>(List.of(p1)));
+        when(patientRepository.findAllByNutritionistId(nutritionistId))
+                .thenReturn(List.of(p1));
         when(episodeRepository.findActiveByPatientIdsAndNutritionistId(List.of(patientId), nutritionistId))
                 .thenReturn(List.of(episode));
         when(assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
@@ -126,8 +124,8 @@ class DashboardServiceTest {
         Patient p1 = Patient.builder().id(patientId).nutritionistId(nutritionistId).name("Maria")
                 .status(PatientStatus.ONTRACK).active(true).build();
 
-        when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
-                .thenReturn(new PageImpl<>(List.of(p1)));
+        when(patientRepository.findAllByNutritionistId(nutritionistId))
+                .thenReturn(List.of(p1));
         when(episodeRepository.findActiveByPatientIdsAndNutritionistId(List.of(patientId), nutritionistId))
                 .thenReturn(List.of());
 

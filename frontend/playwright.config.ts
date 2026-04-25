@@ -13,7 +13,7 @@ export default defineConfig({
     },
     {
       name: 'authenticated',
-      testMatch: /patient-management|food-catalog|meal-plans/,
+      testMatch: /patient-management|food-catalog|meal-plans|biometry-dashboard/,
       dependencies: ['setup'],
       use: {
         storageState: 'e2e/.auth/user.json',

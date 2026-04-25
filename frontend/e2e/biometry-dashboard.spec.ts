@@ -178,6 +178,62 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const body = await resp.json();
     expect(body.data.kpis.activePatients).toBeGreaterThanOrEqual(3);
   });
+
+  test('E2E-DASH-04: Dashboard mantém isolamento entre nutricionistas', async ({ request }) => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const ownBiometryResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        assessmentDate: today,
+        weight: 72.1,
+        bodyFatPercent: 27.9,
+      },
+    });
+    expect(ownBiometryResp.status()).toBe(201);
+
+    const otherResult = await signupViaApi(request, uniqueEmail());
+    await completeOnboardingViaApi(request, otherResult.accessToken);
+
+    const otherPatientResp = await request.post(`${API}/patients`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      data: { name: 'Paciente Outro Nutri', objective: 'EMAGRECIMENTO' },
+    });
+    expect(otherPatientResp.status()).toBe(201);
+    const otherPatientId = (await otherPatientResp.json()).data.id as string;
+
+    const otherBiometryResp = await request.post(`${API}/patients/${otherPatientId}/biometry`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      data: {
+        assessmentDate: today,
+        weight: 89.4,
+        bodyFatPercent: 33.2,
+      },
+    });
+    expect(otherBiometryResp.status()).toBe(201);
+
+    const ownDashboardResp = await request.get(`${API}/dashboard`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(ownDashboardResp.status()).toBe(200);
+    const ownDashboardBody = await ownDashboardResp.json();
+    const ownPatientIds = (
+      ownDashboardBody.data.recentEvaluations as Array<{ patientId: string }>
+    ).map((ev) => ev.patientId);
+    expect(ownPatientIds).toContain(patientId);
+    expect(ownPatientIds).not.toContain(otherPatientId);
+
+    const otherDashboardResp = await request.get(`${API}/dashboard`, {
+      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+    });
+    expect(otherDashboardResp.status()).toBe(200);
+    const otherDashboardBody = await otherDashboardResp.json();
+    const otherPatientIds = (
+      otherDashboardBody.data.recentEvaluations as Array<{ patientId: string }>
+    ).map((ev) => ev.patientId);
+    expect(otherPatientIds).toContain(otherPatientId);
+    expect(otherPatientIds).not.toContain(patientId);
+  });
 });
 
 test.describe('Biometry — History Episodes', () => {

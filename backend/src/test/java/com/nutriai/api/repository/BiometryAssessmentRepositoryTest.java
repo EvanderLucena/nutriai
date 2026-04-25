@@ -124,6 +124,7 @@ class BiometryAssessmentRepositoryTest {
 
         BiometrySkinfold skinfold = BiometrySkinfold.builder()
                 .assessment(a)
+                .nutritionistId(nutritionistId1)
                 .measureKey("triceps")
                 .valueMm(new BigDecimal("12.50"))
                 .sortOrder(1)
@@ -131,6 +132,7 @@ class BiometryAssessmentRepositoryTest {
 
         BiometryPerimetry perimetry = BiometryPerimetry.builder()
                 .assessment(a)
+                .nutritionistId(nutritionistId1)
                 .measureKey("cintura")
                 .valueCm(new BigDecimal("82.30"))
                 .sortOrder(1)
@@ -141,15 +143,19 @@ class BiometryAssessmentRepositoryTest {
 
         BiometryAssessment saved = assessmentRepository.save(a);
 
-        List<BiometrySkinfold> skinfolds = skinfoldRepository.findByAssessmentIdOrderBySortOrder(saved.getId());
-        List<BiometryPerimetry> perimetries = perimetryRepository.findByAssessmentIdOrderBySortOrder(saved.getId());
+        List<BiometrySkinfold> skinfolds = skinfoldRepository
+                .findByAssessmentIdAndNutritionistIdOrderBySortOrder(saved.getId(), nutritionistId1);
+        List<BiometryPerimetry> perimetries = perimetryRepository
+                .findByAssessmentIdAndNutritionistIdOrderBySortOrder(saved.getId(), nutritionistId1);
 
         assertEquals(1, skinfolds.size());
         assertEquals("triceps", skinfolds.get(0).getMeasureKey());
         assertEquals(0, new BigDecimal("12.50").compareTo(skinfolds.get(0).getValueMm()));
+        assertEquals(nutritionistId1, skinfolds.get(0).getNutritionistId());
 
         assertEquals(1, perimetries.size());
         assertEquals("cintura", perimetries.get(0).getMeasureKey());
         assertEquals(0, new BigDecimal("82.30").compareTo(perimetries.get(0).getValueCm()));
+        assertEquals(nutritionistId1, perimetries.get(0).getNutritionistId());
     }
 }

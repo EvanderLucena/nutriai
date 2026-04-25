@@ -43,6 +43,10 @@ public class BiometryPerimetry {
     private BigDecimal valueCm;
 
     @NotNull
+    @Column(name = "nutritionist_id", nullable = false)
+    private UUID nutritionistId;
+
+    @NotNull
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 

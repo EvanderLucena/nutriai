@@ -159,6 +159,7 @@ export function HomeView() {
     (activePats.length > 0
       ? Math.round(activePats.reduce((sum, p) => sum + p.adherence, 0) / activePats.length)
       : 0);
+  const patientCountText = `${activePats.length} ${activePats.length === 1 ? 'paciente' : 'pacientes'}`;
 
   return (
     <div>
@@ -244,7 +245,7 @@ export function HomeView() {
         <KPI
           label="Pacientes ativos"
           value={String(kpis?.activePatients ?? data?.totalElements ?? 0)}
-          sub={`${activePats.length} pacientes`}
+          sub={patientCountText}
           sparklineData={[44, 45, 46, 47, 46, 48, 48]}
           trend="up"
         />
@@ -270,7 +271,7 @@ export function HomeView() {
 
       {/* Patient grid */}
       <div className="divider">
-        <span>Sua carteira · {isLoading ? '...' : `${activePats.length} pacientes`}</span>
+        <span>Sua carteira · {isLoading ? '...' : patientCountText}</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {patientSlice.map((p) => (
