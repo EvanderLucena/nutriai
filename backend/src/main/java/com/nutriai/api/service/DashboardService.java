@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
@@ -57,7 +58,8 @@ public class DashboardService {
             if (!Boolean.TRUE.equals(patient.getActive())) continue;
 
             Optional<Episode> activeEpisode = episodeRepository
-                    .findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patient.getId());
+                    .findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(
+                            patient.getId(), nutritionistId);
 
             if (activeEpisode.isEmpty()) {
                 pendingAssessmentCount++;
@@ -65,10 +67,11 @@ public class DashboardService {
             }
 
             List<BiometryAssessment> assessments = assessmentRepository
-                    .findByEpisodeIdOrderByAssessmentDateDesc(activeEpisode.get().getId());
+                    .findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(
+                            activeEpisode.get().getId(), nutritionistId);
 
             if (!assessments.isEmpty()) {
-                BiometryAssessment latest = assessments.get(0);
+                BiometryAssessment latest = assessments.get(assessments.size() - 1);
                 boolean hasRecent = !latest.getAssessmentDate().isBefore(thirtyDaysAgo);
                 if (hasRecent) {
                     assessedInLast30Days++;

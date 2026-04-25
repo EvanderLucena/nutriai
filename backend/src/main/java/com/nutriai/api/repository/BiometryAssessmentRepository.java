@@ -11,15 +11,9 @@ import java.util.UUID;
 @Repository
 public interface BiometryAssessmentRepository extends JpaRepository<BiometryAssessment, UUID> {
 
-    List<BiometryAssessment> findByEpisodeIdOrderByAssessmentDateAsc(UUID episodeId);
-
     List<BiometryAssessment> findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(
             UUID episodeId,
             UUID nutritionistId);
 
-    List<BiometryAssessment> findByEpisodeIdOrderByAssessmentDateDesc(UUID episodeId);
-
     Optional<BiometryAssessment> findByIdAndNutritionistId(UUID id, UUID nutritionistId);
-
-    Optional<BiometryAssessment> findTopByEpisodeIdOrderByAssessmentDateDesc(UUID episodeId);
 }

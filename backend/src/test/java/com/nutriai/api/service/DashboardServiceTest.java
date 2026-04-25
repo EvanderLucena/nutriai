@@ -52,7 +52,7 @@ class DashboardServiceTest {
 
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
                 .thenReturn(new PageImpl<>(List.of(p1, p2, p3, p4)));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(any()))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(any(), any()))
                 .thenReturn(Optional.empty());
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
@@ -71,7 +71,7 @@ class DashboardServiceTest {
 
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
                 .thenReturn(new PageImpl<>(List.of(p1, p2)));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(any()))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(any(), any()))
                 .thenReturn(Optional.empty());
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
@@ -107,9 +107,9 @@ class DashboardServiceTest {
 
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
                 .thenReturn(new PageImpl<>(List.of(p1)));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId))
                 .thenReturn(Optional.of(episode));
-        when(assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(episodeId))
+        when(assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId, nutritionistId))
                 .thenReturn(List.of(assessment));
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);
@@ -127,7 +127,7 @@ class DashboardServiceTest {
 
         when(patientRepository.findByNutritionistId(eq(nutritionistId), any()))
                 .thenReturn(new PageImpl<>(List.of(p1)));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId))
                 .thenReturn(Optional.empty());
 
         DashboardResponse response = dashboardService.getDashboard(nutritionistId);

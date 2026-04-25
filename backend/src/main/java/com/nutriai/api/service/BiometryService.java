@@ -57,7 +57,7 @@ public class BiometryService {
         Patient patient = patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode activeEpisode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
+        Episode activeEpisode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Paciente não possui episódio ativo"));
 
@@ -167,11 +167,11 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode activeEpisode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
+        Episode activeEpisode = episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Paciente não possui episódio ativo"));
 
-        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(activeEpisode.getId());
+        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(activeEpisode.getId(), nutritionistId);
         return assessments.stream()
                 .map(BiometryAssessmentResponse::from)
                 .toList();
@@ -182,12 +182,12 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        List<Episode> closedEpisodes = episodeRepository.findByPatientIdOrderByStartDateDesc(patientId).stream()
+        List<Episode> closedEpisodes = episodeRepository.findByPatientIdAndNutritionistIdOrderByStartDateDesc(patientId, nutritionistId).stream()
                 .filter(e -> e.getEndDate() != null)
                 .toList();
 
         return closedEpisodes.stream().map(episode -> {
-            List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(episode.getId());
+            List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episode.getId(), nutritionistId);
             int durationDays = (int) ChronoUnit.DAYS.between(
                     episode.getStartDate().toLocalDate(),
                     episode.getEndDate().toLocalDate());

@@ -215,7 +215,7 @@ class BiometryControllerTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated());
 
-        List<EpisodeHistoryEvent> events = historyEventRepository.findByEpisodeIdOrderByEventAtAsc(episodeId);
+        List<EpisodeHistoryEvent> events = historyEventRepository.findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(episodeId, nutritionistId);
         assertEquals(1, events.size());
         assertEquals("EPISODE_BIOMETRY_CREATED", events.get(0).getEventType());
         assertNotNull(events.get(0).getEventAt());

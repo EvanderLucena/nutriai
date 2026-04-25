@@ -155,7 +155,7 @@ public class PatientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", id));
 
         patient.softDelete();
-        episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patient.getId())
+        episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patient.getId(), nutritionistId)
                 .ifPresent(e -> {
                     e.close();
                     logger.info("Episode closed: id={}, patientId={}", e.getId(), id);

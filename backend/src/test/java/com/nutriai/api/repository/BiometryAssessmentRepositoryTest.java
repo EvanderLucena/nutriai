@@ -57,7 +57,7 @@ class BiometryAssessmentRepositoryTest {
     }
 
     @Test
-    void findByEpisodeIdOrderByAssessmentDateAsc_returnsChronologicalOrder() {
+    void findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc_returnsChronologicalOrder() {
         BiometryAssessment a1 = assessmentRepository.save(
                 createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
         BiometryAssessment a2 = assessmentRepository.save(
@@ -65,7 +65,7 @@ class BiometryAssessmentRepositoryTest {
         BiometryAssessment a3 = assessmentRepository.save(
                 createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
 
-        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdOrderByAssessmentDateAsc(episodeId1);
+        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
         assertEquals(3, result.size());
         assertEquals(LocalDate.of(2025, 1, 10), result.get(0).getAssessmentDate());
@@ -74,14 +74,15 @@ class BiometryAssessmentRepositoryTest {
     }
 
     @Test
-    void findByEpisodeIdOrderByAssessmentDateDesc_returnsReverseChronological() {
+    void findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc_scopesToNutritionist() {
         assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
         assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
+        assessmentRepository.save(createAssessment(episodeId1, nutritionistId2, LocalDate.of(2025, 1, 15), new BigDecimal("80.00"), new BigDecimal("25.00")));
 
-        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(episodeId1);
+        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
         assertEquals(2, result.size());
-        assertEquals(LocalDate.of(2025, 1, 20), result.get(0).getAssessmentDate());
+        assertTrue(result.stream().allMatch(a -> a.getNutritionistId().equals(nutritionistId1)));
     }
 
     @Test
@@ -106,24 +107,12 @@ class BiometryAssessmentRepositoryTest {
     }
 
     @Test
-    void findTopByEpisodeIdOrderByAssessmentDateDesc_returnsLatest() {
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
-        BiometryAssessment latest = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
-
-        Optional<BiometryAssessment> result = assessmentRepository.findTopByEpisodeIdOrderByAssessmentDateDesc(episodeId1);
-
-        assertTrue(result.isPresent());
-        assertEquals(LocalDate.of(2025, 1, 20), result.get().getAssessmentDate());
-    }
-
-    @Test
-    void findByEpisodeId_scopesToSingleEpisode() {
+    void findByEpisodeIdAndNutritionistId_scopesToSingleEpisode() {
         assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
         assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
         assessmentRepository.save(createAssessment(episodeId2, nutritionistId1, LocalDate.of(2025, 1, 12), new BigDecimal("80.00"), new BigDecimal("25.00")));
 
-        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdOrderByAssessmentDateAsc(episodeId1);
+        List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(a -> a.getEpisodeId().equals(episodeId1)));

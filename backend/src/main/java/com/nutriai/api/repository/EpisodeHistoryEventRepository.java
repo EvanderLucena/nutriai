@@ -10,11 +10,7 @@ import java.util.UUID;
 @Repository
 public interface EpisodeHistoryEventRepository extends JpaRepository<EpisodeHistoryEvent, UUID> {
 
-    List<EpisodeHistoryEvent> findByEpisodeIdOrderByEventAtAsc(UUID episodeId);
-
     List<EpisodeHistoryEvent> findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(
             UUID episodeId,
             UUID nutritionistId);
-
-    List<EpisodeHistoryEvent> findByEpisodeIdOrderByEventAtDesc(UUID episodeId);
 }

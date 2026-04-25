@@ -58,7 +58,7 @@ class BiometryServiceTest {
     @Test
     void createAssessment_succeedsWithRequiredFieldsOnly() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(activeEpisode));
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> {
             BiometryAssessment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -81,7 +81,7 @@ class BiometryServiceTest {
     @Test
     void createAssessment_succeedsWithAllOptionalFields() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(activeEpisode));
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> {
             BiometryAssessment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -107,7 +107,7 @@ class BiometryServiceTest {
     @Test
     void createAssessment_failsWhenNoActiveEpisode() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.empty());
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.empty());
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
@@ -163,7 +163,7 @@ class BiometryServiceTest {
     @Test
     void createAndUpdate_emitHistoryEvents() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)).thenReturn(Optional.of(activeEpisode));
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> {
             BiometryAssessment a = inv.getArgument(0);
             if (a.getId() == null) a.setId(UUID.randomUUID());
@@ -227,8 +227,8 @@ class BiometryServiceTest {
                 .id(episodeId).patientId(patientId)
                 .startDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();
-        when(episodeRepository.findByPatientIdOrderByStartDateDesc(patientId)).thenReturn(List.of(closedEpisode, activeEpisode));
-        when(assessmentRepository.findByEpisodeIdOrderByAssessmentDateDesc(closedEpisode.getId()))
+        when(episodeRepository.findByPatientIdAndNutritionistIdOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(List.of(closedEpisode, activeEpisode));
+        when(assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(closedEpisode.getId(), nutritionistId))
                 .thenReturn(List.of(BiometryAssessment.builder().id(UUID.randomUUID()).build()));
 
         List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);
@@ -242,7 +242,7 @@ class BiometryServiceTest {
     @Test
     void listHistoryEpisodes_returnsEmptyWhenNoClosedEpisodes() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findByPatientIdOrderByStartDateDesc(patientId)).thenReturn(List.of(activeEpisode));
+        when(episodeRepository.findByPatientIdAndNutritionistIdOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(List.of(activeEpisode));
 
         List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);
 

@@ -166,7 +166,7 @@ class PatientServiceTest {
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId()))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
                 .thenReturn(Optional.of(currentEpisode));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -285,7 +285,7 @@ class PatientServiceTest {
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(samplePatient.getId(), nutritionistId)).thenReturn(Optional.of(samplePatient));
-        when(episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId()))
+        when(episodeRepository.findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
                 .thenReturn(Optional.of(currentEpisode));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
         when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
