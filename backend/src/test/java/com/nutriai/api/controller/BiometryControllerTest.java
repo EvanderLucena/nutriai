@@ -26,8 +26,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -139,6 +142,38 @@ class BiometryControllerTest {
     }
 
     @Test
+    void updateAssessment_withMismatchedRoutePatient_returns404() throws Exception {
+        Patient otherPatient = Patient.builder()
+                .nutritionistId(nutritionistId)
+                .name("Joana Souza")
+                .objective(PatientObjective.HIPERTROFIA)
+                .weight(new BigDecimal("68.00"))
+                .build();
+        otherPatient = patientRepository.save(otherPatient);
+        Episode otherEpisode = episodeRepository.save(Episode.builder().patientId(otherPatient.getId()).build());
+        BiometryAssessment assessment = BiometryAssessment.builder()
+                .episodeId(otherEpisode.getId())
+                .nutritionistId(nutritionistId)
+                .assessmentDate(LocalDate.of(2025, 1, 10))
+                .weight(new BigDecimal("68.00"))
+                .bodyFatPercent(new BigDecimal("20.00"))
+                .build();
+        assessment = assessmentRepository.save(assessment);
+
+        UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
+                null, new BigDecimal("66.00"), null, null, null, null, null, null, null, null, null);
+
+        mockMvc.perform(patch("/api/v1/patients/{patientId}/biometry/{assessmentId}", patientId, assessment.getId())
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isNotFound());
+
+        BiometryAssessment unchanged = assessmentRepository.findById(assessment.getId()).orElseThrow();
+        assertEquals(new BigDecimal("68.00"), unchanged.getWeight());
+    }
+
+    @Test
     void listAssessments_returnsListForActiveEpisode() throws Exception {
         BiometryAssessment a1 = BiometryAssessment.builder()
                 .episodeId(episodeId).nutritionistId(nutritionistId)
@@ -166,6 +201,24 @@ class BiometryControllerTest {
         mockMvc.perform(get("/api/v1/patients/{patientId}/biometry", patientId)
                         .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void createAssessment_persistsHistoryEventWithEventAt() throws Exception {
+        CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
+                LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
+                null, null, null, null, null, null, null, null);
+
+        mockMvc.perform(post("/api/v1/patients/{patientId}/biometry", patientId)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+
+        List<EpisodeHistoryEvent> events = historyEventRepository.findByEpisodeIdOrderByEventAtAsc(episodeId);
+        assertEquals(1, events.size());
+        assertEquals("EPISODE_BIOMETRY_CREATED", events.get(0).getEventType());
+        assertNotNull(events.get(0).getEventAt());
     }
 
     @Test
@@ -217,6 +270,30 @@ class BiometryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.episodeId").value(episodeId.toString()));
+    }
+
+    @Test
+    void getHistorySnapshot_withOtherNutritionistEpisode_returns404() throws Exception {
+        SignupRequest otherSignup = new SignupRequest("Dr. Other Snapshot", "snapshot-other@test.com",
+                "senha12345", "54322", "RJ", "Nutrição", null, true);
+        authService.signup(otherSignup);
+        UUID otherNutritionistId = nutritionistRepository.findByEmail("snapshot-other@test.com").orElseThrow().getId();
+        Patient otherPatient = patientRepository.save(Patient.builder()
+                .nutritionistId(otherNutritionistId)
+                .name("Paciente de outro nutri")
+                .objective(PatientObjective.EMAGRECIMENTO)
+                .weight(new BigDecimal("80.00"))
+                .build());
+        Episode otherEpisode = episodeRepository.save(Episode.builder()
+                .patientId(otherPatient.getId())
+                .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .endDate(LocalDateTime.of(2025, 2, 1, 0, 0))
+                .build());
+
+        mockMvc.perform(get("/api/v1/patients/{patientId}/biometry/history/episodes/{episodeId}",
+                        patientId, otherEpisode.getId())
+                        .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
     }
 
     @Test

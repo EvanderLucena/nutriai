@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -111,6 +112,8 @@ public class BiometryService {
     public BiometryAssessmentResponse updateAssessment(UUID nutritionistId, UUID patientId, UUID assessmentId, UpdateBiometryAssessmentRequest request) {
         BiometryAssessment assessment = assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
+        episodeRepository.findByIdAndPatientId(assessment.getEpisodeId(), patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
 
         if (request.assessmentDate() != null) assessment.setAssessmentDate(request.assessmentDate());
         if (request.weight() != null) assessment.setWeight(request.weight());
@@ -204,17 +207,19 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode episode = episodeRepository.findById(episodeId)
+        Episode episode = episodeRepository.findByIdAndPatientId(episodeId, patientId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio", episodeId));
 
         if (episode.getEndDate() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Episódio ativo não possui histórico");
         }
 
-        List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdOrderByAssessmentDateAsc(episodeId);
-        List<EpisodeHistoryEvent> timelineEvents = historyEventRepository.findByEpisodeIdOrderByEventAtAsc(episodeId);
+        List<BiometryAssessment> assessments = assessmentRepository
+                .findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId, nutritionistId);
+        List<EpisodeHistoryEvent> timelineEvents = historyEventRepository
+                .findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(episodeId, nutritionistId);
 
-        MealPlan plan = mealPlanRepository.findByEpisodeId(episodeId).orElse(null);
+        MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId).orElse(null);
         int mealSlotCount = 0;
         int foodItemCount = 0;
         if (plan != null) {
@@ -241,6 +246,7 @@ public class BiometryService {
                 .episodeId(episodeId)
                 .nutritionistId(nutritionistId)
                 .eventType(eventType)
+                .eventAt(LocalDateTime.now())
                 .title(title)
                 .sourceRef(sourceRef + ":" + sourceId)
                 .build();

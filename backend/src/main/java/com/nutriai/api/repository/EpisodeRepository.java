@@ -17,6 +17,11 @@ public interface EpisodeRepository extends JpaRepository<Episode, UUID> {
     List<Episode> findByPatientIdOrderByStartDateDesc(UUID patientId);
 
     /**
+     * Find an episode scoped to a patient.
+     */
+    Optional<Episode> findByIdAndPatientId(UUID id, UUID patientId);
+
+    /**
      * Find the current active episode (no end date) for a patient.
      * Returns the most recent open episode.
      */

@@ -41,7 +41,7 @@ public class DataInitializer implements CommandLineRunner {
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .crn("00000")
                     .crnRegional("SP")
-                    .role(UserRole.ADMIN)
+                    .role(UserRole.NUTRITIONIST)
                     .onboardingCompleted(true)
                     .subscriptionTier("UNLIMITED")
                     .patientLimit(9999)
@@ -50,7 +50,14 @@ public class DataInitializer implements CommandLineRunner {
             nutritionistRepository.save(admin);
             logger.info("Admin seed created — email: {} | password: {}", adminEmail, adminPassword);
         } else {
-            logger.info("Admin already exists ({}), skipping seed", adminEmail);
+            Nutritionist admin = nutritionistRepository.findByEmail(adminEmail).orElseThrow();
+            if (admin.getRole() != UserRole.NUTRITIONIST) {
+                admin.setRole(UserRole.NUTRITIONIST);
+                nutritionistRepository.save(admin);
+                logger.info("Admin seed role updated to NUTRITIONIST for panel access ({})", adminEmail);
+            } else {
+                logger.info("Admin already exists ({}), skipping seed", adminEmail);
+            }
         }
     }
 }

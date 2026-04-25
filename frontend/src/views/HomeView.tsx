@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { usePatients } from '../stores/patientStore';
 import { useAuthStore } from '../stores/authStore';
+import { useDashboard } from '../stores/clinicalStore';
 import { mapPatientFromApi } from '../types/patient';
 import { KPI } from '../components/KPI';
-import { IconChevronR } from '../components/icons';
 import type { Patient } from '../types/patient';
 
 function PatientCard({ p, onNavigate }: { p: Patient; onNavigate: (id: string) => void }) {
@@ -139,6 +139,7 @@ export function HomeView() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { data, isLoading } = usePatients();
+  const { data: dashboardData } = useDashboard();
   const activePats = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const patientSlice = activePats.slice(0, PAGE_SIZE);
 
@@ -146,28 +147,18 @@ export function HomeView() {
     navigate(`/patient/${id}`);
   };
 
-  const statusColors: Record<string, string> = {
-    ontrack: 'var(--sage)',
-    warning: 'var(--amber)',
-    danger: 'var(--coral)',
-  };
-
-  const onTrack = activePats.filter((p) => p.status === 'ontrack').length;
-  const warning = activePats.filter((p) => p.status === 'warning').length;
-  const danger = activePats.filter((p) => p.status === 'danger').length;
+  const kpis = dashboardData?.kpis;
+  const onTrack = kpis
+    ? kpis.activePatients - kpis.attentionPatients - kpis.criticalPatients
+    : activePats.filter((p) => p.status === 'ontrack').length;
+  const warning =
+    kpis?.attentionPatients ?? activePats.filter((p) => p.status === 'warning').length;
+  const danger = kpis?.criticalPatients ?? activePats.filter((p) => p.status === 'danger').length;
   const avgAdherence =
-    activePats.length > 0
+    kpis?.averageAdherence ??
+    (activePats.length > 0
       ? Math.round(activePats.reduce((sum, p) => sum + p.adherence, 0) / activePats.length)
-      : 0;
-
-  const events = activePats.slice(0, 6).map((p, i) => ({
-    time: ['14:28', '13:50', '12:05', '10:40', '09:14', '08:02'][i] || '07:30',
-    who: p.name,
-    whoId: p.id,
-    status: p.status,
-    text: 'Refeição',
-    tag: `${p.adherence}% adesão`,
-  }));
+      : 0);
 
   return (
     <div>
@@ -252,7 +243,7 @@ export function HomeView() {
       >
         <KPI
           label="Pacientes ativos"
-          value={String(data?.totalElements ?? 0)}
+          value={String(kpis?.activePatients ?? data?.totalElements ?? 0)}
           sub={`${activePats.length} pacientes`}
           sparklineData={[44, 45, 46, 47, 46, 48, 48]}
           trend="up"
@@ -264,86 +255,17 @@ export function HomeView() {
           sparklineData={[78, 79, 80, 81, 80, 82, 82]}
           trend="up"
         />
-        <KPI label="Refeições registradas" value="—" sub="via WhatsApp" />
+        <KPI
+          label="Avaliados 30d"
+          value={String(kpis?.assessedInLast30Days ?? 0)}
+          sub="últimos 30 dias"
+        />
         <KPI
           label="Sem registro há >3 dias"
           value={String(danger)}
           sub="contato recomendado"
           danger
         />
-      </div>
-
-      {/* Activity — extracted data */}
-      <div className="card">
-        <div className="card-h">
-          <div className="title">Refeições reportadas · hoje</div>
-          <div className="sub">EXTRAÍDO VIA WHATSAPP</div>
-          <div style={{ flex: 1 }} />
-          <div className="chip ai">
-            <span
-              style={{
-                display: 'inline-block',
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                background: 'var(--lime-dim)',
-                marginRight: 4,
-              }}
-            />
-            AO VIVO
-          </div>
-        </div>
-        <div style={{ padding: 0 }}>
-          {events.map((ev, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '60px 14px 1fr',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 18px',
-                borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none',
-                cursor: 'pointer',
-              }}
-              onClick={() => handleNavigate(ev.whoId)}
-            >
-              <div className="mono tnum" style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>
-                {ev.time}
-              </div>
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: statusColors[ev.status],
-                }}
-              />
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <div>
-                  <div style={{ fontSize: 13.5, marginBottom: 2 }}>
-                    <span style={{ fontWeight: 600 }}>{ev.who}</span>
-                    <span style={{ color: 'var(--fg-muted)' }}> — {ev.text}</span>
-                  </div>
-                  <div
-                    className="mono tnum"
-                    style={{
-                      fontSize: 10.5,
-                      color: 'var(--fg-subtle)',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {ev.tag}
-                  </div>
-                </div>
-                <IconChevronR size={14} style={{ color: 'var(--fg-subtle)' }} />
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Patient grid */}

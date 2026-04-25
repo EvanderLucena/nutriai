@@ -1,5 +1,12 @@
 export type PatientStatus = 'ontrack' | 'warning' | 'danger';
-export type ObjectiveOption = 'EMAGRECIMENTO' | 'HIPERTROFIA' | 'CONTROLE_GLICEMICO' | 'PERFORMANCE_ESPORTIVA' | 'REEDUCACAO_ALIMENTAR' | 'CONTROLE_PRESSAO' | 'SAUDE_GERAL';
+export type ObjectiveOption =
+  | 'EMAGRECIMENTO'
+  | 'HIPERTROFIA'
+  | 'CONTROLE_GLICEMICO'
+  | 'PERFORMANCE_ESPORTIVA'
+  | 'REEDUCACAO_ALIMENTAR'
+  | 'CONTROLE_PRESSAO'
+  | 'SAUDE_GERAL';
 
 export const OBJECTIVE_LABELS: Record<string, string> = {
   EMAGRECIMENTO: 'Emagrecimento',
@@ -14,7 +21,7 @@ export const OBJECTIVE_LABELS: Record<string, string> = {
 export const OBJECTIVE_KEYS = Object.keys(OBJECTIVE_LABELS) as ObjectiveOption[];
 
 export const REVERSE_OBJECTIVE_LABELS: Record<string, ObjectiveOption> = Object.fromEntries(
-  Object.entries(OBJECTIVE_LABELS).map(([k, v]) => [v, k as ObjectiveOption])
+  Object.entries(OBJECTIVE_LABELS).map(([k, v]) => [v, k as ObjectiveOption]),
 ) as Record<string, ObjectiveOption>;
 
 export const STATUS_LABELS: Record<PatientStatus, string> = {
@@ -171,4 +178,99 @@ export interface DetailedPatient extends Patient {
   weekMacroFill: number[];
   timeline: TimelineEvent[];
   aiSummary: string;
+}
+
+export interface DashboardKPIs {
+  activePatients: number;
+  attentionPatients: number;
+  criticalPatients: number;
+  averageAdherence: number;
+  assessedInLast30Days: number;
+  pendingAssessmentCount: number;
+}
+
+export interface RecentEvaluation {
+  patientId: string;
+  patientName: string;
+  assessmentDate: string;
+  weight: number;
+  bodyFatPercent: number;
+  status: PatientStatus;
+}
+
+export interface DashboardData {
+  kpis: DashboardKPIs;
+  recentEvaluations: RecentEvaluation[];
+}
+
+export interface BiometryAssessmentDTO {
+  id: string;
+  assessmentDate: string;
+  weight: number;
+  bodyFatPercent: number | null;
+  leanMassKg: number | null;
+  waterPercent: number | null;
+  visceralFatLevel: number | null;
+  bmrKcal: number | null;
+  device: string | null;
+  notes: string | null;
+  skinfolds: { measureKey: string; valueMm: number; sortOrder: number }[];
+  perimetry: { measureKey: string; valueCm: number; sortOrder: number }[];
+}
+
+export interface CreateBiometryAssessmentRequest {
+  assessmentDate: string;
+  weight: number;
+  bodyFatPercent: number | null;
+  leanMassKg?: number | null;
+  waterPercent?: number | null;
+  visceralFatLevel?: number | null;
+  bmrKcal?: number | null;
+  device?: string | null;
+  notes?: string | null;
+  skinfolds?: { measureKey: string; valueMm: number; sortOrder: number }[];
+  perimetry?: { measureKey: string; valueCm: number; sortOrder: number }[];
+}
+
+export interface UpdateBiometryAssessmentRequest {
+  assessmentDate?: string | null;
+  weight?: number | null;
+  bodyFatPercent?: number | null;
+  leanMassKg?: number | null;
+  waterPercent?: number | null;
+  visceralFatLevel?: number | null;
+  bmrKcal?: number | null;
+  device?: string | null;
+  notes?: string | null;
+  skinfolds?: { measureKey: string; valueMm: number; sortOrder: number }[];
+  perimetry?: { measureKey: string; valueCm: number; sortOrder: number }[];
+}
+
+export interface HistoryEpisodeListItem {
+  episodeId: string;
+  startDate: string;
+  endDate: string;
+  hasBiometry: boolean;
+  assessmentCount: number;
+  durationDays: number;
+}
+
+export interface TimelineEventDTO {
+  id: string;
+  eventType: string;
+  eventAt: string;
+  title: string;
+  description: string | null;
+  sourceRef: string | null;
+}
+
+export interface HistorySnapshot {
+  episodeId: string;
+  startDate: string;
+  endDate: string;
+  episodeObjective: string | null;
+  mealSlotCount: number;
+  foodItemCount: number;
+  assessments: BiometryAssessmentDTO[];
+  timelineEvents: TimelineEventDTO[];
 }

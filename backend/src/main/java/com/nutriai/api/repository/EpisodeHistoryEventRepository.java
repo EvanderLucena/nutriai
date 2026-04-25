@@ -12,5 +12,9 @@ public interface EpisodeHistoryEventRepository extends JpaRepository<EpisodeHist
 
     List<EpisodeHistoryEvent> findByEpisodeIdOrderByEventAtAsc(UUID episodeId);
 
+    List<EpisodeHistoryEvent> findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(
+            UUID episodeId,
+            UUID nutritionistId);
+
     List<EpisodeHistoryEvent> findByEpisodeIdOrderByEventAtDesc(UUID episodeId);
 }
