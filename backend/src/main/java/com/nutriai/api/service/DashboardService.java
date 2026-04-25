@@ -13,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,22 +52,32 @@ public class DashboardService {
         int pendingAssessmentCount = 0;
 
         List<DashboardResponse.RecentEvaluation> recentEvals = new ArrayList<>();
+        List<Patient> activePatientList = allPatients.stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .toList();
+        List<UUID> activePatientIds = activePatientList.stream().map(Patient::getId).toList();
+        List<Episode> activeEpisodes = activePatientIds.isEmpty()
+                ? List.of()
+                : episodeRepository.findActiveByPatientIdsAndNutritionistId(activePatientIds, nutritionistId);
+        Map<UUID, Episode> activeEpisodeByPatientId = activeEpisodes.stream()
+                .collect(Collectors.toMap(Episode::getPatientId, e -> e, (first, ignored) -> first));
+        List<UUID> activeEpisodeIds = activeEpisodes.stream().map(Episode::getId).toList();
+        List<BiometryAssessment> activeAssessments = activeEpisodeIds.isEmpty()
+                ? List.of()
+                : assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
+                        activeEpisodeIds, nutritionistId);
+        Map<UUID, List<BiometryAssessment>> assessmentsByEpisodeId = activeAssessments.stream()
+                .collect(Collectors.groupingBy(BiometryAssessment::getEpisodeId));
 
-        for (Patient patient : allPatients) {
-            if (!Boolean.TRUE.equals(patient.getActive())) continue;
-
-            Optional<Episode> activeEpisode = episodeRepository
-                    .findTopByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(
-                            patient.getId(), nutritionistId);
-
-            if (activeEpisode.isEmpty()) {
+        for (Patient patient : activePatientList) {
+            Episode activeEpisode = activeEpisodeByPatientId.get(patient.getId());
+            if (activeEpisode == null) {
                 pendingAssessmentCount++;
                 continue;
             }
 
-            List<BiometryAssessment> assessments = assessmentRepository
-                    .findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(
-                            activeEpisode.get().getId(), nutritionistId);
+            List<BiometryAssessment> assessments = assessmentsByEpisodeId.getOrDefault(
+                    activeEpisode.getId(), List.of());
 
             if (!assessments.isEmpty()) {
                 BiometryAssessment latest = assessments.get(assessments.size() - 1);

@@ -112,7 +112,8 @@ public class BiometryService {
     public BiometryAssessmentResponse updateAssessment(UUID nutritionistId, UUID patientId, UUID assessmentId, UpdateBiometryAssessmentRequest request) {
         BiometryAssessment assessment = assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
-        episodeRepository.findByIdAndPatientId(assessment.getEpisodeId(), patientId)
+        episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                        assessment.getEpisodeId(), patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Avaliação biométrica", assessmentId));
 
         if (request.assessmentDate() != null) assessment.setAssessmentDate(request.assessmentDate());
@@ -186,8 +187,16 @@ public class BiometryService {
                 .filter(e -> e.getEndDate() != null)
                 .toList();
 
+        List<UUID> episodeIds = closedEpisodes.stream().map(Episode::getId).toList();
+        List<BiometryAssessment> allAssessments = episodeIds.isEmpty()
+                ? List.of()
+                : assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
+                        episodeIds, nutritionistId);
+
         return closedEpisodes.stream().map(episode -> {
-            List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episode.getId(), nutritionistId);
+            long assessmentCount = allAssessments.stream()
+                    .filter(a -> episode.getId().equals(a.getEpisodeId()))
+                    .count();
             int durationDays = (int) ChronoUnit.DAYS.between(
                     episode.getStartDate().toLocalDate(),
                     episode.getEndDate().toLocalDate());
@@ -195,8 +204,8 @@ public class BiometryService {
                     episode.getId(),
                     episode.getStartDate(),
                     episode.getEndDate(),
-                    !assessments.isEmpty(),
-                    assessments.size(),
+                    assessmentCount > 0,
+                    (int) assessmentCount,
                     durationDays
             );
         }).toList();
@@ -207,7 +216,8 @@ public class BiometryService {
         patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", patientId));
 
-        Episode episode = episodeRepository.findByIdAndPatientId(episodeId, patientId)
+        Episode episode = episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                        episodeId, patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio", episodeId));
 
         if (episode.getEndDate() == null) {

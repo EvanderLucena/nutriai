@@ -144,7 +144,8 @@ class BiometryServiceTest {
         existing.setPerimetries(List.of());
 
         when(assessmentRepository.findByIdAndNutritionistId(existing.getId(), nutritionistId)).thenReturn(Optional.of(existing));
-        when(episodeRepository.findByIdAndPatientId(episodeId, patientId)).thenReturn(Optional.of(activeEpisode));
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                episodeId, patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> inv.getArgument(0));
         when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -203,7 +204,8 @@ class BiometryServiceTest {
                 .bodyFatPercent(new BigDecimal("22.50"))
                 .build();
         when(assessmentRepository.findByIdAndNutritionistId(assessmentId, nutritionistId)).thenReturn(Optional.of(existing));
-        when(episodeRepository.findByIdAndPatientId(episodeId, patientId)).thenReturn(Optional.empty());
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                episodeId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
                 null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null, null);
@@ -228,8 +230,12 @@ class BiometryServiceTest {
                 .startDate(LocalDateTime.of(2025, 3, 1, 0, 0))
                 .build();
         when(episodeRepository.findByPatientIdAndNutritionistIdOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(List.of(closedEpisode, activeEpisode));
-        when(assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(closedEpisode.getId(), nutritionistId))
-                .thenReturn(List.of(BiometryAssessment.builder().id(UUID.randomUUID()).build()));
+        when(assessmentRepository.findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
+                List.of(closedEpisode.getId()), nutritionistId))
+                .thenReturn(List.of(BiometryAssessment.builder()
+                        .id(UUID.randomUUID())
+                        .episodeId(closedEpisode.getId())
+                        .build()));
 
         List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);
 
@@ -259,7 +265,8 @@ class BiometryServiceTest {
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findByIdAndPatientId(closedEpisodeId, patientId)).thenReturn(Optional.of(closedEpisode));
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                closedEpisodeId, patientId, nutritionistId)).thenReturn(Optional.of(closedEpisode));
         when(assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(closedEpisodeId, nutritionistId))
                 .thenReturn(List.of());
         when(historyEventRepository.findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(closedEpisodeId, nutritionistId))
@@ -280,7 +287,8 @@ class BiometryServiceTest {
         UUID otherEpisodeId = UUID.randomUUID();
 
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findByIdAndPatientId(otherEpisodeId, patientId)).thenReturn(Optional.empty());
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                otherEpisodeId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.getHistorySnapshot(nutritionistId, patientId, otherEpisodeId));
@@ -294,7 +302,8 @@ class BiometryServiceTest {
     @Test
     void getHistorySnapshot_failsForActiveEpisode() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findByIdAndPatientId(episodeId, patientId)).thenReturn(Optional.of(activeEpisode));
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                episodeId, patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> biometryService.getHistorySnapshot(nutritionistId, patientId, episodeId));
@@ -305,7 +314,8 @@ class BiometryServiceTest {
     void getHistorySnapshot_failsForNonexistentEpisode() {
         UUID randomId = UUID.randomUUID();
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
-        when(episodeRepository.findByIdAndPatientId(randomId, patientId)).thenReturn(Optional.empty());
+        when(episodeRepository.findByIdAndPatientIdAndNutritionistId(
+                randomId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.getHistorySnapshot(nutritionistId, patientId, randomId));

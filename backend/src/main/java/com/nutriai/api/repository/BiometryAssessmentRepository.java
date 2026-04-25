@@ -15,5 +15,9 @@ public interface BiometryAssessmentRepository extends JpaRepository<BiometryAsse
             UUID episodeId,
             UUID nutritionistId);
 
+    List<BiometryAssessment> findByEpisodeIdInAndNutritionistIdOrderByAssessmentDateAsc(
+            List<UUID> episodeIds,
+            UUID nutritionistId);
+
     Optional<BiometryAssessment> findByIdAndNutritionistId(UUID id, UUID nutritionistId);
 }
