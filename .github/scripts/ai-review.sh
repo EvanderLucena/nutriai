@@ -33,12 +33,20 @@ CHUNK_LINES="${AI_REVIEW_CHUNK_LINES:-1200}"
 MAX_CHUNKS="${AI_REVIEW_MAX_CHUNKS:-10}"
 PRIMARY_PROVIDER="${AI_REVIEW_PRIMARY_PROVIDER:-ollama}"
 PRIMARY_MODEL="${AI_REVIEW_PRIMARY_MODEL:-glm-5.1}"
-FALLBACK_PROVIDER="${AI_REVIEW_FALLBACK_PROVIDER:-openai}"
-FALLBACK_MODEL="${AI_REVIEW_FALLBACK_MODEL:-gpt-5.4-mini}"
+FALLBACK_PROVIDER="${AI_REVIEW_FALLBACK_PROVIDER:-}"
+FALLBACK_MODEL="${AI_REVIEW_FALLBACK_MODEL:-}"
 MAX_VISIBLE_FINDINGS="${AI_REVIEW_MAX_VISIBLE_FINDINGS:-8}"
 MAX_FINDING_CHARS="${AI_REVIEW_MAX_FINDING_CHARS:-280}"
 PROVIDER_MAX_TIME="${AI_REVIEW_PROVIDER_MAX_TIME:-120}"
 PROVIDER_RETRIES="${AI_REVIEW_PROVIDER_RETRIES:-2}"
+
+provider_chain_display() {
+  if [[ -n "$FALLBACK_PROVIDER" && -n "$FALLBACK_MODEL" ]]; then
+    printf '%s/%s, %s/%s' "$PRIMARY_PROVIDER" "$PRIMARY_MODEL" "$FALLBACK_PROVIDER" "$FALLBACK_MODEL"
+  else
+    printf '%s/%s' "$PRIMARY_PROVIDER" "$PRIMARY_MODEL"
+  fi
+}
 
 LAST_PROVIDER_ERROR=""
 
@@ -378,13 +386,12 @@ main() {
   write_output "total_chunks" "$total_chunks"
 
   if (( total_chunks > MAX_CHUNKS )); then
-    provider_chain="${PRIMARY_PROVIDER}/${PRIMARY_MODEL}, ${FALLBACK_PROVIDER}/${FALLBACK_MODEL}"
     summarize_error \
       "Diff grande demais para cobertura completa: ${total_chunks} chunks necessarios com limite configurado em ${MAX_CHUNKS}. Divida o PR ou aumente AI_REVIEW_MAX_CHUNKS." \
       "$total_lines" \
       "$total_chunks" \
       "0" \
-      "$provider_chain"
+      "$(provider_chain_display)"
     exit 0
   fi
 
@@ -398,9 +405,8 @@ main() {
     sed 's/```/` ` `/g' "$chunk_file" > "$sanitized_chunk"
 
     if ! review_with_fallback "$sanitized_chunk" "$chunk_review" "$provider_file" "$model_file" "$attempts_file"; then
-      provider_chain="${PRIMARY_PROVIDER}/${PRIMARY_MODEL}, ${FALLBACK_PROVIDER}/${FALLBACK_MODEL}"
       error_message="Falha ao revisar chunk $((reviewed_chunks + 1))/${total_chunks}. Tentativas: $(cat "$attempts_file")"
-      summarize_error "$error_message" "$total_lines" "$total_chunks" "$reviewed_chunks" "$provider_chain"
+      summarize_error "$error_message" "$total_lines" "$total_chunks" "$reviewed_chunks" "$(provider_chain_display)"
       exit 0
     fi
 
