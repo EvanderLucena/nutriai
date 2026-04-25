@@ -23,6 +23,8 @@ jobs:
       AI_REVIEW_FALLBACK_MODEL: gpt-5.4-mini
       AI_REVIEW_CHUNK_LINES: 1200
       AI_REVIEW_MAX_CHUNKS: 10
+      AI_REVIEW_MAX_VISIBLE_FINDINGS: 8
+      AI_REVIEW_MAX_FINDING_CHARS: 280
 
     steps:
       - uses: actions/checkout@v4
@@ -172,6 +174,43 @@ jobs:
               }
             }
 
+      - name: Cleanup legacy AI review comments
+        if: steps.review.outputs.result == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const stickyMarker = '<!-- ai-review:sticky -->';
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+
+            for (const comment of comments) {
+              const author = comment.user?.login || '';
+              const body = comment.body || '';
+              if (!(author === 'github-actions[bot]' || author === 'github-actions')) {
+                continue;
+              }
+              if (body.includes(stickyMarker)) {
+                continue;
+              }
+              if (!body.startsWith('## AI Review (')) {
+                continue;
+              }
+
+              try {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id,
+                });
+              } catch (error) {
+                console.log(`Could not delete legacy comment ${comment.id}: ${error.message}`);
+              }
+            }
+
       - name: Auto-approve if clean
         if: steps.review.outputs.decision == 'approve'
         uses: actions/github-script@v7
@@ -210,12 +249,8 @@ jobs:
         with:
           script: |
             const review = process.env.REVIEW_TEXT;
-            const mediumFindings = review.split('\n')
-              .filter(line => /^- MEDIUM:/i.test(line.trim()))
-              .map(line => line.trim());
-            const findingList = mediumFindings.length > 0
-              ? mediumFindings.join('\n')
-              : '(see sticky AI review comment)';
+            const summaryLine = review.split('\n').find(line => line.startsWith('SUMMARY:')) || 'SUMMARY: MEDIUM findings detectados.';
+            const summary = summaryLine.replace(/^SUMMARY:\s*/, '');
 
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -230,7 +265,7 @@ jobs:
             });
 
             const isInternal = perms.permission === 'admin' || perms.permission === 'write';
-            const body = `AI review passed with MEDIUM findings.\n\n${findingList}${isInternal ? '' : '\n\nExternal contributor: a maintainer must also approve before merging.'}`;
+            const body = `AI review passed with MEDIUM findings.\n\nResumo: ${summary}\n\nVeja o comentario sticky "AI Review" para detalhes.${isInternal ? '' : '\n\nExternal contributor: a maintainer must also approve before merging.'}`;
 
             await github.rest.pulls.createReview({
               owner: context.repo.owner,
@@ -247,12 +282,15 @@ jobs:
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
         with:
           script: |
+            const review = process.env.REVIEW_TEXT;
+            const summaryLine = review.split('\n').find(line => line.startsWith('SUMMARY:')) || 'SUMMARY: Foram encontrados findings bloqueantes.';
+            const summary = summaryLine.replace(/^SUMMARY:\s*/, '');
             await github.rest.pulls.createReview({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
               event: 'REQUEST_CHANGES',
-              body: 'AI review found issues - please address before merging.\n\n' + process.env.REVIEW_TEXT,
+              body: `AI review found blocking findings.\n\nResumo: ${summary}\n\nVeja o comentario sticky "AI Review" para detalhes completos.`,
             });
 
       - name: Sync HIGH+ finding issue
@@ -269,13 +307,26 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
         with:
           script: |
+            const reviewText = process.env.REVIEW_TEXT || '';
+            const summaryLine = reviewText.split('\n').find(line => line.startsWith('SUMMARY:')) || 'SUMMARY: sem resumo.';
+            const summary = summaryLine.replace(/^SUMMARY:\s*/, '');
+            const blockerLines = reviewText.split('\n')
+              .filter(line => /^- (CRITICAL|HIGH):/i.test(line.trim()));
+            const maxBlockersInIssue = 10;
+            const visibleBlockers = blockerLines.slice(0, maxBlockersInIssue);
+            const omittedBlockers = Math.max(0, blockerLines.length - visibleBlockers.length);
+
             const prNum = process.env.PR_NUMBER;
             const title = `AI Review findings (HIGH+) — PR #${prNum}`;
             const body = [
               `<!-- ai-review-issue:pr-${prNum} -->`,
               `## AI Review findings from PR #${prNum}`,
               '',
-              process.env.REVIEW_TEXT,
+              `Resumo: ${summary}`,
+              '',
+              'Blockers (CRITICAL/HIGH):',
+              ...(visibleBlockers.length > 0 ? visibleBlockers : ['none']),
+              ...(omittedBlockers > 0 ? [`... e mais ${omittedBlockers} blockers no comentario sticky do PR.`] : []),
               '',
               `- PR: ${process.env.PR_URL}`,
               `- Modelos usados: ${process.env.MODEL_CHAIN}`,

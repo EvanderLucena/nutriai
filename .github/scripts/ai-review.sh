@@ -11,6 +11,7 @@ Prefer concrete findings that mention the symbols, files, routes, or queries vis
 Focus on correctness, tenant isolation, authorization, data integrity, API contract mismatches, and missing validation/tests.
 Avoid style-only comments, minor refactors, and low-value observations unless they materially affect behavior or safety.
 Return at most 3 findings per chunk.
+Write concise findings: one sentence each, max 220 characters.
 Respond in this EXACT format:
 SUMMARY: one-line summary in pt-BR
 FINDINGS:
@@ -34,6 +35,8 @@ PRIMARY_PROVIDER="${AI_REVIEW_PRIMARY_PROVIDER:-ollama}"
 PRIMARY_MODEL="${AI_REVIEW_PRIMARY_MODEL:-glm-5.1}"
 FALLBACK_PROVIDER="${AI_REVIEW_FALLBACK_PROVIDER:-openai}"
 FALLBACK_MODEL="${AI_REVIEW_FALLBACK_MODEL:-gpt-5.4-mini}"
+MAX_VISIBLE_FINDINGS="${AI_REVIEW_MAX_VISIBLE_FINDINGS:-8}"
+MAX_FINDING_CHARS="${AI_REVIEW_MAX_FINDING_CHARS:-280}"
 
 LAST_PROVIDER_ERROR=""
 
@@ -203,11 +206,14 @@ summarize_success() {
   local info_count
   local finding_count
   local visible_findings
+  local display_findings
   local visible_count
+  local omitted_count=0
   local status
   local decision
   local severity
   local summary
+  local compressed_findings
 
   critical_count=$(grep -ciE '^- CRITICAL:' "$findings_file" || true)
   high_count=$(grep -ciE '^- HIGH:' "$findings_file" || true)
@@ -252,7 +258,27 @@ summarize_success() {
     fi
   fi
 
+  compressed_findings=$(mktemp)
+  awk -v max_chars="$MAX_FINDING_CHARS" '
+    /^- / {
+      if (length($0) > max_chars) {
+        print substr($0, 1, max_chars - 3) "...";
+        next;
+      }
+    }
+    { print; }
+  ' "$visible_findings" > "$compressed_findings"
+  mv "$compressed_findings" "$visible_findings"
+
   visible_count=$(grep -ciE '^- ' "$visible_findings" || true)
+  display_findings=$(mktemp)
+  cp "$visible_findings" "$display_findings"
+
+  if (( visible_count > MAX_VISIBLE_FINDINGS )); then
+    omitted_count=$((visible_count - MAX_VISIBLE_FINDINGS))
+    head -n "$MAX_VISIBLE_FINDINGS" "$visible_findings" > "$display_findings"
+    summary="${summary} Exibindo os ${MAX_VISIBLE_FINDINGS} principais findings; ${omitted_count} foram resumidos."
+  fi
 
   {
     printf 'STATUS: %s\n\n' "$status"
@@ -261,7 +287,7 @@ summarize_success() {
     if (( visible_count == 0 )); then
       printf 'none\n'
     else
-      cat "$visible_findings"
+      cat "$display_findings"
     fi
   } > "$review_file"
 
@@ -274,6 +300,8 @@ summarize_success() {
   write_output "medium_count" "$medium_count"
   write_output "low_count" "$low_count"
   write_output "info_count" "$info_count"
+  write_output "visible_finding_count" "$visible_count"
+  write_output "omitted_finding_count" "$omitted_count"
   write_multiline_output "review" "$review_file"
 }
 
