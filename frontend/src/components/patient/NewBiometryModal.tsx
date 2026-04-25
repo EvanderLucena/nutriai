@@ -251,22 +251,6 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
         <div
           style={{ padding: '18px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-          {createMutation.isError && !validationError ? (
-            <div
-              style={{
-                padding: '10px 12px',
-                borderRadius: 6,
-                background: 'rgba(255, 107, 74, 0.12)',
-                border: '1px solid rgba(255, 107, 74, 0.35)',
-                color: 'var(--fg)',
-                fontSize: 12.5,
-                lineHeight: 1.5,
-              }}
-            >
-              Não foi possível salvar a avaliação. Revise os dados e tente novamente.
-            </div>
-          ) : null}
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <BioField
               label="Data da avaliação"
@@ -409,7 +393,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             </div>
           )}
 
-          {createMutation.isError && (
+          {createMutation.isError && !validationError && (
             <div
               style={{
                 padding: '10px 12px',

@@ -29,6 +29,33 @@ import type { PatientStatus } from '../types/patient';
 
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
 
+const BIOMETRY_SKINFOLD_LABELS: Record<string, string> = {
+  peitoral: 'Peitoral',
+  axilar_medio: 'Axilar médio',
+  triceps: 'Tríceps',
+  subescapular: 'Subescapular',
+  abdominal: 'Abdominal',
+  suprailiaco: 'Suprailíaco',
+  coxa: 'Coxa',
+};
+
+const BIOMETRY_PERIMETRY_LABELS: Record<string, string> = {
+  cintura: 'Cintura',
+  abdomen: 'Abdômen',
+  quadril: 'Quadril',
+  braco_d: 'Braço D',
+  braco_e: 'Braço E',
+  coxa_d: 'Coxa D',
+  coxa_e: 'Coxa E',
+  panturrilha_d: 'Panturrilha D',
+};
+
+function formatBiometryMeasureLabel(measureKey: string) {
+  return (
+    BIOMETRY_SKINFOLD_LABELS[measureKey] ?? BIOMETRY_PERIMETRY_LABELS[measureKey] ?? measureKey
+  );
+}
+
 export function PatientView() {
   const { id } = useParams();
   const { data: apiData, isLoading } = usePatient(id ?? null);
@@ -68,7 +95,9 @@ export function PatientView() {
   const latestWeightDelta =
     previousBiometryWeight != null
       ? latestBiometryWeight - previousBiometryWeight
-      : patient.weightDelta;
+      : Number.isFinite(patient.weightDelta)
+        ? patient.weightDelta
+        : 0;
 
   if (isLoading) {
     return (
@@ -760,7 +789,9 @@ function BiometryTab({
                           borderRadius: 6,
                         }}
                       >
-                        <div style={{ flex: 1, fontSize: 12.5 }}>{f.measureKey}</div>
+                        <div style={{ flex: 1, fontSize: 12.5 }}>
+                          {formatBiometryMeasureLabel(f.measureKey)}
+                        </div>
                         <div className="mono tnum" style={{ fontSize: 15, fontWeight: 600 }}>
                           {f.valueMm}
                           <span style={{ fontSize: 10, color: 'var(--fg-subtle)', marginLeft: 3 }}>
@@ -842,7 +873,7 @@ function BiometryTab({
                         alignItems: 'center',
                       }}
                     >
-                      <div style={{ fontSize: 13 }}>{m.measureKey}</div>
+                      <div style={{ fontSize: 13 }}>{formatBiometryMeasureLabel(m.measureKey)}</div>
                       <div className="mono tnum" style={{ fontSize: 14, fontWeight: 500 }}>
                         {m.valueCm}{' '}
                         <span style={{ fontSize: 10, color: 'var(--fg-subtle)' }}>cm</span>

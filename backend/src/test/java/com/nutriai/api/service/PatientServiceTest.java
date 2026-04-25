@@ -277,7 +277,8 @@ class PatientServiceTest {
 
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_OPENED") &&
-                        e.getTitle().equals("Período iniciado")));
+                        e.getTitle().equals("Período iniciado") &&
+                        "{\"objective\":\"EMAGRECIMENTO\"}".equals(e.getMetadataJson())));
     }
 
     @Test
@@ -299,7 +300,8 @@ class PatientServiceTest {
 
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_CLOSED") &&
-                        e.getEpisodeId().equals(currentEpisode.getId())));
+                        e.getEpisodeId().equals(currentEpisode.getId()) &&
+                        "{\"objective\":\"EMAGRECIMENTO\"}".equals(e.getMetadataJson())));
     }
 
     @Test
@@ -319,6 +321,7 @@ class PatientServiceTest {
 
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_OPENED") &&
-                        e.getTitle().equals("Período iniciado")));
+                        e.getTitle().equals("Período iniciado") &&
+                        "{\"objective\":\"EMAGRECIMENTO\"}".equals(e.getMetadataJson())));
     }
 }

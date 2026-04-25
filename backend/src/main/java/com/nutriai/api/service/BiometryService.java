@@ -17,14 +17,18 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class BiometryService {
 
     private static final Logger logger = LoggerFactory.getLogger(BiometryService.class);
+    private static final Pattern OBJECTIVE_METADATA_PATTERN =
+            Pattern.compile("\"objective\"\\s*:\\s*\"([A-Z_]+)\"");
 
     private final BiometryAssessmentRepository assessmentRepository;
     private final BiometrySkinfoldRepository skinfoldRepository;
@@ -236,8 +240,36 @@ public class BiometryService {
 
         return new BiometryHistorySnapshotResponse(
                 episodeId, episode.getStartDate(), episode.getEndDate(),
-                patient.getObjective() != null ? patient.getObjective().getPortugueseLabel() : null,
+                resolveEpisodeObjective(timelineEvents, patient),
                 mealSlotCount, foodItemCount, assessmentResponses, eventResponses);
+    }
+
+    private String resolveEpisodeObjective(List<EpisodeHistoryEvent> timelineEvents, Patient patient) {
+        for (int i = timelineEvents.size() - 1; i >= 0; i--) {
+            String label = extractObjectiveLabel(timelineEvents.get(i).getMetadataJson());
+            if (label != null) {
+                return label;
+            }
+        }
+        return patient.getObjective() != null ? patient.getObjective().getPortugueseLabel() : null;
+    }
+
+    private String extractObjectiveLabel(String metadataJson) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = OBJECTIVE_METADATA_PATTERN.matcher(metadataJson);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        try {
+            return PatientObjective.valueOf(matcher.group(1)).getPortugueseLabel();
+        } catch (IllegalArgumentException ex) {
+            logger.warn("Ignoring invalid episode objective metadata: {}", metadataJson);
+            return null;
+        }
     }
 
     private BiometryAssessmentResponse toResponse(BiometryAssessment assessment, UUID nutritionistId) {

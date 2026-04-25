@@ -30,6 +30,7 @@ import java.util.UUID;
 public class PatientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PatientService.class);
+    private static final String OBJECTIVE_METADATA_TEMPLATE = "{\"objective\":\"%s\"}";
 
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
@@ -88,6 +89,7 @@ public class PatientService {
                 .title("Período iniciado")
                 .description("Cadastro do paciente ativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
+                .metadataJson(buildEpisodeMetadata(saved.getObjective()))
                 .build());
 
         // D-13/D-14: Auto-create default 6-meal plan
@@ -171,6 +173,7 @@ public class PatientService {
                             .title("Período encerrado")
                             .description("Cadastro do paciente desativado")
                             .sourceRef("Episode:" + e.getId())
+                            .metadataJson(buildEpisodeMetadata(patient.getObjective()))
                             .build());
                 });
 
@@ -202,6 +205,7 @@ public class PatientService {
                 .title("Período iniciado")
                 .description("Cadastro do paciente reativado")
                 .sourceRef("Episode:" + savedEpisode.getId())
+                .metadataJson(buildEpisodeMetadata(patient.getObjective()))
                 .build());
 
         mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
@@ -217,6 +221,13 @@ public class PatientService {
     private Integer computeAge(LocalDate birthDate) {
         if (birthDate == null) return null;
         return Period.between(birthDate, LocalDate.now()).getYears();
+    }
+
+    private String buildEpisodeMetadata(PatientObjective objective) {
+        if (objective == null) {
+            return null;
+        }
+        return OBJECTIVE_METADATA_TEMPLATE.formatted(objective.name());
     }
 
     private String computeInitials(String name) {

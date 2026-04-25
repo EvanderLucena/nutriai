@@ -401,13 +401,22 @@ class BiometryServiceTest {
     }
 
     @Test
-    void getHistorySnapshot_returnsAssessmentsAndTimeline() {
+    void getHistorySnapshot_prefersHistoricalObjectiveFromTimelineMetadata() {
         UUID closedEpisodeId = UUID.randomUUID();
         Episode closedEpisode = Episode.builder()
                 .id(closedEpisodeId).patientId(patientId)
                 .nutritionistId(nutritionistId)
                 .startDate(LocalDateTime.of(2025, 1, 1, 0, 0))
                 .endDate(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .build();
+        EpisodeHistoryEvent closedEvent = EpisodeHistoryEvent.builder()
+                .id(UUID.randomUUID())
+                .episodeId(closedEpisodeId)
+                .nutritionistId(nutritionistId)
+                .eventType("EPISODE_CLOSED")
+                .eventAt(LocalDateTime.of(2025, 3, 1, 0, 0))
+                .title("Período encerrado")
+                .metadataJson("{\"objective\":\"EMAGRECIMENTO\"}")
                 .build();
 
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
@@ -417,16 +426,16 @@ class BiometryServiceTest {
                 closedEpisodeId, patientId, nutritionistId))
                 .thenReturn(List.of());
         when(historyEventRepository.findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(closedEpisodeId, nutritionistId))
-                .thenReturn(List.of());
+                .thenReturn(List.of(closedEvent));
         when(mealPlanRepository.findByEpisodeIdAndNutritionistId(closedEpisodeId, nutritionistId)).thenReturn(Optional.empty());
 
         BiometryHistorySnapshotResponse result = biometryService.getHistorySnapshot(nutritionistId, patientId, closedEpisodeId);
 
         assertNotNull(result);
         assertEquals(closedEpisodeId, result.episodeId());
-        assertEquals(patient.getObjective().getPortugueseLabel(), result.episodeObjective());
+        assertEquals(PatientObjective.EMAGRECIMENTO.getPortugueseLabel(), result.episodeObjective());
         assertEquals(0, result.assessments().size());
-        assertEquals(0, result.timelineEvents().size());
+        assertEquals(1, result.timelineEvents().size());
         assertEquals(0, result.mealSlotCount());
     }
 
