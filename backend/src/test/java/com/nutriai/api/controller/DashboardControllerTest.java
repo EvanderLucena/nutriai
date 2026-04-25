@@ -49,7 +49,6 @@ class DashboardControllerTest {
     void setUp() {
         skinfoldRepository.deleteAll();
         assessmentRepository.deleteAll();
-        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

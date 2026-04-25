@@ -42,7 +42,6 @@ public class BiometryPerimetry {
     @Column(name = "value_cm", nullable = false, precision = 5, scale = 2)
     private BigDecimal valueCm;
 
-    @NotNull
     @Column(name = "nutritionist_id", nullable = false)
     private UUID nutritionistId;
 

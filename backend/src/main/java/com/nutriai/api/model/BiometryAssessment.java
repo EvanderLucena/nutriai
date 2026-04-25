@@ -33,12 +33,15 @@ public class BiometryAssessment {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @NotNull
     @Column(name = "patient_id", nullable = false)
     private UUID patientId;
 
+    @NotNull
     @Column(name = "episode_id", nullable = false)
     private UUID episodeId;
 
+    @NotNull
     @Column(name = "nutritionist_id", nullable = false)
     private UUID nutritionistId;
 

@@ -64,7 +64,6 @@ class BiometryControllerTest {
         skinfoldRepository.deleteAll();
         perimetryRepository.deleteAll();
         assessmentRepository.deleteAll();
-        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

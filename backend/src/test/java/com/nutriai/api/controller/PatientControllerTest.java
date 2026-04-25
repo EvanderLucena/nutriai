@@ -89,7 +89,6 @@ class PatientControllerTest {
 
     @BeforeEach
     void setUp() {
-        historyEventRepository.deleteAll();
         mealFoodRepository.deleteAll();
         mealOptionRepository.deleteAll();
         mealSlotRepository.deleteAll();

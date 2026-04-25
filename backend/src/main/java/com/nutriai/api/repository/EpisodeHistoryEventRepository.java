@@ -11,8 +11,6 @@ public interface EpisodeHistoryEventRepository {
 
     EpisodeHistoryEvent save(EpisodeHistoryEvent event);
 
-    void deleteAll();
-
     List<EpisodeHistoryEvent> findByEpisodeIdAndNutritionistIdOrderByEventAtAsc(
             UUID episodeId,
             UUID nutritionistId);

@@ -59,7 +59,6 @@ class FoodAndPlanRepositoryTest {
         mealSlotRepository.deleteAll();
         mealPlanRepository.deleteAll();
         foodRepository.deleteAll();
-        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         nutritionistRepository.deleteAll();

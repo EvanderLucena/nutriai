@@ -88,7 +88,6 @@ class PlanControllerTest {
         planExtraRepository.deleteAll();
         mealPlanRepository.deleteAll();
         foodRepository.deleteAll();
-        historyEventRepository.deleteAll();
         episodeRepository.deleteAll();
         patientRepository.deleteAll();
         refreshTokenRepository.deleteAll();

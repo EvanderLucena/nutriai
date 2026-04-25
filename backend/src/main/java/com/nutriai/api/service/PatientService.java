@@ -70,7 +70,7 @@ public class PatientService {
                 .build();
 
         Patient saved = patientRepository.save(patient);
-        logger.info("Patient created: id={}, name={}, nutritionistId={}", saved.getId(), saved.getName(), nutritionistId);
+        logger.info("Patient created: id={}, nutritionistId={}", saved.getId(), nutritionistId);
 
         LocalDateTime now = LocalDateTime.now();
         Episode episode = Episode.builder()
@@ -148,7 +148,7 @@ public class PatientService {
         if (req.tag() != null) patient.setTag(req.tag());
 
         Patient updated = patientRepository.save(patient);
-        logger.info("Patient updated: id={}, fields={}", updated.getId(), req);
+        logger.info("Patient updated: id={}, nutritionistId={}", updated.getId(), nutritionistId);
         return PatientResponse.from(updated);
     }
 
