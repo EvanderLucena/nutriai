@@ -5,6 +5,7 @@
 
 CREATE TABLE biometry_assessment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id UUID NOT NULL REFERENCES patient(id) ON DELETE CASCADE,
     episode_id UUID NOT NULL REFERENCES episode(id) ON DELETE CASCADE,
     nutritionist_id UUID NOT NULL REFERENCES nutritionist(id) ON DELETE CASCADE,
     assessment_date DATE NOT NULL,
@@ -22,10 +23,13 @@ CREATE TABLE biometry_assessment (
 
 CREATE INDEX idx_biometry_assessment_episode_date ON biometry_assessment(episode_id, assessment_date);
 CREATE INDEX idx_biometry_assessment_nutritionist ON biometry_assessment(nutritionist_id);
+CREATE INDEX idx_biometry_assessment_patient_nutritionist_date
+    ON biometry_assessment(patient_id, nutritionist_id, assessment_date);
 
 CREATE TABLE biometry_skinfold (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_id UUID NOT NULL REFERENCES biometry_assessment(id) ON DELETE CASCADE,
+    nutritionist_id UUID NOT NULL REFERENCES nutritionist(id) ON DELETE CASCADE,
     measure_key VARCHAR(50) NOT NULL,
     value_mm DECIMAL(5,2) NOT NULL,
     sort_order INTEGER NOT NULL,
@@ -34,10 +38,12 @@ CREATE TABLE biometry_skinfold (
 );
 
 CREATE INDEX idx_biometry_skinfold_assessment_sort ON biometry_skinfold(assessment_id, sort_order);
+CREATE INDEX idx_biometry_skinfold_nutritionist ON biometry_skinfold(nutritionist_id);
 
 CREATE TABLE biometry_perimetry (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assessment_id UUID NOT NULL REFERENCES biometry_assessment(id) ON DELETE CASCADE,
+    nutritionist_id UUID NOT NULL REFERENCES nutritionist(id) ON DELETE CASCADE,
     measure_key VARCHAR(50) NOT NULL,
     value_cm DECIMAL(5,2) NOT NULL,
     sort_order INTEGER NOT NULL,
@@ -46,6 +52,7 @@ CREATE TABLE biometry_perimetry (
 );
 
 CREATE INDEX idx_biometry_perimetry_assessment_sort ON biometry_perimetry(assessment_id, sort_order);
+CREATE INDEX idx_biometry_perimetry_nutritionist ON biometry_perimetry(nutritionist_id);
 
 CREATE TABLE episode_history_event (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

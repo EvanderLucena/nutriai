@@ -392,20 +392,6 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               {validationError}
             </div>
           )}
-
-          {createMutation.isError && !validationError && (
-            <div
-              style={{
-                padding: '10px 12px',
-                background: 'rgba(255,107,74,0.1)',
-                borderRadius: 6,
-                fontSize: 13,
-                color: 'var(--coral)',
-              }}
-            >
-              Erro ao salvar avaliação — verifique os dados e tente novamente.
-            </div>
-          )}
         </div>
 
         <div

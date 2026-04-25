@@ -58,9 +58,9 @@ function formatBiometryMeasureLabel(measureKey: string) {
 
 export function PatientView() {
   const { id } = useParams();
-  const patientId = id ?? ANA.id;
+  const routePatientId = id ?? null;
   const { data: apiData, isLoading } = usePatient(id ?? null);
-  const { data: biometryAssessments } = usePatientBiometry(patientId);
+  const { data: biometryAssessments } = usePatientBiometry(routePatientId);
   const [tab, setTab] = React.useState<Tab>('today');
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -105,6 +105,7 @@ export function PatientView() {
       : Number.isFinite(patient.weightDelta)
         ? patient.weightDelta
         : 0;
+  const patientId = id ?? patient.id;
 
   if (isLoading) {
     return (
