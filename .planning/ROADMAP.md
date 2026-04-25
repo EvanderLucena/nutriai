@@ -35,7 +35,7 @@ Every phase must include tests as part of its "Done" criteria. No phase is compl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Monorepo & Infrastructure** - Working dev environment with all services booting together
+- [x] **Phase 1: Monorepo & Infrastructure** - Working dev environment with all services booting together
 - [x] **Phase 2: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
 - [x] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
 - [x] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
@@ -63,9 +63,9 @@ Decimal phases appear between their surrounding integers in numeric order.
   - Frontend Vite dev server starts and serves the app
 **Plans:** 3 plans in 2 waves
 Plans:
-- [ ] 01-01-PLAN.md — Monorepo scaffold + Spring Boot backend skeleton
-- [ ] 01-02-PLAN.md — Frontend scaffold with Tailwind theme and component library
-- [ ] 01-03-PLAN.md — Docker Compose integration and verification
+- [x] 01-01-PLAN.md — Monorepo scaffold + Spring Boot backend skeleton
+- [x] 01-02-PLAN.md — Frontend scaffold with Tailwind theme and component library
+- [x] 01-03-PLAN.md — Docker Compose integration and verification
 
 ### Phase 2: Frontend Migration
 **Goal**: All prototype UI works in a modern build pipeline without runtime Babel
@@ -107,10 +107,11 @@ Plans:
   - **Frontend (Vitest)**: authStore (12), LoginView (8), SignupView (8) — 28 unit tests
   - **E2E (Playwright)**: signup flow, duplicate email, auth navigation, wrong password, protected route — 6 tests
   - Integration tested: 55/61 pass, bugs fixed (enum, CORS, Set-Cookie, field errors)
-**Plans:** 2 plans in 2 waves
+**Plans:** 3 plans in 2 waves
 Plans:
 - [x] 03-01-PLAN.md — Backend authentication: Spring Security, JWT, auth endpoints, Flyway V2
 - [x] 03-02-PLAN.md — Frontend auth wiring: LoginView, SignupView, OnboardingView, authStore refactor
+- [x] 03-E2E-TEST-PLAN.md — E2E auth test strategy and coverage plan
 
 ### Phase 4: Patient Management
 **Goal**: Nutritionists can manage their patient roster with complete data isolation
@@ -144,14 +145,15 @@ Plans:
   - **Backend (JUnit 5)**: PlanController, PlanService, FoodController, FoodService — CRUD, macro calculation, plan-patient linkage
   - **Frontend (Vitest)**: planStore, foodStore — state, API, macro math; PlansView — inline editing, macro totals; FoodsView — search, pagination, create/edit
   - **E2E (Playwright)**: create meal plan, add foods, macro calculation, edit/delete food from catalog
-**Plans:** 2 plans in 2 waves
+**Plans:** 3 plans in 2 waves
 Plans:
 - [x] 05-01-PLAN.md — Backend entities, food catalog, meal plan API, macro calculation, auto-creation
 - [x] 05-02-PLAN.md — Frontend types, API modules, stores, view wiring, auto-save UI components
+- [x] 05-03-PLAN.md — Unified food model refactor across backend and frontend
 
 ### Phase 6: Dashboard & Biometry
 **Goal**: Nutritionists can track patient biometrics and see clinical insights on the dashboard
-**Depends on**: Phase 4
+**Depends on**: Phase 4, Phase 5
 **Requirements**: BIO-01, BIO-02, BIO-03
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can record biometric assessments (bioimpedance, skinfolds, perimetry) with date-stamped entries per patient
@@ -162,12 +164,18 @@ Plans:
   - **Backend (JUnit 5)**: BiometryController, BiometryService — CRUD assessments, date validation, scope isolation
   - **Frontend (Vitest)**: HomeView — KPI rendering with real data; PatientView biometry tab — recording, evolution charts
   - **E2E (Playwright)**: record biometry, view evolution chart, dashboard KPIs show real patient data
-**Plans**: TBD
+**Plans:** 5 plans in 4 waves
+Plans:
+- [ ] 06-01-PLAN.md — Schema, entities, and repositories for biometry and episode history
+- [ ] 06-02-PLAN.md — Biometry CRUD service, controller, DTOs, and tests
+- [ ] 06-03-PLAN.md — Dashboard aggregate endpoint and closed-cycle history snapshots
+- [ ] 06-04-PLAN.md — Lifecycle event emission (PatientService, MealPlanService)
+- [ ] 06-05-PLAN.md — Frontend dashboard/biometry/history wiring, tests, and E2E
 **UI hint**: yes
 
 ### Phase 7: WhatsApp Intelligence
 **Goal**: Patients can interact with the AI via WhatsApp and nutritionists see extracted meal data
-**Depends on**: Phase 5
+**Depends on**: Phase 5, Phase 6
 **Requirements**: WA-01, WA-02, WA-03, WA-04, WA-05
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can generate a unique WhatsApp activation link per patient
@@ -200,7 +208,7 @@ Plans:
 
 ### Phase 9: LGPD Compliance
 **Goal**: Application complies with Brazilian data protection requirements for health data
-**Depends on**: Phase 3, Phase 7
+**Depends on**: Phase 4, Phase 5, Phase 6, Phase 7
 **Requirements**: LGPD-01, LGPD-02, LGPD-03
 **Success Criteria** (what must be TRUE):
   1. Explicit consent is collected at signup (terms acceptance) and patient registration (health data processing consent)
@@ -215,7 +223,7 @@ Plans:
 
 ### Phase 10: CI/CD & Deployment
 **Goal**: Application deploys automatically to production VPS on push
-**Depends on**: Phase 9
+**Depends on**: Phase 8, Phase 9
 **Requirements**: INFRA-05
 **Success Criteria** (what must be TRUE):
   1. Push to main branch triggers an automated GitHub Actions pipeline that builds and deploys both frontend and backend
@@ -232,18 +240,20 @@ Plans:
 **Execution Order:**
 Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
 
-Note: Phase 6 depends on Phase 4 (not Phase 5) and can begin in parallel with Phase 5.
-Phase 8 depends on Phase 3 and Phase 4 and can begin once both are complete.
-Phase 9 depends on Phase 3 and Phase 7 and can begin once both are complete.
+Note: Phase 6 depends on both Phase 4 and Phase 5 (history snapshots consume MealPlanService, lifecycle events modify it).
+Phase 7 depends on Phase 5 and Phase 6 (uses EpisodeHistoryEvent infrastructure and dashboard structure).
+Phase 8 depends on Phase 3 and Phase 4 (patient counts for tier enforcement) — can run in parallel with 5-7.
+Phase 9 depends on Phases 4-7 (data export must cover patients, meal plans, biometry, and WhatsApp data).
+Phase 10 depends on both Phase 8 and Phase 9 (deploy complete SaaS with billing and compliance).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
 | 2. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
-| 3. Auth & Onboarding | 2/2 | Complete ✓ | 2026-04-21 |
+| 3. Auth & Onboarding | 3/3 | Complete ✓ | 2026-04-21 |
 | 4. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
-| 5. Meal Plans & Food Catalog | 0/2 | Planned | - |
-| 6. Dashboard & Biometry | 0/? | Not started | - |
+| 5. Meal Plans & Food Catalog | 3/3 | Complete ✓ | 2026-04-22 |
+| 6. Dashboard & Biometry | 0/5 | Planned | - |
 | 7. WhatsApp Intelligence | 0/? | Not started | - |
 | 8. Billing & Subscriptions | 0/? | Not started | - |
 | 9. LGPD Compliance | 0/? | Not started | - |
