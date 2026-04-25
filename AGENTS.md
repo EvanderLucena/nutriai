@@ -48,6 +48,7 @@
 | JWT signing key | `NUTRIAI_JWT_SECRET` | `.env` or Docker env |
 | Seed admin password | `NUTRIAI_SEED_ADMIN_PASSWORD` | `.env` or Docker env |
 | Ollama Cloud API key | `OLLAMA_API_KEY` | GitHub repo secrets |
+| OpenAI fallback review key | `OPENAI_API_KEY` | GitHub repo secrets |
 
 ## AI Reviewer Rules
 
