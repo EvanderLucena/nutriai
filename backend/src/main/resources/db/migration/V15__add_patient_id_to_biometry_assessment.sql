@@ -1,0 +1,17 @@
+-- V15: Add patient_id to biometry_assessment for patient-scoped assessment queries
+
+ALTER TABLE biometry_assessment ADD COLUMN patient_id UUID;
+
+UPDATE biometry_assessment a
+SET patient_id = e.patient_id
+FROM episode e
+WHERE a.episode_id = e.id
+  AND a.patient_id IS NULL;
+
+ALTER TABLE biometry_assessment ALTER COLUMN patient_id SET NOT NULL;
+
+ALTER TABLE biometry_assessment ADD CONSTRAINT fk_biometry_assessment_patient
+    FOREIGN KEY (patient_id) REFERENCES patient(id) ON DELETE CASCADE;
+
+CREATE INDEX idx_biometry_assessment_patient_nutritionist_date
+    ON biometry_assessment(patient_id, nutritionist_id, assessment_date);

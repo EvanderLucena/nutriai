@@ -26,9 +26,8 @@ public interface BiometryAssessmentRepository extends JpaRepository<BiometryAsse
     @Query("""
             select a
             from BiometryAssessment a
-            join Episode e on e.id = a.episodeId
-            where e.id = :episodeId
-              and e.patientId = :patientId
+            where a.episodeId = :episodeId
+              and a.patientId = :patientId
               and a.nutritionistId = :nutritionistId
             order by a.assessmentDate asc
             """)
@@ -40,9 +39,8 @@ public interface BiometryAssessmentRepository extends JpaRepository<BiometryAsse
     @Query("""
             select a
             from BiometryAssessment a
-            join Episode e on e.id = a.episodeId
             where a.episodeId in :episodeIds
-              and e.patientId = :patientId
+              and a.patientId = :patientId
               and a.nutritionistId = :nutritionistId
             order by a.assessmentDate asc
             """)
@@ -54,9 +52,8 @@ public interface BiometryAssessmentRepository extends JpaRepository<BiometryAsse
     @Query("""
             select a
             from BiometryAssessment a
-            join Episode e on e.id = a.episodeId
             where a.id = :id
-              and e.patientId = :patientId
+              and a.patientId = :patientId
               and a.nutritionistId = :nutritionistId
             """)
     Optional<BiometryAssessment> findByIdAndPatientIdAndNutritionistId(

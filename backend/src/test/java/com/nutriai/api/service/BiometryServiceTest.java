@@ -79,6 +79,7 @@ class BiometryServiceTest {
 
         assertNotNull(response);
         assertEquals(LocalDate.of(2025, 1, 10), response.assessmentDate());
+        verify(assessmentRepository).save(argThat(a -> patientId.equals(a.getPatientId())));
         verify(historyEventRepository).save(argThat(e ->
                 e.getEventType().equals("EPISODE_BIOMETRY_CREATED") && e.getEventAt() != null));
     }
@@ -87,6 +88,18 @@ class BiometryServiceTest {
     void createAssessment_succeedsWithAllOptionalFields() {
         when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
+        when(skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(any(), eq(nutritionistId)))
+                .thenReturn(List.of(BiometrySkinfold.builder()
+                        .measureKey("triceps")
+                        .valueMm(new BigDecimal("12.50"))
+                        .sortOrder(1)
+                        .build()));
+        when(perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(any(), eq(nutritionistId)))
+                .thenReturn(List.of(BiometryPerimetry.builder()
+                        .measureKey("cintura")
+                        .valueCm(new BigDecimal("82.30"))
+                        .sortOrder(1)
+                        .build()));
         when(assessmentRepository.save(any(BiometryAssessment.class))).thenAnswer(inv -> {
             BiometryAssessment a = inv.getArgument(0);
             a.setId(UUID.randomUUID());
@@ -111,6 +124,7 @@ class BiometryServiceTest {
         ArgumentCaptor<BiometryAssessment> assessmentCaptor = ArgumentCaptor.forClass(BiometryAssessment.class);
         verify(assessmentRepository).save(assessmentCaptor.capture());
         BiometryAssessment savedAssessment = assessmentCaptor.getValue();
+        assertEquals(patientId, savedAssessment.getPatientId());
         assertEquals(1, savedAssessment.getSkinfolds().size());
         assertEquals("triceps", savedAssessment.getSkinfolds().get(0).getMeasureKey());
         assertEquals(nutritionistId, savedAssessment.getSkinfolds().get(0).getNutritionistId());
@@ -150,6 +164,7 @@ class BiometryServiceTest {
         BiometryAssessment existing = BiometryAssessment.builder()
                 .id(UUID.randomUUID())
                 .episodeId(episodeId)
+                .patientId(patientId)
                 .nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 10))
                 .weight(new BigDecimal("75.00"))
@@ -210,14 +225,6 @@ class BiometryServiceTest {
     @Test
     void updateAssessment_failsWhenRoutePatientDoesNotOwnAssessmentEpisode() {
         UUID assessmentId = UUID.randomUUID();
-        BiometryAssessment existing = BiometryAssessment.builder()
-                .id(assessmentId)
-                .episodeId(episodeId)
-                .nutritionistId(nutritionistId)
-                .assessmentDate(LocalDate.of(2025, 1, 10))
-                .weight(new BigDecimal("75.00"))
-                .bodyFatPercent(new BigDecimal("22.50"))
-                .build();
         when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
                 assessmentId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
@@ -249,6 +256,7 @@ class BiometryServiceTest {
                 .thenReturn(List.of(BiometryAssessment.builder()
                         .id(UUID.randomUUID())
                         .episodeId(closedEpisode.getId())
+                        .patientId(patientId)
                         .build()));
 
         List<BiometryHistoryEpisodeResponse> result = biometryService.listHistoryEpisodes(nutritionistId, patientId);

@@ -33,6 +33,9 @@ public class BiometryAssessment {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @Column(name = "patient_id", nullable = false)
+    private UUID patientId;
+
     @Column(name = "episode_id", nullable = false)
     private UUID episodeId;
 

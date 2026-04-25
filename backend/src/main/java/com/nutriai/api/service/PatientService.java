@@ -158,6 +158,7 @@ public class PatientService {
         episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patient.getId(), nutritionistId)
                 .ifPresent(e -> {
                     e.close();
+                    episodeRepository.save(e);
                     logger.info("Episode closed: id={}, patientId={}", e.getId(), id);
                     historyEventRepository.save(EpisodeHistoryEvent.builder()
                             .episodeId(e.getId())

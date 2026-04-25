@@ -140,6 +140,7 @@ class BiometryControllerTest {
     void updateAssessment_returnsUpdatedResponse() throws Exception {
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .episodeId(episodeId)
+                .patientId(patientId)
                 .nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 10))
                 .weight(new BigDecimal("75.00"))
@@ -162,6 +163,7 @@ class BiometryControllerTest {
     void updateAssessment_withInvalidSkinfoldPayload_returns400() throws Exception {
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .episodeId(episodeId)
+                .patientId(patientId)
                 .nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 10))
                 .weight(new BigDecimal("75.00"))
@@ -197,9 +199,12 @@ class BiometryControllerTest {
                 .weight(new BigDecimal("68.00"))
                 .build();
         otherPatient = patientRepository.save(otherPatient);
-        Episode otherEpisode = episodeRepository.save(Episode.builder().patientId(otherPatient.getId()).build());
+        Episode otherEpisode = episodeRepository.save(Episode.builder()
+                .patientId(otherPatient.getId())
+                .build());
         BiometryAssessment assessment = BiometryAssessment.builder()
                 .episodeId(otherEpisode.getId())
+                .patientId(otherPatient.getId())
                 .nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 10))
                 .weight(new BigDecimal("68.00"))
@@ -223,11 +228,11 @@ class BiometryControllerTest {
     @Test
     void listAssessments_returnsListForActiveEpisode() throws Exception {
         BiometryAssessment a1 = BiometryAssessment.builder()
-                .episodeId(episodeId).nutritionistId(nutritionistId)
+                .episodeId(episodeId).patientId(patientId).nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 10))
                 .weight(new BigDecimal("75.00")).bodyFatPercent(new BigDecimal("22.50")).build();
         BiometryAssessment a2 = BiometryAssessment.builder()
-                .episodeId(episodeId).nutritionistId(nutritionistId)
+                .episodeId(episodeId).patientId(patientId).nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.of(2025, 1, 20))
                 .weight(new BigDecimal("74.00")).bodyFatPercent(new BigDecimal("21.80")).build();
         assessmentRepository.save(a1);

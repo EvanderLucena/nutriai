@@ -154,7 +154,7 @@ class PatientServiceTest {
                 "Ana Costa".equals(p.getName()) &&
                         p.getStatus() == PatientStatus.WARNING &&
                         p.getAge() == 30
-        ));;
+        ));
     }
 
     @Test
@@ -169,11 +169,13 @@ class PatientServiceTest {
         when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(samplePatient.getId(), nutritionistId))
                   .thenReturn(Optional.of(currentEpisode));
         when(patientRepository.save(any(Patient.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(episodeRepository.save(any(Episode.class))).thenAnswer(inv -> inv.getArgument(0));
 
         patientService.deactivatePatient(samplePatient.getId(), nutritionistId);
 
         assertNotNull(currentEpisode.getEndDate());
         verify(patientRepository).save(argThat(p -> !p.getActive()));
+        verify(episodeRepository).save(argThat(e -> e.getEndDate() != null));
     }
 
     @Test

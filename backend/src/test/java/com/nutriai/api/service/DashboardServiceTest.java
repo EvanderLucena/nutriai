@@ -101,7 +101,7 @@ class DashboardServiceTest {
                 .initials("M").status(PatientStatus.ONTRACK).adherence(90).active(true).build();
         Episode episode = Episode.builder().id(episodeId).patientId(patientId).build();
         BiometryAssessment assessment = BiometryAssessment.builder()
-                .id(UUID.randomUUID()).episodeId(episodeId).nutritionistId(nutritionistId)
+                .id(UUID.randomUUID()).episodeId(episodeId).patientId(patientId).nutritionistId(nutritionistId)
                 .assessmentDate(LocalDate.now().minusDays(5))
                 .weight(new BigDecimal("75.00")).bodyFatPercent(new BigDecimal("22.50")).build();
 

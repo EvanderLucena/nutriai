@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -62,6 +63,7 @@ public class BiometryService {
                         "Paciente não possui episódio ativo"));
 
         BiometryAssessment assessment = BiometryAssessment.builder()
+                .patientId(patientId)
                 .episodeId(activeEpisode.getId())
                 .nutritionistId(nutritionistId)
                 .assessmentDate(request.assessmentDate())
@@ -107,7 +109,7 @@ public class BiometryService {
         emitHistoryEvent(activeEpisode.getId(), nutritionistId, "EPISODE_BIOMETRY_CREATED",
                 "Avaliação biométrica criada", "BiometryAssessment", saved.getId());
 
-        return toResponse(saved);
+        return toResponse(saved, nutritionistId);
     }
 
     @Transactional
@@ -162,7 +164,7 @@ public class BiometryService {
         emitHistoryEvent(updated.getEpisodeId(), nutritionistId, "EPISODE_BIOMETRY_UPDATED",
                 "Avaliação biométrica atualizada", "BiometryAssessment", updated.getId());
 
-        return toResponse(updated);
+        return toResponse(updated, nutritionistId);
     }
 
     @Transactional(readOnly = true)
@@ -177,7 +179,7 @@ public class BiometryService {
         List<BiometryAssessment> assessments = assessmentRepository.findByEpisodeIdAndPatientIdAndNutritionistIdOrderByAssessmentDateAsc(
                 activeEpisode.getId(), patientId, nutritionistId);
         return assessments.stream()
-                .map(this::toResponse)
+                .map(assessment -> toResponse(assessment, nutritionistId))
                 .toList();
     }
 
@@ -243,7 +245,7 @@ public class BiometryService {
         }
 
         List<BiometryAssessmentResponse> assessmentResponses = assessments.stream()
-                .map(this::toResponse).toList();
+                .map(assessment -> toResponse(assessment, nutritionistId)).toList();
         List<EpisodeHistoryEventResponse> eventResponses = timelineEvents.stream()
                 .map(e -> new EpisodeHistoryEventResponse(e.getId(), e.getEventType(), e.getEventAt(),
                         e.getTitle(), e.getDescription(), e.getSourceRef())).toList();
@@ -254,9 +256,13 @@ public class BiometryService {
                 mealSlotCount, foodItemCount, assessmentResponses, eventResponses);
     }
 
-    private BiometryAssessmentResponse toResponse(BiometryAssessment assessment) {
-        List<BiometrySkinfold> skinfolds = assessment.getSkinfolds() != null ? assessment.getSkinfolds() : List.of();
-        List<BiometryPerimetry> perimetries = assessment.getPerimetries() != null ? assessment.getPerimetries() : List.of();
+    private BiometryAssessmentResponse toResponse(BiometryAssessment assessment, UUID nutritionistId) {
+        List<BiometrySkinfold> skinfolds = Optional.ofNullable(
+                skinfoldRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessment.getId(), nutritionistId))
+                .orElse(List.of());
+        List<BiometryPerimetry> perimetries = Optional.ofNullable(
+                perimetryRepository.findByAssessmentIdAndNutritionistIdOrderBySortOrder(assessment.getId(), nutritionistId))
+                .orElse(List.of());
         return BiometryAssessmentResponse.from(assessment, skinfolds, perimetries);
     }
 

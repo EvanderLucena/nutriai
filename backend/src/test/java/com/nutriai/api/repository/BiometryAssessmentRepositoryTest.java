@@ -32,6 +32,8 @@ class BiometryAssessmentRepositoryTest {
 
     private UUID nutritionistId1;
     private UUID nutritionistId2;
+    private UUID patientId1;
+    private UUID patientId2;
     private UUID episodeId1;
     private UUID episodeId2;
 
@@ -42,12 +44,15 @@ class BiometryAssessmentRepositoryTest {
         assessmentRepository.deleteAll();
         nutritionistId1 = UUID.randomUUID();
         nutritionistId2 = UUID.randomUUID();
+        patientId1 = UUID.randomUUID();
+        patientId2 = UUID.randomUUID();
         episodeId1 = UUID.randomUUID();
         episodeId2 = UUID.randomUUID();
     }
 
-    private BiometryAssessment createAssessment(UUID episodeId, UUID nutritionistId, LocalDate date, BigDecimal weight, BigDecimal bodyFat) {
+    private BiometryAssessment createAssessment(UUID patientId, UUID episodeId, UUID nutritionistId, LocalDate date, BigDecimal weight, BigDecimal bodyFat) {
         return BiometryAssessment.builder()
+                .patientId(patientId)
                 .episodeId(episodeId)
                 .nutritionistId(nutritionistId)
                 .assessmentDate(date)
@@ -59,11 +64,11 @@ class BiometryAssessmentRepositoryTest {
     @Test
     void findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc_returnsChronologicalOrder() {
         BiometryAssessment a1 = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
         BiometryAssessment a2 = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
         BiometryAssessment a3 = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
 
         List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
@@ -75,9 +80,9 @@ class BiometryAssessmentRepositoryTest {
 
     @Test
     void findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc_scopesToNutritionist() {
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId2, LocalDate.of(2025, 1, 15), new BigDecimal("80.00"), new BigDecimal("25.00")));
+        assessmentRepository.save(createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+        assessmentRepository.save(createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 20), new BigDecimal("74.50"), new BigDecimal("21.80")));
+        assessmentRepository.save(createAssessment(patientId2, episodeId1, nutritionistId2, LocalDate.of(2025, 1, 15), new BigDecimal("80.00"), new BigDecimal("25.00")));
 
         List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
@@ -88,7 +93,7 @@ class BiometryAssessmentRepositoryTest {
     @Test
     void findByIdAndNutritionistId_returnsEmptyForWrongNutritionist() {
         BiometryAssessment a = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
 
         Optional<BiometryAssessment> result = assessmentRepository.findByIdAndNutritionistId(a.getId(), nutritionistId2);
 
@@ -98,7 +103,7 @@ class BiometryAssessmentRepositoryTest {
     @Test
     void findByIdAndNutritionistId_returnsAssessmentForCorrectNutritionist() {
         BiometryAssessment a = assessmentRepository.save(
-                createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
 
         Optional<BiometryAssessment> result = assessmentRepository.findByIdAndNutritionistId(a.getId(), nutritionistId1);
 
@@ -108,9 +113,9 @@ class BiometryAssessmentRepositoryTest {
 
     @Test
     void findByEpisodeIdAndNutritionistId_scopesToSingleEpisode() {
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
-        assessmentRepository.save(createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
-        assessmentRepository.save(createAssessment(episodeId2, nutritionistId1, LocalDate.of(2025, 1, 12), new BigDecimal("80.00"), new BigDecimal("25.00")));
+        assessmentRepository.save(createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+        assessmentRepository.save(createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 15), new BigDecimal("74.80"), new BigDecimal("22.10")));
+        assessmentRepository.save(createAssessment(patientId2, episodeId2, nutritionistId1, LocalDate.of(2025, 1, 12), new BigDecimal("80.00"), new BigDecimal("25.00")));
 
         List<BiometryAssessment> result = assessmentRepository.findByEpisodeIdAndNutritionistIdOrderByAssessmentDateAsc(episodeId1, nutritionistId1);
 
@@ -120,7 +125,7 @@ class BiometryAssessmentRepositoryTest {
 
     @Test
     void skinfold_and_perimetry_persistWithAssessment() {
-        BiometryAssessment a = createAssessment(episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"));
+        BiometryAssessment a = createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"));
 
         BiometrySkinfold skinfold = BiometrySkinfold.builder()
                 .assessment(a)
@@ -157,5 +162,15 @@ class BiometryAssessmentRepositoryTest {
         assertEquals("cintura", perimetries.get(0).getMeasureKey());
         assertEquals(0, new BigDecimal("82.30").compareTo(perimetries.get(0).getValueCm()));
         assertEquals(nutritionistId1, perimetries.get(0).getNutritionistId());
+    }
+
+    @Test
+    void findByIdAndPatientIdAndNutritionistId_scopesToPatientAndNutritionist() {
+        BiometryAssessment a = assessmentRepository.save(
+                createAssessment(patientId1, episodeId1, nutritionistId1, LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50")));
+
+        assertTrue(assessmentRepository.findByIdAndPatientIdAndNutritionistId(a.getId(), patientId1, nutritionistId1).isPresent());
+        assertTrue(assessmentRepository.findByIdAndPatientIdAndNutritionistId(a.getId(), patientId2, nutritionistId1).isEmpty());
+        assertTrue(assessmentRepository.findByIdAndPatientIdAndNutritionistId(a.getId(), patientId1, nutritionistId2).isEmpty());
     }
 }
