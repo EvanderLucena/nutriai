@@ -9,18 +9,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Auth & Onboarding
 
-- [ ] **AUTH-01**: Nutricionista can sign up with email and password
-- [ ] **AUTH-02**: Nutricionista can log in and stay logged in across sessions (JWT)
-- [ ] **AUTH-03**: Nutricionista can log out from any page
-- [ ] **AUTH-04**: 30-day free trial activated on signup
-- [ ] **AUTH-05**: 4-step onboarding after signup (carteira, plano, convite, pronto)
+- [x] **AUTH-01**: Nutricionista can sign up with email and password
+- [x] **AUTH-02**: Nutricionista can log in and stay logged in across sessions (JWT)
+- [x] **AUTH-03**: Nutricionista can log out from any page
+- [x] **AUTH-04**: 30-day free trial activated on signup
+- [x] **AUTH-05**: 4-step onboarding after signup (carteira, plano, convite, pronto)
 
 ### Patient Management
 
-- [ ] **PAT-01**: Nutricionista can create, edit, and deactivate patients
-- [ ] **PAT-02**: Patient list with status tracking (on-track, attention, critical)
-- [ ] **PAT-03**: Search and filter patients by status and objective
-- [ ] **PAT-04**: Data isolation — each nutritionist sees only their own patients
+- [x] **PAT-01**: Nutricionista can create, edit, and deactivate patients
+- [x] **PAT-02**: Patient list with status tracking (on-track, attention, critical)
+- [x] **PAT-03**: Search and filter patients by status and objective
+- [x] **PAT-04**: Data isolation — each nutritionist sees only their own patients
 - [ ] **PAT-05**: Patient limit enforcement per subscription plan (15/30/unlimited)
 
 ### Meal Plans & Food
@@ -59,10 +59,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFRA-01**: Monorepo structure (frontend, backend, docker + root scripts)
+- [x] **INFRA-01**: Monorepo structure (frontend, backend, docker + root scripts)
 - [x] **INFRA-02**: Frontend migration to React + TypeScript + Vite + Tailwind
-- [ ] **INFRA-03**: Backend: Java 21 + Spring Boot + PostgreSQL
-- [ ] **INFRA-04**: Docker Compose for local development (front + back + postgres + evolution-api)
+- [x] **INFRA-03**: Backend: Java 21 + Spring Boot + PostgreSQL
+- [x] **INFRA-04**: Docker Compose for local development (front + back + postgres + evolution-api)
 - [ ] **INFRA-05**: CI/CD via GitHub Actions with automated VPS deployment
 
 ## v2 Requirements
@@ -109,15 +109,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 3 | Pending |
-| AUTH-02 | Phase 3 | Pending |
-| AUTH-03 | Phase 3 | Pending |
-| AUTH-04 | Phase 3 | Pending |
-| AUTH-05 | Phase 3 | Pending |
-| PAT-01 | Phase 4 | Pending |
-| PAT-02 | Phase 4 | Pending |
-| PAT-03 | Phase 4 | Pending |
-| PAT-04 | Phase 4 | Pending |
+| AUTH-01 | Phase 3 | Complete |
+| AUTH-02 | Phase 3 | Complete |
+| AUTH-03 | Phase 3 | Complete |
+| AUTH-04 | Phase 3 | Complete |
+| AUTH-05 | Phase 3 | Complete |
+| PAT-01 | Phase 4 | Complete |
+| PAT-02 | Phase 4 | Complete |
+| PAT-03 | Phase 4 | Complete |
+| PAT-04 | Phase 4 | Complete |
 | PAT-05 | Phase 8 | Pending |
 | PLAN-01 | Phase 5 | Complete |
 | PLAN-02 | Phase 5 | Complete |
@@ -138,10 +138,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LGPD-01 | Phase 9 | Pending |
 | LGPD-02 | Phase 9 | Pending |
 | LGPD-03 | Phase 9 | Pending |
-| INFRA-01 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 2 | Complete |
-| INFRA-03 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Complete |
+| INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 10 | Pending |
 
 **Coverage:**
@@ -151,4 +151,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-19*
-*Last updated: 2026-04-19 after roadmap creation*
+*Last updated: 2026-04-24 after GSD artifact sync*

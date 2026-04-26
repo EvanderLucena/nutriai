@@ -78,9 +78,60 @@
 
 ---
 
+## Produto / Frontend — maturação incremental
+
+### Onboarding como mini tutorial
+
+- [ ] **Reposicionar Onboarding como tour guiado** — deixar claro que é tutorial de produto, não assistente de configuração real.
+- [ ] **Remover promessas falsas do Onboarding** — retirar steps/CTAs que sugerem convite WhatsApp, pagamento, plano configurado ou pacientes criados quando isso não persiste.
+- [ ] **Criar roteiro de steps do tutorial** — boas-vindas, carteira de pacientes, detalhe do paciente, plano alimentar, biometria/histórico e próximo passo.
+- [ ] **CTA final honesto** — oferecer "Criar primeiro paciente" e "Explorar painel", sem simular automações futuras.
+- [ ] **Persistir conclusão do tutorial** — marcar onboarding como concluído apenas quando o usuário finalizar/pular o tour.
+- [ ] **Playwright do tutorial** — validar navegação next/back/skip/finalizar e redirecionamento final.
+
+### Frontend truthfulness / remoção de mocks
+
+- [ ] **Remover fallback `ANA` do PatientView** — detalhe do paciente deve mostrar dados reais ou estados vazios honestos.
+- [ ] **Mapear todos os imports de `frontend/src/data/*` usados por telas reais** — classificar como remover agora, mover para fixture ou manter apenas para demo/teste.
+- [ ] **Substituir dados fixos da Home** — remover data fixa, sparklines estáticos e interpretações que não vêm da API.
+- [ ] **Separar "Hoje" real vs futuro WhatsApp** — quando ainda não houver ingestão via WhatsApp, exibir estado vazio/coming soon em vez de timeline mockada.
+- [ ] **Separar "Insights" real vs futuro IA** — manter a aba sem dados falsos; mostrar empty state até existir contrato real.
+- [ ] **Revisar estados loading/error/empty** — garantir que pacientes, alimentos, planos, biometria e histórico não pareçam preenchidos quando a API falha ou não tem dados.
+
+### Validação e acabamento de formulários
+
+- [ ] **Padronizar validação frontend por campo** — mensagens pt-BR, bloqueio de submit, `aria-invalid` quando aplicável e feedback sem fechar modal antes de sucesso.
+- [ ] **Paciente: validar cadastro/edição** — nome, objetivo, nascimento não futuro, altura plausível, WhatsApp com máscara e 10/11 dígitos.
+- [ ] **Biometria: alinhar obrigatórios com backend** — decidir se `% gordura` é obrigatório ou opcional e ajustar frontend/backend/testes juntos.
+- [ ] **Biometria: validar faixas clínicas** — peso > 0, percentuais 0-100, gordura visceral inteira/faixa plausível, TMB positiva, dobras/perimetria positivas.
+- [ ] **Alimentos: impedir `Number(value) || 0` silencioso** — campos vazios/inválidos devem gerar erro, não virar zero.
+- [ ] **Alimentos: validar macros e unidade** — quantidade de referência, kcal, proteína, carboidrato, gordura e fibra com mínimos/faixas plausíveis.
+- [ ] **Plano alimentar: validar refeições e itens** — nome, horário, quantidade e exclusões/renomeações com feedback confiável.
+- [ ] **Consolidar modais duplicados de edição de paciente** — evitar duas implementações divergentes para o mesmo fluxo.
+
+### Seeds e dados reais de desenvolvimento
+
+- [ ] **Criar seed dev determinístico** — nutricionista demo, pacientes, avaliações, alimentos, planos e histórico suficiente para explorar o app manualmente.
+- [ ] **Separar seed dev de fixtures de teste** — seed para uso local; Playwright deve criar dados próprios via API.
+- [ ] **Documentar como iniciar ambiente com dados demo** — comando/profile claro para backend + banco + frontend.
+- [ ] **Garantir seed seguro** — não ativar dados demo em produção e não depender de senha real commitada.
+
+### Playwright e testes reais de fluxo
+
+- [ ] **Separar E2E de contratos API** — manter contratos úteis, mas criar specs de jornada do usuário em arquivos próprios.
+- [ ] **Fluxo real: signup/login -> criar paciente pela UI** — validar persistência via tela e API.
+- [ ] **Fluxo real: paciente -> biometria -> dashboard** — criar avaliação pela UI e verificar reflexo em paciente/dashboard.
+- [ ] **Fluxo real: alimento -> plano alimentar** — criar alimento, montar plano, editar quantidade e verificar macros.
+- [ ] **Fluxo real: validações de formulário** — campos obrigatórios, máscaras, erros visíveis e bloqueio de submit.
+- [ ] **Remover `waitForTimeout` dos E2E críticos** — usar espera por UI/API observável.
+- [ ] **Evitar login falso via localStorage em fluxos principais** — usar login real ou storage state criado por fluxo controlado.
+- [ ] **Eliminar asserts condicionais que pulam cobertura** — testes não devem passar se o dado crítico não foi criado.
+
+---
+
 ## Telas P2 — A fazer
 
-- [ ] **Convite do Paciente** — lista com status IA, botão "Copiar link" WhatsApp.
+- [ ] **Convite do Paciente** — revisar escopo antes de implementar; não incluir "Copiar link" se o produto não for usar convite WhatsApp.
 - [ ] **Status IA no paciente** — badge conectado/inativo no PatientView.
 - [ ] **Recuperação de senha** — fluxo "esqueci minha senha".
 - [ ] **Relatório do paciente** — exportar dados estruturados.
