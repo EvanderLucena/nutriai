@@ -239,6 +239,12 @@ process_one_chunk() {
   rm -f "$sanitized_chunk"
 }
 
+finding_has_concrete_anchor() {
+  local text="$1"
+
+  printf '%s\n' "$text" | grep -qE '`[^`]+`|[A-Za-z_][A-Za-z0-9_]*\(\)|[A-Za-z0-9_./-]+\.(java|kt|ts|tsx|js|jsx|sql|yml|yaml|json|md|sh)([^A-Za-z]|$)|[A-Z][A-Za-z0-9]+(Service|Controller|Repository|Test|View|Store|Modal|Request|Response|Entity|Event)([^A-Za-z0-9]|$)'
+}
+
 filter_false_positives() {
   local findings_file="$1"
   local diff_file="$2"
@@ -247,6 +253,8 @@ filter_false_positives() {
   local dropped=0
   local line
   local lower
+  local body
+  local lower_body
 
   if [[ ! -s "$findings_file" ]]; then
     return 0
@@ -256,6 +264,8 @@ filter_false_positives() {
 
   while IFS= read -r line; do
     lower=$(printf '%s' "$line" | tr '[:upper:]' '[:lower:]')
+    body=$(printf '%s' "$line" | sed -E 's/^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):[[:space:]]*//I')
+    lower_body=$(printf '%s' "$body" | tr '[:upper:]' '[:lower:]')
 
     # Rule 1: claims about "missing/ausente migration" — drop if any *.sql file is in the manifest.
     if [[ "$lower" =~ (missing[[:space:]]+migration|migration[[:space:]]+(not[[:space:]]+visible|missing|ausente)|sem[[:space:]]+migra[cç][aã]o|migra[cç][aã]o[[:space:]]+ausente) ]]; then
@@ -293,6 +303,24 @@ filter_false_positives() {
     if [[ "$lower" =~ (test[[:space:]]+will[[:space:]]+fail|teste[[:space:]]+falhar[aá]|test[[:space:]]+far[aá]|will[[:space:]]+(cause|produce|result[[:space:]]+in)[[:space:]]+(test|teste)) ]]; then
       dropped=$((dropped + 1))
       continue
+    fi
+
+    # Rule 6: "beforeAll/shared state" claims — drop when the diff only shows beforeEach setup and no beforeAll anchor.
+    if [[ "$lower" =~ (beforeall|before[[:space:]]+all|shared[[:space:]]+state|estado[[:space:]]+compartilhado) ]]; then
+      if ! grep -qE '\bbeforeAll[[:space:]]*\(|@BeforeAll\b' "$diff_file"; then
+        if grep -qE '\bbeforeEach[[:space:]]*\(|@BeforeEach\b' "$diff_file"; then
+          dropped=$((dropped + 1))
+          continue
+        fi
+      fi
+    fi
+
+    # Rule 7: speculative findings that start conditionally without a concrete code anchor.
+    if [[ "$lower_body" =~ ^(if|se|caso|assuming|assumindo|may|might|could|pode|poderia)([[:space:][:punct:]]|$) ]]; then
+      if ! finding_has_concrete_anchor "$body"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
     fi
 
     printf '%s\n' "$line" >> "$filtered"
@@ -578,4 +606,6 @@ main() {
   write_output "had_fallback" "$had_fallback"
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
