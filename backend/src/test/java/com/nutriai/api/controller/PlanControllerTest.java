@@ -94,7 +94,7 @@ class PlanControllerTest {
         var result = authService.signup(signupReq);
         accessToken = result.accessToken();
 
-        CreatePatientRequest patientReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"));
+        CreatePatientRequest patientReq = new CreatePatientRequest("Maria Silva", null, null, null, null, "EMAGRECIMENTO", new BigDecimal("75.00"), true);
         try {
             String patientResponse = mockMvc.perform(post("/api/v1/patients")
                             .header("Authorization", "Bearer " + accessToken)

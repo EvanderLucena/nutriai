@@ -41,6 +41,9 @@ class FoodAndPlanRepositoryTest {
     private EpisodeRepository episodeRepository;
 
     @Autowired
+    private EpisodeHistoryEventRepository historyEventRepository;
+
+    @Autowired
     private PatientRepository patientRepository;
 
     @Autowired
@@ -142,7 +145,7 @@ class FoodAndPlanRepositoryTest {
     @Test
     void mealPlan_hasUniqueConstraintOnEpisodeId() {
         UUID patientId = createPatient();
-        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).build());
+        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build());
 
         MealPlan plan = MealPlan.builder()
                 .episodeId(episode.getId())
@@ -160,7 +163,7 @@ class FoodAndPlanRepositoryTest {
     @Test
     void mealPlan_findByEpisodeId_returnsPlan() {
         UUID patientId = createPatient();
-        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).build());
+        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build());
 
         MealPlan plan = MealPlan.builder()
                 .episodeId(episode.getId())
@@ -177,7 +180,7 @@ class FoodAndPlanRepositoryTest {
     @Test
     void mealFood_withNullFoodId_persistsSuccessfully() {
         UUID patientId = createPatient();
-        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).build());
+        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build());
         MealPlan plan = mealPlanRepository.save(MealPlan.builder().episodeId(episode.getId()).nutritionistId(nutritionistId).build());
         MealSlot slot = mealSlotRepository.save(MealSlot.builder().planId(plan.getId()).label("Café").sortOrder(0).build());
         MealOption option = mealOptionRepository.save(MealOption.builder().mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build());
@@ -202,7 +205,7 @@ class FoodAndPlanRepositoryTest {
     @Test
     void deleteMealSlot_serviceCascadeRemovesOptionsAndFoodItems() {
         UUID patientId = createPatient();
-        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).build());
+        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build());
         MealPlan plan = mealPlanRepository.save(MealPlan.builder().episodeId(episode.getId()).nutritionistId(nutritionistId).build());
         MealSlot slot = mealSlotRepository.save(MealSlot.builder().planId(plan.getId()).label("Café").sortOrder(0).build());
         MealOption option = mealOptionRepository.save(MealOption.builder().mealSlotId(slot.getId()).name("Opção 1").sortOrder(0).build());
@@ -220,7 +223,7 @@ class FoodAndPlanRepositoryTest {
     @Test
     void deleteMealPlan_serviceCascadeRemovesSlotsAndExtras() {
         UUID patientId = createPatient();
-        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).build());
+        Episode episode = episodeRepository.save(Episode.builder().patientId(patientId).nutritionistId(nutritionistId).build());
         MealPlan plan = mealPlanRepository.save(MealPlan.builder().episodeId(episode.getId()).nutritionistId(nutritionistId).build());
         MealSlot slot = mealSlotRepository.save(MealSlot.builder().planId(plan.getId()).label("Café").sortOrder(0).build());
         PlanExtra extra = planExtraRepository.save(PlanExtra.builder().planId(plan.getId()).name("Chá verde").build());
@@ -231,7 +234,7 @@ class FoodAndPlanRepositoryTest {
             mealFoodRepository.deleteAllByOptionId(opt.getId());
         }
         mealOptionRepository.deleteAllByMealSlotId(slot.getId());
-        mealSlotRepository.deleteAllByPlanId(plan.getId());
+        mealSlotRepository.delete(slot);
         mealPlanRepository.delete(plan);
 
         assertTrue(mealSlotRepository.findById(slot.getId()).isEmpty());

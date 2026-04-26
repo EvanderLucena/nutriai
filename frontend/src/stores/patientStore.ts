@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as patientApi from '../api/patients';
+import type { ApiResponse, FieldError } from '../types';
 import type { PatientStatus, ObjectiveOption } from '../types/patient';
 import { useToastStore } from './toastStore';
 
@@ -40,6 +41,25 @@ export const usePatientUIStore = create<PatientUIState>()((set) => ({
   setEditingPatientId: (id) => set({ editingPatientId: id }),
   setTogglingPatientId: (id) => set({ togglingPatientId: id }),
 }));
+
+type ApiErrorPayload = ApiResponse<null> & { errors?: FieldError[] };
+
+function pickErrorMessage(payload: ApiErrorPayload | undefined): string | undefined {
+  if (!payload) return undefined;
+  const fieldMessage = payload.errors?.[0]?.message;
+  if (fieldMessage) return fieldMessage;
+  return payload.message;
+}
+
+export function resolveMutationErrorMessage(error: unknown, fallbackMessage: string) {
+  if (!error || typeof error !== 'object') {
+    return fallbackMessage;
+  }
+  const apiError = error as ApiErrorPayload & {
+    response?: { data?: ApiErrorPayload };
+  };
+  return pickErrorMessage(apiError.response?.data) ?? pickErrorMessage(apiError) ?? fallbackMessage;
+}
 
 // TanStack Query hook for patient list
 export function usePatients() {
@@ -86,8 +106,10 @@ export function useCreatePatient() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patients'] });
     },
-    onError: () => {
-      useToastStore.getState().showError('Erro ao criar paciente — tente novamente');
+    onError: (error) => {
+      useToastStore
+        .getState()
+        .showError(resolveMutationErrorMessage(error, 'Erro ao criar paciente — tente novamente'));
     },
   });
 }

@@ -1,6 +1,7 @@
 package com.nutriai.api.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,9 +29,15 @@ public class Episode {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
+    @NotNull
     @Column(name = "patient_id", nullable = false)
     private UUID patientId;
 
+    @NotNull
+    @Column(name = "nutritionist_id", nullable = false)
+    private UUID nutritionistId;
+
+    @NotNull
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 

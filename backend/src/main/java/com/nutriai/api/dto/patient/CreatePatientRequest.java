@@ -25,5 +25,8 @@ public record CreatePatientRequest(
         String objective,
 
         @DecimalMin("0") @DecimalMax("500")
-        BigDecimal weight
+        BigDecimal weight,
+
+        @AssertTrue(message = "Consentimento LGPD é obrigatório")
+        boolean terms
 ) {}

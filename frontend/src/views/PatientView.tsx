@@ -1,44 +1,111 @@
-import { useState } from 'react';
+import * as React from 'react';
 import { useParams } from 'react-router';
 import { ANA } from '../data/ana';
 import { usePatient } from '../stores/patientStore';
 import { mapPatientFromApi } from '../types/patient';
-import type { DetailedPatient, MacroTarget } from '../types/patient';
+import type {
+  BiometryAssessmentDTO,
+  DetailedPatient,
+  HistoryEpisodeListItem,
+  MacroTarget,
+} from '../types/patient';
 import { IconEdit, IconPlus } from '../components/icons';
-import { EditPatientModal, Timeline, NewBiometryModal, MultiLineChart } from '../components/patient';
+import {
+  EditPatientModal,
+  Timeline,
+  NewBiometryModal,
+  MultiLineChart,
+  StatusReviewModal,
+} from '../components/patient';
 import { MacroRings, WeekBars, LineChart } from '../components/viz';
+import {
+  usePatientBiometry,
+  useCreateBiometry,
+  usePatientHistoryEpisodes,
+  useHistoricalEpisode,
+} from '../stores/clinicalStore';
 import { PlansView } from './PlansView';
+import type { PatientStatus } from '../types/patient';
 
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
 
+const BIOMETRY_SKINFOLD_LABELS: Record<string, string> = {
+  peitoral: 'Peitoral',
+  axilar_medio: 'Axilar médio',
+  triceps: 'Tríceps',
+  subescapular: 'Subescapular',
+  abdominal: 'Abdominal',
+  suprailiaco: 'Suprailíaco',
+  coxa: 'Coxa',
+};
+
+const BIOMETRY_PERIMETRY_LABELS: Record<string, string> = {
+  cintura: 'Cintura',
+  abdomen: 'Abdômen',
+  quadril: 'Quadril',
+  braco_d: 'Braço D',
+  braco_e: 'Braço E',
+  coxa_d: 'Coxa D',
+  coxa_e: 'Coxa E',
+  panturrilha_d: 'Panturrilha D',
+};
+
+function formatBiometryMeasureLabel(measureKey: string) {
+  return (
+    BIOMETRY_SKINFOLD_LABELS[measureKey] ?? BIOMETRY_PERIMETRY_LABELS[measureKey] ?? measureKey
+  );
+}
+
 export function PatientView() {
   const { id } = useParams();
+  const routePatientId = id ?? null;
   const { data: apiData, isLoading } = usePatient(id ?? null);
-  const [tab, setTab] = useState<Tab>('today');
-  const [editOpen, setEditOpen] = useState(false);
+  const { data: biometryAssessments } = usePatientBiometry(routePatientId);
+  const [tab, setTab] = React.useState<Tab>('today');
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const mappedApiData = apiData ? mapPatientFromApi(apiData) : null;
 
   const patient: DetailedPatient = {
     ...ANA,
-    ...(mappedApiData ? {
-      id: mappedApiData.id,
-      name: mappedApiData.name,
-      initials: mappedApiData.initials,
-      age: mappedApiData.age,
-      birthDate: mappedApiData.birthDate ?? ANA.birthDate,
-      sex: mappedApiData.sex ?? ANA.sex,
-      heightCm: mappedApiData.heightCm ?? ANA.height,
-      whatsapp: mappedApiData.whatsapp ?? ANA.whatsapp,
-      objective: mappedApiData.objective,
-      status: mappedApiData.status,
-      adherence: mappedApiData.adherence,
-      weight: mappedApiData.weight,
-      weightDelta: mappedApiData.weightDelta,
-      tag: mappedApiData.tag,
-      active: mappedApiData.active,
-    } : {}),
+    ...(mappedApiData
+      ? {
+          id: mappedApiData.id,
+          name: mappedApiData.name,
+          initials: mappedApiData.initials,
+          age: mappedApiData.age,
+          birthDate: mappedApiData.birthDate ?? ANA.birthDate,
+          sex: mappedApiData.sex ?? ANA.sex,
+          heightCm: mappedApiData.heightCm ?? ANA.height,
+          whatsapp: mappedApiData.whatsapp ?? ANA.whatsapp,
+          objective: mappedApiData.objective,
+          status: mappedApiData.status,
+          adherence: mappedApiData.adherence,
+          weight: mappedApiData.weight,
+          weightDelta: mappedApiData.weightDelta,
+          tag: mappedApiData.tag,
+          active: mappedApiData.active,
+        }
+      : {}),
   };
+
+  const fallbackLatestBiometryWeight =
+    patient.biometry[patient.biometry.length - 1]?.weight ?? patient.weight;
+  const fallbackPreviousBiometryWeight =
+    patient.biometry.length > 1 ? patient.biometry[patient.biometry.length - 2]?.weight : null;
+  const latestBiometryWeight =
+    biometryAssessments?.[biometryAssessments.length - 1]?.weight ?? fallbackLatestBiometryWeight;
+  const previousBiometryWeight =
+    biometryAssessments && biometryAssessments.length > 1
+      ? (biometryAssessments[biometryAssessments.length - 2]?.weight ?? null)
+      : fallbackPreviousBiometryWeight;
+  const latestWeightDelta =
+    previousBiometryWeight != null
+      ? latestBiometryWeight - previousBiometryWeight
+      : Number.isFinite(patient.weightDelta)
+        ? patient.weightDelta
+        : 0;
+  const patientId = id ?? patient.id;
 
   if (isLoading) {
     return (
@@ -51,31 +118,77 @@ export function PatientView() {
   return (
     <div className="page" style={{ maxWidth: 'none', padding: 0 }}>
       <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div className="patient-header-row" style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
-          <div style={{
-            width: 68, height: 68, borderRadius: '50%',
-            background: 'var(--surface-2)', border: '1px solid var(--border)',
-            display: 'grid', placeItems: 'center',
-            fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 600,
-            position: 'relative', flexShrink: 0,
-          }}>
+        <div
+          className="patient-header-row"
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}
+        >
+          <div
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: '50%',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              display: 'grid',
+              placeItems: 'center',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 22,
+              fontWeight: 600,
+              position: 'relative',
+              flexShrink: 0,
+            }}
+          >
             {patient.initials}
-            <span style={{
-              position: 'absolute', bottom: 0, right: 0,
-              width: 18, height: 18, borderRadius: '50%',
-              background: patient.status === 'ontrack' ? 'var(--sage)' : patient.status === 'warning' ? 'var(--amber)' : 'var(--coral)',
-              border: '3px solid var(--bg)',
-            }} />
+            <span
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                background:
+                  patient.status === 'ontrack'
+                    ? 'var(--sage)'
+                    : patient.status === 'warning'
+                      ? 'var(--amber)'
+                      : 'var(--coral)',
+                border: '3px solid var(--bg)',
+              }}
+            />
           </div>
           <div style={{ flex: 1, minWidth: 180 }}>
-            <div className="eyebrow">Paciente · {patient.id.toUpperCase()} · acompanhamento desde {patient.since}</div>
-            <h1 className="serif" style={{ fontSize: 36, margin: '4px 0 6px', fontWeight: 400, letterSpacing: '-0.02em' }}>
+            <div className="eyebrow">
+              Paciente · {patient.id.toUpperCase()} · acompanhamento desde {patient.since}
+            </div>
+            <h1
+              className="serif"
+              style={{
+                fontSize: 36,
+                margin: '4px 0 6px',
+                fontWeight: 400,
+                letterSpacing: '-0.02em',
+              }}
+            >
               {patient.name}
             </h1>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--fg-muted)', alignItems: 'center' }}>
-              <span>{patient.age} anos · {patient.sex === 'F' ? 'Feminino' : 'Masculino'}</span>
+            <div
+              style={{
+                display: 'flex',
+                gap: 16,
+                flexWrap: 'wrap',
+                fontSize: 12.5,
+                color: 'var(--fg-muted)',
+                alignItems: 'center',
+              }}
+            >
+              <span>
+                {patient.age} anos · {patient.sex === 'F' ? 'Feminino' : 'Masculino'}
+              </span>
               <span>·</span>
-              <span>{patient.heightCm ?? patient.height} cm · {patient.biometry[patient.biometry.length - 1].weight} kg</span>
+              <span>
+                {patient.heightCm ?? patient.height} cm · {latestBiometryWeight} kg
+              </span>
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>
               <button
@@ -87,23 +200,46 @@ export function PatientView() {
               </button>
             </div>
           </div>
-          <div className="patient-header-stats-row" style={{ display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0 }}>
+          <div
+            className="patient-header-stats-row"
+            style={{ display: 'flex', gap: 20, alignItems: 'center', flexShrink: 0 }}
+          >
             <HeaderStat label="Adesão 7d" value={`${patient.adherence}%`} status={patient.status} />
-            <div className="patient-header-dividers" style={{ width: 1, height: 44, background: 'var(--border)' }} />
-            <HeaderStat label="Peso" value="64.2 kg" sub="-1.6 kg / 30d" good />
-            <div className="patient-header-dividers" style={{ width: 1, height: 44, background: 'var(--border)' }} />
+            <div
+              className="patient-header-dividers"
+              style={{ width: 1, height: 44, background: 'var(--border)' }}
+            />
+            <HeaderStat
+              label="Peso"
+              value={`${latestBiometryWeight.toFixed(1)} kg`}
+              sub={`${latestWeightDelta >= 0 ? '+' : ''}${latestWeightDelta.toFixed(1)} kg / 30d`}
+              good={latestWeightDelta <= 0}
+            />
+            <div
+              className="patient-header-dividers"
+              style={{ width: 1, height: 44, background: 'var(--border)' }}
+            />
             <HeaderStat label="% gordura" value="22.8%" sub="11 abr" />
           </div>
         </div>
 
-        <div className="patient-tab-row" style={{ display: 'flex', gap: 2, marginTop: 20, borderBottom: '1px solid var(--border)', marginBottom: -21 }}>
-          {([
+        <div
+          className="patient-tab-row"
+          style={{
+            display: 'flex',
+            gap: 2,
+            marginTop: 20,
+            borderBottom: '1px solid var(--border)',
+            marginBottom: -21,
+          }}
+        >
+          {[
             { k: 'today' as Tab, label: 'Hoje' },
             { k: 'plan' as Tab, label: 'Plano' },
             { k: 'biometry' as Tab, label: 'Biometria' },
             { k: 'insights' as Tab, label: 'Inteligência' },
             { k: 'history' as Tab, label: 'Histórico' },
-          ]).map((t) => (
+          ].map((t) => (
             <button
               key={t.k}
               onClick={() => setTab(t.k)}
@@ -124,17 +260,12 @@ export function PatientView() {
         </div>
       </div>
       {tab === 'today' && <TodayTab patient={patient} onSetTab={setTab} />}
-      {tab === 'plan' && <PlansView patientId={id!} />}
-      {tab === 'biometry' && <BiometryTab patient={patient} />}
+      {tab === 'plan' && <PlansView patientId={patientId} />}
+      {tab === 'biometry' && <BiometryTab patientId={patientId} patientStatus={patient.status} />}
       {tab === 'insights' && <InsightsTab />}
-      {tab === 'history' && <HistoryTab />}
+      {tab === 'history' && <HistoryTab patientId={patientId} />}
 
-      {editOpen && (
-        <EditPatientModal
-          patient={patient}
-          onClose={() => setEditOpen(false)}
-        />
-      )}
+      {editOpen && <EditPatientModal patient={patient} onClose={() => setEditOpen(false)} />}
     </div>
   );
 }
@@ -145,42 +276,110 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
   return (
     <div>
       <div style={{ padding: '24px 28px' }}>
-        <div className="today-cards-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}>
+        <div
+          className="today-cards-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}
+        >
           {/* LEFT: Plano do dia */}
           <div className="card">
             <div className="card-h">
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--fg)', flexShrink: 0 }} />
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: 'var(--fg)',
+                  flexShrink: 0,
+                }}
+              />
               <div className="title">Plano do dia</div>
               <div className="spacer" />
-              <button className="btn btn-ghost" style={{ fontSize: 11.5, padding: '4px 8px' }} onClick={() => onSetTab('plan')}>
+              <button
+                className="btn btn-ghost"
+                style={{ fontSize: 11.5, padding: '4px 8px' }}
+                onClick={() => onSetTab('plan')}
+              >
                 <IconEdit size={11} /> Editar
               </button>
             </div>
             <div className="card-b">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: 14,
+                }}
+              >
                 <div className="eyebrow">META DIÁRIA</div>
-                <div className="mono tnum" style={{ fontSize: 14, color: 'var(--fg-muted)' }}>6 refeições</div>
+                <div className="mono tnum" style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
+                  6 refeições
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="eyebrow">KCAL</div>
-                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, marginTop: 2 }}>{patient.macrosToday.kcal.target.toLocaleString('pt-BR')}</div>
+                  <div
+                    className="mono tnum"
+                    style={{ fontSize: 20, fontWeight: 500, marginTop: 2 }}
+                  >
+                    {patient.macrosToday.kcal.target.toLocaleString('pt-BR')}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="eyebrow">PROTEÍNA</div>
-                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--sage-dim)', marginTop: 2 }}>{patient.macrosToday.prot.target}g</div>
+                  <div
+                    className="mono tnum"
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 500,
+                      color: 'var(--sage-dim)',
+                      marginTop: 2,
+                    }}
+                  >
+                    {patient.macrosToday.prot.target}g
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="eyebrow">CARBOIDRATO</div>
-                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--carb)', marginTop: 2 }}>{patient.macrosToday.carb.target}g</div>
+                  <div
+                    className="mono tnum"
+                    style={{ fontSize: 20, fontWeight: 500, color: 'var(--carb)', marginTop: 2 }}
+                  >
+                    {patient.macrosToday.carb.target}g
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="eyebrow">GORDURA</div>
-                  <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color: 'var(--sky)', marginTop: 2 }}>{patient.macrosToday.fat.target}g</div>
+                  <div
+                    className="mono tnum"
+                    style={{ fontSize: 20, fontWeight: 500, color: 'var(--sky)', marginTop: 2 }}
+                  >
+                    {patient.macrosToday.fat.target}g
+                  </div>
                 </div>
               </div>
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.5 }}>
-                <span className="mono" style={{ fontSize: 10, letterSpacing: '0.06em', color: 'var(--fg-subtle)', marginRight: 6 }}>OBSERVAÇÕES</span>
+              <div
+                style={{
+                  marginTop: 16,
+                  paddingTop: 14,
+                  borderTop: '1px solid var(--border)',
+                  fontSize: 12,
+                  color: 'var(--fg-muted)',
+                  lineHeight: 1.5,
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: '0.06em',
+                    color: 'var(--fg-subtle)',
+                    marginRight: 6,
+                  }}
+                >
+                  OBSERVAÇÕES
+                </span>
                 Evitar lactose · preferir proteína magra à noite · carne vermelha máx 2×/semana
               </div>
             </div>
@@ -189,20 +388,63 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
           {/* RIGHT: Consumo reportado */}
           <div className="card">
             <div className="card-h">
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime-dim)', boxShadow: '0 0 0 3px rgba(156,191,43,0.2)', flexShrink: 0 }} />
+              <div
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: 'var(--lime-dim)',
+                  boxShadow: '0 0 0 3px rgba(156,191,43,0.2)',
+                  flexShrink: 0,
+                }}
+              />
               <div className="title">Consumo reportado</div>
               <div className="spacer" />
-              <div className="chip ai"><span className="d" />4 registros</div>
+              <div className="chip ai">
+                <span className="d" />4 registros
+              </div>
             </div>
             <div className="card-b">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                  marginBottom: 14,
+                }}
+              >
                 <div className="eyebrow">EXTRAÍDO ATÉ AGORA · 14:28</div>
-                <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}>VIA WHATSAPP</div>
+                <div
+                  className="mono"
+                  style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}
+                >
+                  VIA WHATSAPP
+                </div>
               </div>
               <MacroRings macros={reportedMacrosToday} size={64} />
-              <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--fg-muted)', lineHeight: 1.55 }}>
-                <span className="mono" style={{ fontSize: 10, letterSpacing: '0.06em', color: 'var(--fg-subtle)', marginRight: 6 }}>NOTA</span>
-                Macros estimados pela IA a partir do texto do paciente. Edite qualquer registro se houver erro de extração.
+              <div
+                style={{
+                  marginTop: 16,
+                  paddingTop: 14,
+                  borderTop: '1px solid var(--border)',
+                  fontSize: 12,
+                  color: 'var(--fg-muted)',
+                  lineHeight: 1.55,
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: '0.06em',
+                    color: 'var(--fg-subtle)',
+                    marginRight: 6,
+                  }}
+                >
+                  NOTA
+                </span>
+                Macros estimados pela IA a partir do texto do paciente. Edite qualquer registro se
+                houver erro de extração.
               </div>
             </div>
           </div>
@@ -225,8 +467,20 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
             <div className="title">Refeições reportadas · hoje</div>
             <div className="sub">SOMENTE REGISTROS DO PACIENTE</div>
             <div className="spacer" />
-            <div style={{ fontSize: 11, color: 'var(--fg-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime-dim)' }} /> Extraído via WhatsApp
+            <div
+              style={{
+                fontSize: 11,
+                color: 'var(--fg-muted)',
+                whiteSpace: 'nowrap',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <span
+                style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime-dim)' }}
+              />{' '}
+              Extraído via WhatsApp
             </div>
           </div>
           <div className="card-b tight">
@@ -238,27 +492,74 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
   );
 }
 
-function HeaderStat({ label, value, sub, status, good }: {
+function HeaderStat({
+  label,
+  value,
+  sub,
+  status,
+  good,
+}: {
   label: string;
   value: string;
   sub?: string;
   status?: string;
   good?: boolean;
 }) {
-  const color = status === 'ontrack' ? 'var(--sage-dim)' : status === 'warning' ? 'var(--carb)' : status === 'danger' ? 'var(--coral-dim)' : good ? 'var(--sage-dim)' : 'var(--fg)';
+  const color =
+    status === 'ontrack'
+      ? 'var(--sage-dim)'
+      : status === 'warning'
+        ? 'var(--carb)'
+        : status === 'danger'
+          ? 'var(--coral-dim)'
+          : good
+            ? 'var(--sage-dim)'
+            : 'var(--fg)';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 68, whiteSpace: 'nowrap' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        minWidth: 68,
+        whiteSpace: 'nowrap',
+      }}
+    >
       <div className="eyebrow">{label}</div>
-      <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, color, letterSpacing: '-0.02em', marginTop: 2 }}>{value}</div>
-      {sub && <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>{sub}</div>}
+      <div
+        className="mono tnum"
+        style={{ fontSize: 20, fontWeight: 500, color, letterSpacing: '-0.02em', marginTop: 2 }}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div
+          className="mono"
+          style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}
+        >
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
 
-function BiometryTab({ patient }: { patient: DetailedPatient }) {
-  const last = patient.biometry[patient.biometry.length - 1];
-  const [metric, setMetric] = useState('all');
-  const [newEvalOpen, setNewEvalOpen] = useState(false);
+function BiometryTab({
+  patientId,
+  patientStatus,
+}: {
+  patientId: string;
+  patientStatus: PatientStatus;
+}) {
+  const { data: assessments, isLoading } = usePatientBiometry(patientId);
+  const [metric, setMetric] = React.useState('all');
+  const [newEvalOpen, setNewEvalOpen] = React.useState(false);
+  const [statusReviewOpen, setStatusReviewOpen] = React.useState(false);
+  const createBiometry = useCreateBiometry(patientId);
+
+  const list: BiometryAssessmentDTO[] = assessments ?? [];
+  const last = list[list.length - 1] as BiometryAssessmentDTO | undefined;
+  const prev = list.length >= 2 ? list[list.length - 2] : undefined;
 
   const metricCfg: Record<string, { label: string; unit?: string; color?: string }> = {
     all: { label: 'Todas' },
@@ -268,110 +569,345 @@ function BiometryTab({ patient }: { patient: DetailedPatient }) {
     water: { label: 'Água', unit: '%', color: 'var(--sky)' },
   };
 
+  const handleSaveSuccess = () => {
+    setNewEvalOpen(false);
+    setStatusReviewOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: '24px 28px' }}>
+        <p style={{ color: 'var(--fg-subtle)', fontSize: 14 }}>Carregando biometria...</p>
+      </div>
+    );
+  }
+
+  if (list.length === 0) {
+    return (
+      <div style={{ padding: '24px 28px' }}>
+        <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ color: 'var(--fg-muted)', fontSize: 14, marginBottom: 16 }}>
+            Nenhuma avaliação registrada ainda
+          </p>
+          <button className="btn btn-primary" onClick={() => setNewEvalOpen(true)}>
+            <IconPlus size={13} /> Registrar primeira avaliação
+          </button>
+        </div>
+        {newEvalOpen && (
+          <NewBiometryModal
+            createMutation={createBiometry}
+            onSuccess={handleSaveSuccess}
+            onClose={() => setNewEvalOpen(false)}
+          />
+        )}
+        {statusReviewOpen && (
+          <StatusReviewModal
+            patientId={patientId}
+            currentStatus={patientStatus}
+            onClose={() => setStatusReviewOpen(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  const fmtDate = (iso: string | null | undefined) => {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  };
+
+  const lastSkinfolds = last?.skinfolds ?? [];
+  const lastPerimetry = last?.perimetry ?? [];
+  const delta = (
+    cur: number | null | undefined,
+    prev: number | null | undefined,
+  ): number | undefined => {
+    if (cur == null || prev == null) return undefined;
+    const d = cur - prev;
+    return Math.round(d * 10) / 10;
+  };
+  const weightDelta = delta(last?.weight, prev?.weight);
+  const bodyFatDelta = delta(last?.bodyFatPercent, prev?.bodyFatPercent);
+  const leanMassDelta = delta(last?.leanMassKg, prev?.leanMassKg);
+
   return (
     <div style={{ padding: '24px 28px' }}>
       {/* Última avaliação */}
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="biometry-latest-grid" style={{ padding: '18px 22px', display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 20, alignItems: 'center' }}>
+        <div
+          className="biometry-latest-grid"
+          style={{
+            padding: '18px 22px',
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: 20,
+            alignItems: 'center',
+          }}
+        >
           <div>
             <div className="eyebrow">ÚLTIMA AVALIAÇÃO</div>
-            <div className="serif" style={{ fontSize: 22, margin: '4px 0 0', letterSpacing: '-0.01em' }}>{last.date} 2026 · {last.method}</div>
+            <div
+              className="serif"
+              style={{ fontSize: 22, margin: '4px 0 0', letterSpacing: '-0.01em' }}
+            >
+              {fmtDate(last!.assessmentDate)} · {last!.device ?? '—'}
+            </div>
           </div>
-          <div className="biometry-latest-cells" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 20, paddingLeft: 20, borderLeft: '1px solid var(--border)' }}>
-            <BioCell label="Peso" value={last.weight} unit="kg" />
-            <BioCell label="% Gordura" value={last.fat} unit="%" delta={-1.3} good />
-            <BioCell label="Massa magra" value={last.lean} unit="kg" delta={0.6} good />
-            <BioCell label="% Água" value={last.water} unit="%" />
-            <BioCell label="Gordura visceral" value={last.visceral} sub="nível" />
+          <div
+            className="biometry-latest-cells"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: 20,
+              paddingLeft: 20,
+              borderLeft: '1px solid var(--border)',
+            }}
+          >
+            <BioCell
+              label="Peso"
+              value={last!.weight}
+              unit="kg"
+              delta={weightDelta}
+              good={weightDelta != null && weightDelta <= 0}
+            />
+            <BioCell
+              label="% Gordura"
+              value={last!.bodyFatPercent ?? 0}
+              unit="%"
+              delta={bodyFatDelta}
+              good={bodyFatDelta != null && bodyFatDelta < 0}
+            />
+            <BioCell
+              label="Massa magra"
+              value={last!.leanMassKg ?? 0}
+              unit="kg"
+              delta={leanMassDelta}
+              good={leanMassDelta != null && leanMassDelta > 0}
+            />
+            <BioCell label="% Água" value={last!.waterPercent ?? 0} unit="%" />
+            <BioCell label="Gordura visceral" value={last!.visceralFatLevel ?? 0} sub="nível" />
           </div>
-          <button className="btn btn-primary" onClick={() => setNewEvalOpen(true)}><IconPlus size={13} /> Nova avaliação</button>
+          <button className="btn btn-primary" onClick={() => setNewEvalOpen(true)}>
+            <IconPlus size={13} /> Nova avaliação
+          </button>
         </div>
       </div>
 
       {/* Evolução chart */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="card-h">
-          <div className="title">Evolução · 4 avaliações</div>
-          <div className="sub">21 MAR → 11 ABR</div>
-          <div className="spacer" />
-          <div className="seg" style={{ height: 26 }}>
-            {Object.keys(metricCfg).map((k) => (
-              <button key={k} className={metric === k ? 'active' : ''} onClick={() => setMetric(k)}>{metricCfg[k].label}</button>
-            ))}
-          </div>
-        </div>
-        <div className="card-b">
-          {metric === 'all' ? (
-            <MultiLineChart data={patient.biometry} metrics={[
-              { key: 'weight', color: 'var(--ink-contrast)', label: 'Peso', unit: 'kg' },
-              { key: 'fat', color: 'var(--carb)', label: 'Gordura', unit: '%' },
-              { key: 'lean', color: 'var(--sage-dim)', label: 'Massa', unit: 'kg' },
-              { key: 'water', color: 'var(--sky)', label: 'Água', unit: '%' },
-            ]} />
-          ) : (
-            <LineChart data={patient.biometry.map(({ date, weight, fat, lean, water, visceral, bmr }) => ({ date, weight, fat, lean, water, visceral, bmr }))} width={900} height={200} yKey={metric} color={metricCfg[metric].color} fill="rgba(11,12,10,0.05)" unit={metricCfg[metric].unit || ''} />
-          )}
-        </div>
-      </div>
-
-      {/* Dobras cutâneas + Perimetria */}
-      <div className="biometry-charts-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, marginBottom: 16 }}>
-        <div className="card">
+      {list.length >= 2 && (
+        <div className="card" style={{ marginBottom: 16 }}>
           <div className="card-h">
-            <div className="title">Dobras cutâneas</div>
-            <div className="sub">PROTOCOLO POLLOCK 7 · ADIPÔMETRO</div>
+            <div className="title">Evolução · {list.length} avaliações</div>
+            <div className="sub">
+              {fmtDate(list[0].assessmentDate)} → {fmtDate(last!.assessmentDate).toUpperCase()}
+            </div>
             <div className="spacer" />
-            <div className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{patient.skinfolds.date}</div>
-          </div>
-          <div className="card-b">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-              {patient.skinfolds.folds.map((f, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 6 }}>
-                  <div style={{ flex: 1, fontSize: 12.5 }}>{f.name}</div>
-                  <div className="mono tnum" style={{ fontSize: 15, fontWeight: 600 }}>{f.value}<span style={{ fontSize: 10, color: 'var(--fg-subtle)', marginLeft: 3 }}>mm</span></div>
-                  <div className="mono tnum" style={{ fontSize: 11, minWidth: 36, textAlign: 'right', color: f.delta < 0 ? 'var(--sage-dim)' : f.delta > 0 ? 'var(--coral)' : 'var(--fg-subtle)' }}>
-                    {f.delta > 0 ? '+' : ''}{f.delta > 0 || f.delta < 0 ? f.delta.toFixed(0) : '—'}
-                  </div>
-                </div>
+            <div className="seg" style={{ height: 26 }}>
+              {Object.keys(metricCfg).map((k) => (
+                <button
+                  key={k}
+                  className={metric === k ? 'active' : ''}
+                  onClick={() => setMetric(k)}
+                >
+                  {metricCfg[k].label}
+                </button>
               ))}
             </div>
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <div>
-                <div className="eyebrow">SOMATÓRIO 7 DOBRAS</div>
-                <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, marginTop: 3 }}>114 <span style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>mm</span></div>
-              </div>
-              <div>
-                <div className="eyebrow">DENSIDADE CORPORAL</div>
-                <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, marginTop: 3 }}>1,048 <span style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>g/mL</span></div>
-              </div>
-              <div>
-                <div className="eyebrow">% GORDURA (SIRI)</div>
-                <div className="mono tnum" style={{ fontSize: 20, fontWeight: 500, marginTop: 3, color: 'var(--carb)' }}>22,8%</div>
-              </div>
-            </div>
+          </div>
+          <div className="card-b">
+            {metric === 'all' ? (
+              <MultiLineChart
+                data={list.map((a) => ({
+                  date: fmtDate(a.assessmentDate),
+                  weight: a.weight,
+                  fat: a.bodyFatPercent ?? 0,
+                  lean: a.leanMassKg ?? 0,
+                  water: a.waterPercent ?? 0,
+                  visceral: a.visceralFatLevel ?? 0,
+                  bmr: a.bmrKcal ?? 0,
+                  method: a.device ?? '—',
+                }))}
+                metrics={[
+                  { key: 'weight', color: 'var(--ink-contrast)', label: 'Peso', unit: 'kg' },
+                  { key: 'fat', color: 'var(--carb)', label: 'Gordura', unit: '%' },
+                  { key: 'lean', color: 'var(--sage-dim)', label: 'Massa', unit: 'kg' },
+                  { key: 'water', color: 'var(--sky)', label: 'Água', unit: '%' },
+                ]}
+              />
+            ) : (
+              <LineChart
+                data={list.map((a) => ({
+                  date: fmtDate(a.assessmentDate),
+                  weight: a.weight,
+                  fat: a.bodyFatPercent ?? 0,
+                  lean: a.leanMassKg ?? 0,
+                  water: a.waterPercent ?? 0,
+                  visceral: a.visceralFatLevel ?? 0,
+                  bmr: a.bmrKcal ?? 0,
+                }))}
+                width={900}
+                height={200}
+                yKey={metric}
+                color={metricCfg[metric].color}
+                fill="rgba(11,12,10,0.05)"
+                unit={metricCfg[metric].unit || ''}
+              />
+            )}
           </div>
         </div>
+      )}
 
-        <div className="card">
-          <div className="card-h">
-            <div className="title">Perimetria</div>
-            <div className="sub">CIRCUNFERÊNCIAS · CM</div>
-            <div className="spacer" />
-            <div className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{patient.perimetry.date}</div>
-          </div>
-          <div className="card-b tight">
-            {patient.perimetry.measures.map((m, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, padding: '12px 18px', borderBottom: i === patient.perimetry.measures.length - 1 ? 'none' : '1px solid var(--border)', alignItems: 'center' }}>
-                <div style={{ fontSize: 13 }}>{m.name}</div>
-                <div className="mono tnum" style={{ fontSize: 14, fontWeight: 500 }}>{m.value} <span style={{ fontSize: 10, color: 'var(--fg-subtle)' }}>cm</span></div>
-                <div className="mono tnum" style={{ fontSize: 11, width: 48, textAlign: 'right', color: m.delta < 0 ? 'var(--sage-dim)' : m.delta > 0 ? 'var(--fg-muted)' : 'var(--fg-subtle)' }}>
-                  {m.delta > 0 ? '+' : ''}{m.delta.toFixed(1)}
+      {/* Dobras cutâneas + Perimetria */}
+      {lastSkinfolds.length > 0 && lastPerimetry.length > 0 && (
+        <div
+          className="biometry-charts-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, marginBottom: 16 }}
+        >
+          {lastSkinfolds.length > 0 && (
+            <div className="card">
+              <div className="card-h">
+                <div className="title">Dobras cutâneas</div>
+                <div className="sub">PROTOCOLO POLLOCK 7 · ADIPÔMETRO</div>
+                <div className="spacer" />
+                <div className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+                  {fmtDate(last!.assessmentDate)}
                 </div>
               </div>
-            ))}
-          </div>
+              <div className="card-b">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                  {lastSkinfolds.map((f, i) => {
+                    const prevVal = prev?.skinfolds?.find(
+                      (ps) => ps.measureKey === f.measureKey,
+                    )?.valueMm;
+                    const d = prevVal != null ? Math.round((f.valueMm - prevVal) * 10) / 10 : 0;
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          padding: '10px 12px',
+                          background: 'var(--surface-2)',
+                          borderRadius: 6,
+                        }}
+                      >
+                        <div style={{ flex: 1, fontSize: 12.5 }}>
+                          {formatBiometryMeasureLabel(f.measureKey)}
+                        </div>
+                        <div className="mono tnum" style={{ fontSize: 15, fontWeight: 600 }}>
+                          {f.valueMm}
+                          <span style={{ fontSize: 10, color: 'var(--fg-subtle)', marginLeft: 3 }}>
+                            mm
+                          </span>
+                        </div>
+                        <div
+                          className="mono tnum"
+                          style={{
+                            fontSize: 11,
+                            minWidth: 36,
+                            textAlign: 'right',
+                            color:
+                              d < 0
+                                ? 'var(--sage-dim)'
+                                : d > 0
+                                  ? 'var(--coral)'
+                                  : 'var(--fg-subtle)',
+                          }}
+                        >
+                          {d > 0 ? '+' : ''}
+                          {d !== 0 ? d.toFixed(0) : '—'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div
+                  style={{
+                    marginTop: 14,
+                    paddingTop: 14,
+                    borderTop: '1px solid var(--border)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 12,
+                  }}
+                >
+                  <div>
+                    <div className="eyebrow">SOMATÓRIO DOBRAS</div>
+                    <div
+                      className="mono tnum"
+                      style={{ fontSize: 20, fontWeight: 500, marginTop: 3 }}
+                    >
+                      {lastSkinfolds.reduce((s, f) => s + f.valueMm, 0).toFixed(0)}{' '}
+                      <span style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>mm</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {lastPerimetry.length > 0 && (
+            <div className="card">
+              <div className="card-h">
+                <div className="title">Perimetria</div>
+                <div className="sub">CIRCUNFERÊNCIAS · CM</div>
+                <div className="spacer" />
+                <div className="mono" style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+                  {fmtDate(last!.assessmentDate)}
+                </div>
+              </div>
+              <div className="card-b tight">
+                {lastPerimetry.map((m, i) => {
+                  const prevVal = prev?.perimetry?.find(
+                    (pp) => pp.measureKey === m.measureKey,
+                  )?.valueCm;
+                  const d = prevVal != null ? Math.round((m.valueCm - prevVal) * 10) / 10 : 0;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr auto auto',
+                        gap: 16,
+                        padding: '12px 18px',
+                        borderBottom:
+                          i === lastPerimetry.length - 1 ? 'none' : '1px solid var(--border)',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 13 }}>{formatBiometryMeasureLabel(m.measureKey)}</div>
+                      <div className="mono tnum" style={{ fontSize: 14, fontWeight: 500 }}>
+                        {m.valueCm}{' '}
+                        <span style={{ fontSize: 10, color: 'var(--fg-subtle)' }}>cm</span>
+                      </div>
+                      <div
+                        className="mono tnum"
+                        style={{
+                          fontSize: 11,
+                          width: 48,
+                          textAlign: 'right',
+                          color:
+                            d < 0
+                              ? 'var(--sage-dim)'
+                              : d > 0
+                                ? 'var(--fg-muted)'
+                                : 'var(--fg-subtle)',
+                        }}
+                      >
+                        {d > 0 ? '+' : ''}
+                        {d.toFixed(1)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Histórico de avaliações */}
       <div className="card">
@@ -379,29 +915,86 @@ function BiometryTab({ patient }: { patient: DetailedPatient }) {
           <div className="title">Histórico de avaliações</div>
           <div className="sub">APPEND-ONLY · AUDITORIA CLÍNICA</div>
         </div>
-        <div className="biometry-table-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr', padding: '10px 18px', borderBottom: '1px solid var(--border)', gap: 12 }}>
+        <div
+          className="biometry-table-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
+            padding: '10px 18px',
+            borderBottom: '1px solid var(--border)',
+            gap: 12,
+          }}
+        >
           {['Data', 'Método', 'Peso', '% Gordura', 'Magra', '% Água', 'TMB'].map((h, i) => (
-            <div key={i} className="eyebrow" style={{ fontSize: 10 }}>{h}</div>
+            <div key={i} className="eyebrow" style={{ fontSize: 10 }}>
+              {h}
+            </div>
           ))}
         </div>
-        {[...patient.biometry].reverse().map((b, i, arr) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr', padding: '12px 18px', borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)', gap: 12, alignItems: 'center' }}>
-            <div className="mono" style={{ fontSize: 12, color: 'var(--fg)' }}>{b.date} 2026</div>
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{b.method}</div>
-            <div className="mono tnum" style={{ fontSize: 12.5, fontWeight: 500 }}>{b.weight} kg</div>
-            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--carb)' }}>{b.fat}%</div>
-            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--sage-dim)' }}>{b.lean} kg</div>
-            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--sky)' }}>{b.water}%</div>
-            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{b.bmr} kcal</div>
+        {[...list].reverse().map((b, i, arr) => (
+          <div
+            key={b.id ?? i}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
+              padding: '12px 18px',
+              borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
+              gap: 12,
+              alignItems: 'center',
+            }}
+          >
+            <div className="mono" style={{ fontSize: 12, color: 'var(--fg)' }}>
+              {fmtDate(b.assessmentDate)}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{b.device ?? '—'}</div>
+            <div className="mono tnum" style={{ fontSize: 12.5, fontWeight: 500 }}>
+              {b.weight} kg
+            </div>
+            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--carb)' }}>
+              {b.bodyFatPercent ?? '—'}
+              {b.bodyFatPercent != null ? '%' : ''}
+            </div>
+            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--sage-dim)' }}>
+              {b.leanMassKg ?? '—'}
+              {b.leanMassKg != null ? ' kg' : ''}
+            </div>
+            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--sky)' }}>
+              {b.waterPercent ?? '—'}
+              {b.waterPercent != null ? '%' : ''}
+            </div>
+            <div className="mono tnum" style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
+              {b.bmrKcal ?? '—'}
+              {b.bmrKcal != null ? ' kcal' : ''}
+            </div>
           </div>
         ))}
       </div>
-      {newEvalOpen && <NewBiometryModal onClose={() => setNewEvalOpen(false)} />}
+      {newEvalOpen && (
+        <NewBiometryModal
+          createMutation={createBiometry}
+          onSuccess={handleSaveSuccess}
+          onClose={() => setNewEvalOpen(false)}
+        />
+      )}
+      {statusReviewOpen && (
+        <StatusReviewModal
+          patientId={patientId}
+          currentStatus={patientStatus}
+          onClose={() => setStatusReviewOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
-function BioCell({ label, value, unit, sub, delta, good }: {
+function BioCell({
+  label,
+  value,
+  unit,
+  sub,
+  delta,
+  good,
+}: {
   label: string;
   value: number;
   unit?: string;
@@ -413,15 +1006,32 @@ function BioCell({ label, value, unit, sub, delta, good }: {
     <div>
       <div className="eyebrow">{label}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 3 }}>
-        <div className="mono tnum" style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}>{value}</div>
+        <div
+          className="mono tnum"
+          style={{ fontSize: 22, fontWeight: 500, letterSpacing: '-0.02em' }}
+        >
+          {value}
+        </div>
         {unit && <div style={{ fontSize: 11, color: 'var(--fg-subtle)' }}>{unit}</div>}
       </div>
       {delta !== undefined && (
-        <div className="mono tnum" style={{ fontSize: 10.5, color: good ? 'var(--sage-dim)' : 'var(--fg-muted)', marginTop: 1 }}>
-          {delta > 0 ? '+' : ''}{delta} vs. anterior
+        <div
+          className="mono tnum"
+          style={{
+            fontSize: 10.5,
+            color: good ? 'var(--sage-dim)' : 'var(--fg-muted)',
+            marginTop: 1,
+          }}
+        >
+          {delta > 0 ? '+' : ''}
+          {delta} vs. anterior
         </div>
       )}
-      {sub && <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', marginTop: 1 }}>{sub}</div>}
+      {sub && (
+        <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', marginTop: 1 }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
@@ -434,10 +1044,24 @@ function InsightsTab() {
           <div className="title">Padrões observados no consumo</div>
           <div className="sub">ÚLTIMOS 14 DIAS</div>
           <div className="spacer" />
-          <div className="mono" style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}>APENAS DADOS EXTRAÍDOS</div>
+          <div
+            className="mono"
+            style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}
+          >
+            APENAS DADOS EXTRAÍDOS
+          </div>
         </div>
         <div className="card-b">
-          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <ul
+            style={{
+              margin: 0,
+              padding: 0,
+              listStyle: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+            }}
+          >
             {[
               'Horários de maior frequência de registro: 07:00–09:00 e 12:00–13:30',
               'Proteína média por refeição: 28g (desvio padrão 6g)',
@@ -445,7 +1069,11 @@ function InsightsTab() {
               'Frequência de lanches reportados no período da tarde vem caindo nas últimas 2 semanas',
             ].map((t, i) => (
               <li key={i} style={{ fontSize: 13.5, display: 'flex', gap: 12, color: 'var(--fg)' }}>
-                <span style={{ color: 'var(--lime-dim)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>0{i + 1}</span>
+                <span
+                  style={{ color: 'var(--lime-dim)', fontFamily: 'var(--font-mono)', fontSize: 12 }}
+                >
+                  0{i + 1}
+                </span>
                 <span>{t}</span>
               </li>
             ))}
@@ -456,146 +1084,248 @@ function InsightsTab() {
   );
 }
 
-interface HistoryEntry {
-  time: string;
-  meal: string;
-  items: string[];
-  macros: { kcal: number; prot: number; carb: number; fat: number };
-}
+function HistoryTab({ patientId }: { patientId: string }) {
+  const { data: episodes, isLoading } = usePatientHistoryEpisodes(patientId);
+  const [selectedEpisodeId, setSelectedEpisodeId] = React.useState<string | null>(null);
+  const { data: snapshot, isLoading: snapshotLoading } = useHistoricalEpisode(
+    patientId,
+    selectedEpisodeId,
+  );
 
-interface HistoryDay {
-  date: string;
-  entries: HistoryEntry[];
-}
-
-const MOCK_HISTORY: HistoryDay[] = [
-  { date: '17 abr', entries: [
-    { time: '12:48', meal: 'Almoço', items: ['Frango grelhado ~150g', 'Arroz integral', 'Salada'], macros: { kcal: 620, prot: 48, carb: 62, fat: 18 } },
-    { time: '10:05', meal: 'Lanche manhã', items: ['Banana + pasta de amendoim'], macros: { kcal: 210, prot: 5, carb: 28, fat: 10 } },
-    { time: '07:14', meal: 'Café da manhã', items: ['Omelete 2 ovos', 'Pão integral', 'Café preto'], macros: { kcal: 380, prot: 26, carb: 28, fat: 16 } },
-  ]},
-  { date: '16 abr', entries: [
-    { time: '19:55', meal: 'Jantar', items: ['Tilápia assada', 'Batata-doce', 'Brócolis'], macros: { kcal: 490, prot: 40, carb: 38, fat: 14 } },
-    { time: '12:30', meal: 'Almoço', items: ['Carne moída refogada', 'Arroz', 'Feijão', 'Salada'], macros: { kcal: 680, prot: 42, carb: 70, fat: 22 } },
-    { time: '07:20', meal: 'Café da manhã', items: ['Iogurte natural', 'Granola', 'Morango'], macros: { kcal: 310, prot: 18, carb: 38, fat: 8 } },
-  ]},
-  { date: '15 abr', entries: [
-    { time: '20:10', meal: 'Jantar', items: ['Omelete 3 ovos', 'Queijo branco', 'Tomate'], macros: { kcal: 420, prot: 34, carb: 6, fat: 28 } },
-    { time: '15:40', meal: 'Lanche tarde', items: ['Mix de castanhas 30g'], macros: { kcal: 185, prot: 5, carb: 6, fat: 17 } },
-    { time: '12:55', meal: 'Almoço', items: ['Frango desfiado', 'Macarrão integral', 'Molho de tomate'], macros: { kcal: 590, prot: 44, carb: 58, fat: 16 } },
-    { time: '07:05', meal: 'Café da manhã', items: ['Whey protein baunilha', 'Aveia', 'Banana'], macros: { kcal: 430, prot: 32, carb: 54, fat: 8 } },
-  ]},
-  { date: '14 abr', entries: [
-    { time: '19:30', meal: 'Jantar', items: ['Salmão grelhado', 'Purê de batata-doce', 'Aspargos'], macros: { kcal: 530, prot: 38, carb: 40, fat: 20 } },
-    { time: '12:40', meal: 'Almoço', items: ['Frango grelhado', 'Arroz integral', 'Feijão'], macros: { kcal: 610, prot: 46, carb: 60, fat: 18 } },
-    { time: '07:18', meal: 'Café da manhã', items: ['Pão integral', 'Ovo mexido', 'Queijo'], macros: { kcal: 360, prot: 22, carb: 30, fat: 14 } },
-  ]},
-];
-
-const HISTORY_PAGE_SIZE = 7;
-
-function HistoryTab() {
-  const today = '2026-04-17';
-  const [dateFrom, setDateFrom] = useState('2026-04-10');
-  const [dateTo, setDateTo] = useState(today);
-  const [quickRange, setQuickRange] = useState('7d');
-  const [histPage, setHistPage] = useState(0);
-
-  const applyQuick = (r: string) => {
-    setQuickRange(r);
-    const days: Record<string, number> = { '7d': 7, '14d': 14, '30d': 30 };
-    const d = new Date(today);
-    d.setDate(d.getDate() - days[r] + 1);
-    setDateFrom(d.toISOString().slice(0, 10));
-    setDateTo(today);
+  const fmtDate = (iso: string | null | undefined) => {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
-  const displayed = MOCK_HISTORY;
-  const histPages = Math.max(1, Math.ceil(displayed.length / HISTORY_PAGE_SIZE));
+  const fmtDateTime = (iso: string) => {
+    const d = new Date(iso);
+    return (
+      d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }) +
+      ' ' +
+      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    );
+  };
 
-  const totalEntries = displayed.reduce((s, d) => s + d.entries.length, 0);
-  const totalKcal = displayed.reduce((s, d) => s + d.entries.reduce((ss, e) => ss + e.macros.kcal, 0), 0);
+  if (isLoading) {
+    return (
+      <div style={{ padding: '24px 28px' }}>
+        <p style={{ color: 'var(--fg-subtle)', fontSize: 14 }}>Carregando histórico...</p>
+      </div>
+    );
+  }
+
+  const episodeList: HistoryEpisodeListItem[] = episodes ?? [];
+
+  if (episodeList.length === 0) {
+    return (
+      <div style={{ padding: '24px 28px' }}>
+        <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+          <p style={{ color: 'var(--fg-muted)', fontSize: 14 }}>
+            Nenhum episódio fechado encontrado
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '24px 28px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 20, flexWrap: 'wrap' }}>
-        <div>
-          <div className="eyebrow">Registros extraídos · append-only</div>
-          <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 2 }}>
-            <span className="mono tnum" style={{ fontWeight: 600, color: 'var(--fg)' }}>{totalEntries}</span> refeições ·&nbsp;
-            <span className="mono tnum" style={{ fontWeight: 600, color: 'var(--fg)' }}>{totalKcal.toLocaleString('pt-BR')}</span> kcal total
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div className="seg" style={{ height: 28 }}>
-            {['7d', '14d', '30d'].map((r) => (
-              <button key={r} className={quickRange === r ? 'active' : ''} onClick={() => applyQuick(r)}>{r}</button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input type="date" value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setQuickRange(''); }}
-              style={{ padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12, background: 'var(--surface)', color: 'var(--fg)', fontFamily: 'var(--font-mono)' }} />
-            <span style={{ fontSize: 12, color: 'var(--fg-muted)' }}>→</span>
-            <input type="date" value={dateTo} onChange={(e) => { setDateTo(e.target.value); setQuickRange(''); }}
-              style={{ padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12, background: 'var(--surface)', color: 'var(--fg)', fontFamily: 'var(--font-mono)' }} />
-          </div>
+      <div style={{ marginBottom: 20 }}>
+        <div className="eyebrow">Episódios finalizados</div>
+        <div style={{ fontSize: 13, color: 'var(--fg-muted)', marginTop: 2 }}>
+          <span className="mono tnum" style={{ fontWeight: 600, color: 'var(--fg)' }}>
+            {episodeList.length}
+          </span>{' '}
+          {episodeList.length === 1 ? 'episódio' : 'episódios'} · clique para ver detalhes
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {displayed.map((day, di) => {
-          const dayKcal = day.entries.reduce((s, e) => s + e.macros.kcal, 0);
-          return (
-            <div key={di} className="card">
-              <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{day.date}</div>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <span className="mono tnum" style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>{day.entries.length} refeições</span>
-                  <span className="mono tnum" style={{ fontSize: 11.5, color: 'var(--fg)' }}>{dayKcal} kcal</span>
+        {episodeList.map((ep) => (
+          <div
+            key={ep.episodeId}
+            className="card"
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              setSelectedEpisodeId(selectedEpisodeId === ep.episodeId ? null : ep.episodeId)
+            }
+          >
+            <div
+              style={{
+                padding: '14px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  {fmtDate(ep.startDate)} → {fmtDate(ep.endDate)}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}>
+                  {ep.durationDays} dias · {ep.assessmentCount}{' '}
+                  {ep.assessmentCount === 1 ? 'avaliação' : 'avaliações'}
                 </div>
               </div>
-              {day.entries.map((e, ei) => (
-                <div key={ei} className="history-entry-grid" style={{
-                  display: 'grid', gridTemplateColumns: '70px 1fr auto',
-                  gap: 14, padding: '12px 18px',
-                  borderBottom: ei < day.entries.length - 1 ? '1px solid var(--border)' : 'none',
-                  alignItems: 'start',
-                }}>
-                  <div>
-                    <div className="mono tnum" style={{ fontSize: 13, fontWeight: 600 }}>{e.time}</div>
-                    <div className="mono" style={{ fontSize: 10, color: 'var(--fg-subtle)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>{e.meal}</div>
-                  </div>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {e.items.map((it, j) => (
-                      <li key={j} style={{ fontSize: 13, color: 'var(--fg)', display: 'flex', gap: 6 }}>
-                        <span style={{ color: 'var(--fg-subtle)' }}>·</span>{it}
-                      </li>
-                    ))}
-                  </ul>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', columnGap: 8, rowGap: 1, fontSize: 11.5, textAlign: 'right' }}>
-                    <span style={{ color: 'var(--fg-muted)' }}>kcal</span><span className="mono tnum" style={{ fontWeight: 600 }}>{e.macros.kcal}</span>
-                    <span style={{ color: 'var(--fg-muted)' }}>prot</span><span className="mono tnum">{e.macros.prot}g</span>
-                    <span style={{ color: 'var(--fg-muted)' }}>carb</span><span className="mono tnum">{e.macros.carb}g</span>
-                    <span style={{ color: 'var(--fg-muted)' }}>gord</span><span className="mono tnum">{e.macros.fat}g</span>
-                  </div>
-                </div>
-              ))}
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                {ep.hasBiometry ? (
+                  <span className="chip ontrack">
+                    <span className="d" />
+                    Com biometria
+                  </span>
+                ) : (
+                  <span
+                    className="chip"
+                    style={{ background: 'var(--surface-2)', color: 'var(--fg-subtle)' }}
+                  >
+                    Sem biometria
+                  </span>
+                )}
+                <span style={{ color: 'var(--fg-subtle)', fontSize: 16 }}>
+                  {selectedEpisodeId === ep.episodeId ? '▴' : '▾'}
+                </span>
+              </div>
             </div>
-          );
-        })}
-      </div>
 
-      {histPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-          <div className="mono" style={{ fontSize: 11.5, color: 'var(--fg-subtle)', letterSpacing: '0.04em' }}>
-            Dias {histPage * HISTORY_PAGE_SIZE + 1}–{Math.min((histPage + 1) * HISTORY_PAGE_SIZE, displayed.length)} de {displayed.length}
+            {selectedEpisodeId === ep.episodeId && (
+              <div style={{ borderTop: '1px solid var(--border)' }}>
+                {snapshotLoading && (
+                  <div
+                    style={{
+                      padding: 20,
+                      textAlign: 'center',
+                      color: 'var(--fg-subtle)',
+                      fontSize: 13,
+                    }}
+                  >
+                    Carregando...
+                  </div>
+                )}
+                {snapshot && !snapshotLoading && (
+                  <div style={{ padding: '14px 18px' }}>
+                    {snapshot.assessments.length > 0 ? (
+                      <div style={{ marginBottom: 16 }}>
+                        <div className="eyebrow" style={{ marginBottom: 8 }}>
+                          AVALIAÇÕES BIOMÉTRICAS
+                        </div>
+                        {snapshot.assessments.map((a) => (
+                          <div
+                            key={a.id}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '1fr 1fr 1fr 1fr',
+                              gap: 12,
+                              padding: '10px 12px',
+                              background: 'var(--surface-2)',
+                              borderRadius: 6,
+                              marginBottom: 6,
+                            }}
+                          >
+                            <div>
+                              <div className="eyebrow">DATA</div>
+                              <div className="mono tnum" style={{ fontSize: 12 }}>
+                                {fmtDate(a.assessmentDate)}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="eyebrow">PESO</div>
+                              <div className="mono tnum" style={{ fontSize: 12 }}>
+                                {a.weight} kg
+                              </div>
+                            </div>
+                            <div>
+                              <div className="eyebrow">% GORDURA</div>
+                              <div className="mono tnum" style={{ fontSize: 12 }}>
+                                {a.bodyFatPercent ?? '—'}
+                                {a.bodyFatPercent != null ? '%' : ''}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="eyebrow">MASSA MAGRA</div>
+                              <div className="mono tnum" style={{ fontSize: 12 }}>
+                                {a.leanMassKg ?? '—'}
+                                {a.leanMassKg != null ? ' kg' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          padding: '14px 0',
+                          textAlign: 'center',
+                          color: 'var(--fg-subtle)',
+                          fontSize: 13,
+                        }}
+                      >
+                        Sem avaliação registrada no período
+                      </div>
+                    )}
+
+                    {snapshot.timelineEvents.length > 0 && (
+                      <div>
+                        <div className="eyebrow" style={{ marginBottom: 8 }}>
+                          EVENTOS
+                        </div>
+                        {snapshot.timelineEvents.map((ev) => (
+                          <div
+                            key={ev.id}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '120px 1fr',
+                              gap: 12,
+                              padding: '10px 12px',
+                              borderBottom: '1px solid var(--border)',
+                              alignItems: 'start',
+                            }}
+                          >
+                            <div
+                              className="mono"
+                              style={{ fontSize: 11, color: 'var(--fg-subtle)' }}
+                            >
+                              {fmtDateTime(ev.eventAt)}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 500 }}>{ev.title}</div>
+                              {ev.description && (
+                                <div
+                                  style={{ fontSize: 12, color: 'var(--fg-muted)', marginTop: 2 }}
+                                >
+                                  {ev.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {snapshot.episodeObjective && (
+                      <div style={{ marginTop: 12, fontSize: 12, color: 'var(--fg-muted)' }}>
+                        <span
+                          className="mono"
+                          style={{
+                            fontSize: 10,
+                            letterSpacing: '0.06em',
+                            color: 'var(--fg-subtle)',
+                            marginRight: 6,
+                          }}
+                        >
+                          OBJETIVO
+                        </span>
+                        {snapshot.episodeObjective}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button className="btn btn-ghost" disabled={histPage === 0} onClick={() => setHistPage((p) => p - 1)} style={{ opacity: histPage === 0 ? 0.35 : 1 }}>← Anterior</button>
-            <button className="btn btn-ghost" disabled={histPage === histPages - 1} onClick={() => setHistPage((p) => p + 1)} style={{ opacity: histPage === histPages - 1 ? 0.35 : 1 }}>Próximo →</button>
-          </div>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

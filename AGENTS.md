@@ -48,6 +48,7 @@
 | JWT signing key | `NUTRIAI_JWT_SECRET` | `.env` or Docker env |
 | Seed admin password | `NUTRIAI_SEED_ADMIN_PASSWORD` | `.env` or Docker env |
 | Ollama Cloud API key | `OLLAMA_API_KEY` | GitHub repo secrets |
+| OpenAI fallback review key | `OPENAI_API_KEY` | GitHub repo secrets |
 
 ## AI Reviewer Rules
 
@@ -62,14 +63,79 @@ To change what the reviewer checks: edit `.github/review-rules.md` and push. No 
 
 ### AI Reviewer Behavior
 
-- **Model**: `glm-5.1` for all diffs (hardcoded; anti-hallucination prompt included)
-- **Diff truncation**: reviewer sees at most first 3000 lines; oversized diffs emit a GitHub warning + inline comment
-- **Decision logic**: 
-  - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve (1st approval)
-  - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
-  - If STATUS: REQUEST_CHANGES → request changes
-- **External contributors**: AI always approves (counts as 1st approval), but adds a warning comment. 2nd approval must come from a human maintainer.
-- **Findings tracking**: HIGH+ findings are auto-created as GitHub Issues with `ai-review` label. Close the issue when findings are addressed.
+- **Decision logic** (driven by `.github/scripts/ai-review.sh:summarize_success`):
+  - 0 findings → `approve` (bot APPROVE)
+  - Only MEDIUM/LOW/INFO → `approve_with_warning` (bot APPROVE com warning)
+  - Any CRITICAL/HIGH → `request_changes` (bot REQUEST_CHANGES)
+- **External contributors**: bot APPROVE counts as 1 approval; humano precisa do segundo approve.
+- **Findings tracking**: HIGH+ findings sao publicados como issue GitHub com label `ai-review`. Issue e' fechada/atualizada automaticamente a cada run.
+
+### AI Review (locked config) — DO NOT TUNE BLINDLY
+
+A configuracao do reviewer (`.github/workflows/ai-review.yml` + `.github/scripts/ai-review.sh`) esta **travada**. Cada variavel deste env tem motivo:
+
+| Var | Valor | Por que esse valor |
+|---|---|---|
+| `AI_REVIEW_PRIMARY_MODEL` | `glm-5.1:cloud` | Tag canonica do GLM-5.1 no Ollama Cloud (verificada em ollama.com/library/glm-5.1). Usar `glm-5.1` sem `:cloud` causa timeouts intermitentes. |
+| `AI_REVIEW_FALLBACK_MODEL` | `gpt-oss:120b` | Modelo **distinto** do primary. Alucina mais que o glm, mas o segundo passe (`self_critique_findings`) filtra alucinacoes. |
+| `AI_REVIEW_CHUNK_LINES` | `1500` | Chunks maiores (>= 4000) estouram `PROVIDER_MAX_TIME` no glm-5.1. |
+| `AI_REVIEW_MAX_CHUNKS` | `8` | Acomoda PRs ate ~12k linhas com chunks de 1500. |
+| `AI_REVIEW_MAX_PARALLEL` | `2` | Tier Pro do Ollama Cloud permite **3 modelos concorrentes**. Mantemos em 2 para deixar 1 slot livre ao usuario (OpenCode/CLI). Subir para 3 funciona se o usuario nao estiver usando Ollama em paralelo, mas e' arriscado. NUNCA passar de 3. |
+| `AI_REVIEW_PROVIDER_MAX_TIME` | `180` | 180s e' suficiente para chunk de 1500 linhas; 300s soh atrasa retries. |
+| `AI_REVIEW_SELF_CRITIQUE_MAX_TIME` | `360` | Self-critique manda o diff completo (muito maior que um chunk), precisa de mais tempo. 360s comporta diffs ate ~10k linhas. |
+
+**Filtros de falsos positivos** rodam em duas camadas, na ordem:
+
+#### Camada 1 — `filter_false_positives()` (regex heuristico, custo zero)
+
+Aplicada a cada linha de finding apos consolidar todos os chunks. Cobre 9 padroes recorrentes de alucinacao do reviewer:
+
+| # | Padrao detectado | Acao | Quando descarta |
+|---|---|---|---|
+| 1 | "missing migration" / "sem migracao" | drop | quando ha `*.sql` no manifest do PR |
+| 2 | "missing tests" / "sem testes" | drop | quando ha `*Test*.java` ou `.spec.ts` no manifest |
+| 3 | "without @Valid" / "sem validacao" | drop | quando ha `@Valid`/`@AssertTrue`/`@NotNull`/etc no diff |
+| 4 | "hasRole(ADMIN) speculation" | drop | quando nenhuma referencia a ADMIN aparece no diff |
+| 5 | "test will fail" / "teste falhara" | drop | sempre (e' especulacao sobre comportamento de teste) |
+| 6 | "beforeAll shared state" | drop | quando o diff so tem `beforeEach` |
+| 7 | "if/se/may/could" no inicio do finding | drop | quando o finding nao cita simbolo/arquivo concreto |
+| 8 | "erro de compilacao" / "compilation error" | drop | sempre (CI ja captura erros de compilacao reais) |
+| 9 | "X nunca declarada/importada" | drop | quando o simbolo X (extraido de backticks ou identifier) aparece no diff como atribuicao, import, class/interface/record/enum/method |
+
+Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+
+#### Camada 2 — `self_critique_findings()` (segundo passe LLM)
+
+**Conceito.** O modelo, na primeira passagem, opera sob o vies "encontrar problemas no codigo" — incentivo implicito a produzir findings, mesmo quando especulativos. Quando os mesmos findings sao re-apresentados a ele com a tarefa explicita de **validar evidencia**, ele consegue avaliar com mais ceticismo. Tecnica analoga a self-refine / Constitutional AI.
+
+**Quando dispara.** Apenas quando o filter heuristico deixa pelo menos 1 finding `CRITICAL` ou `HIGH`. Se sobrou so MEDIUM/LOW, pula (nao vale a chamada extra).
+
+**Como funciona.**
+1. Monta um request ao primary model (`glm-5.1:cloud`) com:
+   - System prompt strict KEEP/DROP, regra "quando em duvida, DROP"
+   - User content: o **diff completo** (nao chunked) + lista dos findings restantes
+2. Modelo retorna apenas as linhas a manter, no formato exato.
+3. Substitui `findings_unique` pelo output filtrado.
+4. Se a chamada falhar (timeout, HTTP 5xx, JSON invalido): preserva os findings originais — degradacao graciosa, nao bloqueia o pipeline.
+
+**Por que e' efetivo.** Filter heuristico cobre padroes conhecidos (~80% dos casos). Self-critique pega o long tail: alucinacoes criativas que escapam de qualquer regex pre-definido (ex.: o reviewer afirmou "savedEpisode nunca e declarada" em PT-BR sem usar nenhuma das palavras-gatilho da Rule 9). No run que aprovou o PR 28, **filter dropou 1, self-critique dropou 11** — todas alucinacoes do tipo "patientId pode ser null", "bean injection failure", "field sem @Column" que existiam claramente no diff.
+
+**Custo.** ~1 chamada LLM extra por run problematico:
+- Input: diff completo (~10k tokens em PR grande) + findings (~500 tokens)
+- Output: lista filtrada (~500 tokens)
+- Em quota Ollama Cloud Pro: marginal, ~5-15% do custo de um run completo
+- So acionado quando o filter heuristico nao conseguiu zerar HIGH+ — em PRs limpos nem roda
+
+**Trade-off.** Pode descartar finding real ambiguo (false negative). Mitigacao: sticky comment continua mostrando MEDIUM/LOW/INFO, e revisao humana segue como ultima camada. Self-critique nao substitui review humano em mudancas sensiveis.
+
+**Falha modes conhecidos.**
+- Timeout: diff > ~10k linhas pode estourar `SELF_CRITIQUE_MAX_TIME=360s`. Em caso de timeout, findings originais sao mantidos.
+- Modelo retornar texto fora de formato: filtra-se com `grep -E '^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):'`; se nada bater, preserva originais.
+
+**Regra absoluta para qualquer IA assistente trabalhando neste repo:**
+- NAO altere `.github/workflows/ai-review.yml`, `.github/scripts/ai-review.sh` nem `.github/scripts/test-ai-review-filter.sh` sem instrucao **explicita** do usuario que cite a config nominalmente ("muda o chunk size", "adiciona regra X no filter", etc.).
+- "Tentar estabilizar" / "tentar reduzir falsos positivos" / "tentar acelerar" sem instrucao especifica ja causou loops de horas e regressoes. NAO faca.
+- Se um run falhar e voce achar que a config e' culpada, **reporte ao usuario** e espere instrucao. Nao toque.
 
 ## Key Architecture Patterns (for new agents)
 

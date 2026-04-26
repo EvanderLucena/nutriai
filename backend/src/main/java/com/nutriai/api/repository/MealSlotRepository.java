@@ -1,6 +1,8 @@
 package com.nutriai.api.repository;
 
 import com.nutriai.api.model.MealSlot;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,7 +18,17 @@ public interface MealSlotRepository extends JpaRepository<MealSlot, UUID> {
     List<MealSlot> findByPlanIdOrderBySortOrder(UUID planId);
 
     /**
-     * Delete all meal slots for a given plan (service-layer cascade).
+     * Find meal slots for a plan scoped by nutritionist, ordered by sort order.
      */
-    void deleteAllByPlanId(UUID planId);
+    @Query("""
+            select s
+            from MealSlot s
+            join MealPlan p on p.id = s.planId
+            where s.planId = :planId
+              and p.nutritionistId = :nutritionistId
+            order by s.sortOrder asc
+            """)
+    List<MealSlot> findByPlanIdAndNutritionistIdOrderBySortOrder(
+            @Param("planId") UUID planId,
+            @Param("nutritionistId") UUID nutritionistId);
 }

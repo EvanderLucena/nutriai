@@ -23,6 +23,11 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     Page<Patient> findByNutritionistId(UUID nutritionistId, Pageable pageable);
 
     /**
+     * Non-paginated list for aggregate computations (dashboard KPIs).
+     */
+    List<Patient> findAllByNutritionistId(UUID nutritionistId);
+
+    /**
      * Active/inactive filter (D-06).
      */
     Page<Patient> findByNutritionistIdAndActive(UUID nutritionistId, Boolean active, Pageable pageable);

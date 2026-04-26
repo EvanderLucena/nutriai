@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ public class MealPlanService {
     private final FoodRepository foodRepository;
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
+    private final EpisodeHistoryEventRepository historyEventRepository;
 
     public MealPlanService(MealPlanRepository mealPlanRepository,
                            MealSlotRepository mealSlotRepository,
@@ -35,7 +37,8 @@ public class MealPlanService {
                            PlanExtraRepository planExtraRepository,
                            FoodRepository foodRepository,
                            PatientRepository patientRepository,
-                           EpisodeRepository episodeRepository) {
+                           EpisodeRepository episodeRepository,
+                           EpisodeHistoryEventRepository historyEventRepository) {
         this.mealPlanRepository = mealPlanRepository;
         this.mealSlotRepository = mealSlotRepository;
         this.mealOptionRepository = mealOptionRepository;
@@ -44,6 +47,7 @@ public class MealPlanService {
         this.foodRepository = foodRepository;
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
+        this.historyEventRepository = historyEventRepository;
     }
 
     @Transactional
@@ -86,13 +90,23 @@ public class MealPlanService {
         }
 
         logger.info("Default plan created: episodeId={}, nutritionistId={}", episodeId, nutritionistId);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(episodeId)
+                .nutritionistId(nutritionistId)
+                .eventType("PLAN_CREATED")
+                .eventAt(LocalDateTime.now())
+                .title("Plano alimentar criado")
+                .description("Plano padrão com 6 refeições criado")
+                .sourceRef("MealPlan:" + savedPlan.getId())
+                .build());
     }
 
     @Transactional(readOnly = true)
     public PlanResponse getPlan(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
 
-        Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
+        Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
         MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
@@ -334,7 +348,7 @@ public class MealPlanService {
     private MealPlan getPlanAndVerifyOwnership(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
 
-        Episode episode = episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patientId)
+        Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
         return mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
@@ -397,13 +411,15 @@ public class MealPlanService {
     }
 
     private PlanResponse buildPlanResponse(MealPlan plan) {
-        List<MealSlot> slots = mealSlotRepository.findByPlanIdOrderBySortOrder(plan.getId());
+        List<MealSlot> slots = mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(
+                plan.getId(), plan.getNutritionistId());
         List<PlanExtra> extras = planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId());
 
         List<UUID> slotIds = slots.stream().map(MealSlot::getId).toList();
         List<MealOption> allOptions = slotIds.isEmpty()
                 ? List.of()
-                : mealOptionRepository.findAllByMealSlotIds(slotIds);
+                : mealOptionRepository.findByPlanIdAndNutritionistIdOrderByMealSlotIdAndSortOrder(
+                        plan.getId(), plan.getNutritionistId());
 
         List<UUID> optionIds = allOptions.stream().map(MealOption::getId).toList();
         List<MealFood> allItems = optionIds.isEmpty()

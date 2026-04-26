@@ -178,6 +178,11 @@ Os testes E2E atuais **já são sem mock**. Eles batem no backend real (Spring B
 - CodeRabbit Pro ($24/mo) — when manual review becomes insufficient
 - RLS no PostgreSQL — when real users arrive or LGPD formal compliance needed
 - SonarQube Community — more infra than value for solo dev at this stage
+- ESLint complexity rules — solo dev attrition high, marginal benefit
+- dependency-cruiser — ArchUnit covers backend; frontend arch is simple enough
+
+### Deferred (medium priority)
+- Playwright StorageState — refactor auth setup when authStore format changes or more specs added
 
 ### Eliminated
 - DB-per-tenant / Schema-per-tenant — overkill for solo-nutritionist model
@@ -235,3 +240,35 @@ Verificação dos bugs do `05-REVIEW.md`:
 | 14 | Testcontainers backend | Direto | ~1h | Elimina H2/Postgres gap |
 
 **Total estimado:** ~7h de trabalho direto, sem overhead de GSD
+
+## v2 — Implementation (2026-04-24)
+
+### O que foi implementado do brainstorm
+
+| # | Item | Status | Detalhe |
+|---|------|--------|---------|
+| 1 | `frontend-ci.yml` | ✅ Já existia | tsc + lint + test + build |
+| 2 | `backend-ci.yml` | ✅ Já existia | compileJava + check (checkstyle + JaCoCo + tests) |
+| 3 | Branch protection | ✅ Já existia | 2 approvals, ai-review required |
+| 4 | Dependabot | ✅ Melhorado | Labels (dependencies+frontend/backend/ci), Playwright major ignore |
+| 5 | PR template | ✅ Melhorado | Checklist condicional front/back com regras do projeto |
+| 6 | AI reviewer (GSD) | ✅ Já existia | ai-review.yml com tiered severity |
+| 7 | Checkstyle | ✅ Já existia | No `./gradlew check` |
+| 8 | ESLint complexity | 🅿️ Parked | Solo dev, marginal benefit |
+| 9 | JaCoCo + vitest coverage | ✅ Já existia | Com coverage floors |
+| 10 | ArchUnit | ✅ Já existia | 6 regras de arquitetura |
+| 11 | dependency-cruiser | 🅿️ Parked | Frontend arch simples, ArchUnit cobre backend |
+| 12 | `e2e.yml` | ✅ Já existia | Docker compose + Playwright |
+| 13 | Playwright StorageState | 🔜 Deferred | Funciona hoje, refatorar quando necessário |
+| 14 | Testcontainers | ✅ Já existia | integrationTest com Postgres real |
+
+### Decisões finais
+
+- **ESLint complexity**: park — custo de manutenção alto pra solo dev, TypeScript strict já pega erros
+- **dependency-cruiser**: park — view→store→api é simples, ArchUnit cobre backend
+- **Playwright StorageState**: defer — funciona hoje, refatorar quando authStore mudar
+- **Mutation testing**: deferred — executar quando test suite >30 arquivos
+
+### Conclusão
+
+Toda a fundação CI/CD do brainstorm v1 está implementada. Itens parked ficam documentados para reconsideração quando o projeto escalar (contribuidores externos, test suite maior, compliance LGPD formal).

@@ -41,16 +41,23 @@ public class DataInitializer implements CommandLineRunner {
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .crn("00000")
                     .crnRegional("SP")
-                    .role(UserRole.ADMIN)
+                    .role(UserRole.NUTRITIONIST)
                     .onboardingCompleted(true)
                     .subscriptionTier("UNLIMITED")
                     .patientLimit(9999)
                     .build();
 
             nutritionistRepository.save(admin);
-            logger.info("Admin seed created — email: {} | password: {}", adminEmail, adminPassword);
+            logger.info("Admin seed created (credentials configured via nutriai.seed.admin.* properties).");
         } else {
-            logger.info("Admin already exists ({}), skipping seed", adminEmail);
+            Nutritionist admin = nutritionistRepository.findByEmail(adminEmail).orElseThrow();
+            if (admin.getRole() != UserRole.NUTRITIONIST) {
+                admin.setRole(UserRole.NUTRITIONIST);
+                nutritionistRepository.save(admin);
+                logger.info("Admin seed role updated to NUTRITIONIST for panel access.");
+            } else {
+                logger.info("Admin seed already exists, skipping.");
+            }
         }
     }
 }

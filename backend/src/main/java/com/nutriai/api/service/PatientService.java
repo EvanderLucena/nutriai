@@ -3,9 +3,11 @@ package com.nutriai.api.service;
 import com.nutriai.api.dto.patient.*;
 import com.nutriai.api.exception.ResourceNotFoundException;
 import com.nutriai.api.model.Episode;
+import com.nutriai.api.model.EpisodeHistoryEvent;
 import com.nutriai.api.model.Patient;
 import com.nutriai.api.model.PatientObjective;
 import com.nutriai.api.model.PatientStatus;
+import com.nutriai.api.repository.EpisodeHistoryEventRepository;
 import com.nutriai.api.repository.EpisodeRepository;
 import com.nutriai.api.repository.NutritionistRepository;
 import com.nutriai.api.repository.PatientRepository;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.Arrays;
 import java.util.UUID;
@@ -27,20 +30,24 @@ import java.util.UUID;
 public class PatientService {
 
     private static final Logger logger = LoggerFactory.getLogger(PatientService.class);
+    private static final String OBJECTIVE_METADATA_TEMPLATE = "{\"objective\":\"%s\"}";
 
     private final PatientRepository patientRepository;
     private final EpisodeRepository episodeRepository;
     private final NutritionistRepository nutritionistRepository;
     private final MealPlanService mealPlanService;
+    private final EpisodeHistoryEventRepository historyEventRepository;
 
     public PatientService(PatientRepository patientRepository,
-                          EpisodeRepository episodeRepository,
-                          NutritionistRepository nutritionistRepository,
-                          MealPlanService mealPlanService) {
+                           EpisodeRepository episodeRepository,
+                           NutritionistRepository nutritionistRepository,
+                           MealPlanService mealPlanService,
+                           EpisodeHistoryEventRepository historyEventRepository) {
         this.patientRepository = patientRepository;
         this.episodeRepository = episodeRepository;
         this.nutritionistRepository = nutritionistRepository;
         this.mealPlanService = mealPlanService;
+        this.historyEventRepository = historyEventRepository;
     }
 
     @Transactional
@@ -64,12 +71,26 @@ public class PatientService {
                 .build();
 
         Patient saved = patientRepository.save(patient);
-        logger.info("Patient created: id={}, name={}, nutritionistId={}", saved.getId(), saved.getName(), nutritionistId);
+        logger.info("Patient created: id={}, nutritionistId={}", saved.getId(), nutritionistId);
 
+        LocalDateTime now = LocalDateTime.now();
         Episode episode = Episode.builder()
                 .patientId(saved.getId())
+                .nutritionistId(nutritionistId)
+                .startDate(now)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(savedEpisode.getId())
+                .nutritionistId(nutritionistId)
+                .eventType("EPISODE_OPENED")
+                .eventAt(now)
+                .title("Período iniciado")
+                .description("Cadastro do paciente ativado")
+                .sourceRef("Episode:" + savedEpisode.getId())
+                .metadataJson(buildEpisodeMetadata(saved.getObjective()))
+                .build());
 
         // D-13/D-14: Auto-create default 6-meal plan
         mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
@@ -129,7 +150,7 @@ public class PatientService {
         if (req.tag() != null) patient.setTag(req.tag());
 
         Patient updated = patientRepository.save(patient);
-        logger.info("Patient updated: id={}, fields={}", updated.getId(), req);
+        logger.info("Patient updated: id={}, nutritionistId={}", updated.getId(), nutritionistId);
         return PatientResponse.from(updated);
     }
 
@@ -139,10 +160,21 @@ public class PatientService {
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", id));
 
         patient.softDelete();
-        episodeRepository.findTopByPatientIdAndEndDateIsNullOrderByStartDateDesc(patient.getId())
+        episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patient.getId(), nutritionistId)
                 .ifPresent(e -> {
                     e.close();
+                    episodeRepository.save(e);
                     logger.info("Episode closed: id={}, patientId={}", e.getId(), id);
+                    historyEventRepository.save(EpisodeHistoryEvent.builder()
+                            .episodeId(e.getId())
+                            .nutritionistId(nutritionistId)
+                            .eventType("EPISODE_CLOSED")
+                            .eventAt(LocalDateTime.now())
+                            .title("Período encerrado")
+                            .description("Cadastro do paciente desativado")
+                            .sourceRef("Episode:" + e.getId())
+                            .metadataJson(buildEpisodeMetadata(patient.getObjective()))
+                            .build());
                 });
 
         Patient updated = patientRepository.save(patient);
@@ -157,10 +189,24 @@ public class PatientService {
 
         patient.reactivate();
 
+        LocalDateTime now = LocalDateTime.now();
         Episode episode = Episode.builder()
                 .patientId(patient.getId())
+                .nutritionistId(nutritionistId)
+                .startDate(now)
                 .build();
         Episode savedEpisode = episodeRepository.save(episode);
+
+        historyEventRepository.save(EpisodeHistoryEvent.builder()
+                .episodeId(savedEpisode.getId())
+                .nutritionistId(nutritionistId)
+                .eventType("EPISODE_OPENED")
+                .eventAt(now)
+                .title("Período iniciado")
+                .description("Cadastro do paciente reativado")
+                .sourceRef("Episode:" + savedEpisode.getId())
+                .metadataJson(buildEpisodeMetadata(patient.getObjective()))
+                .build());
 
         mealPlanService.createDefaultPlan(savedEpisode.getId(), nutritionistId);
 
@@ -175,6 +221,13 @@ public class PatientService {
     private Integer computeAge(LocalDate birthDate) {
         if (birthDate == null) return null;
         return Period.between(birthDate, LocalDate.now()).getYears();
+    }
+
+    private String buildEpisodeMetadata(PatientObjective objective) {
+        if (objective == null) {
+            return null;
+        }
+        return OBJECTIVE_METADATA_TEMPLATE.formatted(objective.name());
     }
 
     private String computeInitials(String name) {
