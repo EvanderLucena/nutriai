@@ -2,39 +2,59 @@ name: Backend CI
 
 on:
   pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
 
 jobs:
   backend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect backend changes
+        id: changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+          fi
+
+          if [[ "$base_sha" =~ ^0+$ ]] || ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            base_sha="$(git rev-parse HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)"
+          fi
+
+          changed_files="$(git diff --name-only "$base_sha" "${{ github.sha }}")"
+          if grep -Eq '^(backend/|\.github/workflows/backend-ci\.yml$)' <<< "$changed_files"; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+            echo "No backend changes detected; required check passes."
+          fi
 
       - uses: actions/setup-java@v4
+        if: steps.changes.outputs.backend == 'true'
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
 
       - name: Check (compile + checkstyle + tests + jacoco verification)
+        if: steps.changes.outputs.backend == 'true'
         run: ./gradlew check
+        working-directory: backend
 
       - name: Integration tests (Testcontainers)
+        if: steps.changes.outputs.backend == 'true'
         run: ./gradlew integrationTest
+        working-directory: backend
 
       - name: Upload JaCoCo report
-        if: always()
+        if: always() && steps.changes.outputs.backend == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: jacoco-report

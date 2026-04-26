@@ -12,6 +12,12 @@ name: AI Review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    # Doc-only / planning-only changes nao precisam consumir quota Ollama nem
+    # disparar stale-dismiss em approves anteriores.
+    paths-ignore:
+      - '**/*.md'
+      - '.planning/**'
+      - 'docs/**'
 
 concurrency:
   group: ai-review-${{ github.event.pull_request.number }}
@@ -70,6 +76,14 @@ jobs:
           git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/pr_files.txt
           echo "Manifest size: $(wc -l < /tmp/pr_files.txt) files"
 
+      - name: Warn on large PR
+        if: steps.diff.outputs.lines > 2500
+        shell: bash
+        env:
+          LINES: ${{ steps.diff.outputs.lines }}
+        run: |
+          echo "::warning title=Large PR::Este PR tem ${LINES} linhas de diff. PRs grandes amplificam falsos positivos do reviewer LLM (mais chunks = mais alucinacoes acumuladas) e cansam o review humano. Considere dividir em PRs menores. Ver AGENTS.md > 'PR sizing convention'."
+
       - name: Load project rules
         shell: bash
         run: |
@@ -91,7 +105,7 @@ jobs:
 
       - name: Upsert sticky AI review comment
         if: steps.diff.outputs.lines > 0 && (steps.review.outputs.result == 'success' || steps.review.outputs.result == 'error')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           RESULT: ${{ steps.review.outputs.result }}
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
@@ -170,7 +184,7 @@ jobs:
 
       - name: Dismiss previous AI reviews
         if: steps.review.outputs.result == 'success'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const reviews = await github.paginate(github.rest.pulls.listReviews, {
@@ -208,7 +222,7 @@ jobs:
 
       - name: Cleanup legacy AI review comments
         if: steps.diff.outputs.lines > 0 && (steps.review.outputs.result == 'success' || steps.review.outputs.result == 'error')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const stickyMarker = '<!-- ai-review:sticky -->';
@@ -245,7 +259,7 @@ jobs:
 
       - name: Auto-approve if clean
         if: steps.review.outputs.decision == 'approve'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
@@ -275,7 +289,7 @@ jobs:
 
       - name: Approve with MEDIUM warning
         if: steps.review.outputs.decision == 'approve_with_warning'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
         with:
@@ -309,7 +323,7 @@ jobs:
 
       - name: Request changes for CRITICAL/HIGH findings
         if: steps.review.outputs.decision == 'request_changes'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
         with:
@@ -327,7 +341,7 @@ jobs:
 
       - name: Sync HIGH+ finding issue
         if: steps.review.outputs.result == 'success'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           REVIEW_TEXT: ${{ steps.review.outputs.review }}
           SEVERITY: ${{ steps.review.outputs.severity }}
