@@ -46,14 +46,22 @@ export function usePatientBiometry(patientId: string | null) {
   });
 }
 
+function invalidateClinicalQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  patientId: string,
+) {
+  queryClient.invalidateQueries({ queryKey: ['patient-biometry', patientId] });
+  queryClient.invalidateQueries({ queryKey: ['patient-history', patientId] });
+  queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+}
+
 export function useCreateBiometry(patientId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateBiometryAssessmentRequest) =>
       biometryApi.createBiometryAssessment(patientId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patient-biometry', patientId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateClinicalQueries(queryClient, patientId);
     },
     onError: (error) => {
       useToastStore
@@ -76,8 +84,7 @@ export function useUpdateBiometry(patientId: string) {
       data: UpdateBiometryAssessmentRequest;
     }) => biometryApi.updateBiometryAssessment(patientId, assessmentId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['patient-biometry', patientId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      invalidateClinicalQueries(queryClient, patientId);
     },
     onError: (error) => {
       useToastStore

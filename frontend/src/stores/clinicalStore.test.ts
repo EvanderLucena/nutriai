@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useClinicalUIStore } from './clinicalStore';
+import { useMutation } from '@tanstack/react-query';
+import { useClinicalUIStore, useCreateBiometry, useUpdateBiometry } from './clinicalStore';
+
+const invalidateQueriesMock = vi.fn();
 
 vi.mock('../api/dashboard', () => ({
   getDashboard: vi.fn(),
@@ -20,12 +23,14 @@ vi.mock('@tanstack/react-query', () => ({
     mutateAsync: vi.fn(),
   })),
   useQueryClient: vi.fn(() => ({
-    invalidateQueries: vi.fn(),
+    invalidateQueries: invalidateQueriesMock,
   })),
 }));
 
 describe('useClinicalUIStore', () => {
   beforeEach(() => {
+    invalidateQueriesMock.mockReset();
+    vi.mocked(useMutation).mockClear();
     useClinicalUIStore.setState({
       selectedHistoryEpisodeId: null,
       selectedChartMetric: 'weight',
@@ -73,6 +78,48 @@ describe('useClinicalUIStore', () => {
       useClinicalUIStore.getState().setBiometryModalOpen(true);
       useClinicalUIStore.getState().setBiometryModalOpen(false);
       expect(useClinicalUIStore.getState().biometryModalOpen).toBe(false);
+    });
+  });
+
+  describe('biometry mutations', () => {
+    it('invalidates biometry, history, and dashboard queries after creating an assessment', () => {
+      useCreateBiometry('patient-1');
+
+      const mutationOptions = vi.mocked(useMutation).mock.calls.at(-1)?.[0] as
+        | { onSuccess?: () => void }
+        | undefined;
+
+      mutationOptions?.onSuccess?.();
+
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['patient-biometry', 'patient-1'],
+      });
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['patient-history', 'patient-1'],
+      });
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['dashboard'],
+      });
+    });
+
+    it('invalidates biometry, history, and dashboard queries after updating an assessment', () => {
+      useUpdateBiometry('patient-1');
+
+      const mutationOptions = vi.mocked(useMutation).mock.calls.at(-1)?.[0] as
+        | { onSuccess?: () => void }
+        | undefined;
+
+      mutationOptions?.onSuccess?.();
+
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['patient-biometry', 'patient-1'],
+      });
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['patient-history', 'patient-1'],
+      });
+      expect(invalidateQueriesMock).toHaveBeenCalledWith({
+        queryKey: ['dashboard'],
+      });
     });
   });
 });
