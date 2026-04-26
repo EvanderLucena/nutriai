@@ -42,24 +42,23 @@ export const usePatientUIStore = create<PatientUIState>()((set) => ({
   setTogglingPatientId: (id) => set({ togglingPatientId: id }),
 }));
 
+type ApiErrorPayload = ApiResponse<null> & { errors?: FieldError[] };
+
+function pickErrorMessage(payload: ApiErrorPayload | undefined): string | undefined {
+  if (!payload) return undefined;
+  const fieldMessage = payload.errors?.[0]?.message;
+  if (fieldMessage) return fieldMessage;
+  return payload.message;
+}
+
 export function resolveMutationErrorMessage(error: unknown, fallbackMessage: string) {
-  if (error && typeof error === 'object') {
-    const apiError = error as ApiResponse<null> & {
-      errors?: FieldError[];
-      response?: {
-        data?: ApiResponse<null> & { errors?: FieldError[] };
-      };
-    };
-    const responseData = apiError.response?.data;
-    return (
-      responseData?.errors?.[0]?.message ??
-      responseData?.message ??
-      apiError.errors?.[0]?.message ??
-      apiError.message ??
-      fallbackMessage
-    );
+  if (!error || typeof error !== 'object') {
+    return fallbackMessage;
   }
-  return fallbackMessage;
+  const apiError = error as ApiErrorPayload & {
+    response?: { data?: ApiErrorPayload };
+  };
+  return pickErrorMessage(apiError.response?.data) ?? pickErrorMessage(apiError) ?? fallbackMessage;
 }
 
 // TanStack Query hook for patient list
