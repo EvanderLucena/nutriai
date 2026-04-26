@@ -63,4 +63,31 @@ run_filter \
   $'+assessmentService.updateAssessment(patientId, assessmentId, request);'
 assert_contains "${TMP_DIR}/findings.txt" 'updateAssessment\(\)' "speculative wording with a concrete anchor should remain"
 
+# Rule 8 — compilation error claims are unverifiable from diff alone.
+run_filter \
+  "- CRITICAL: Em PatientService.java falta declaracao da variavel, gerando erro de compilacao." \
+  $'+Episode savedEpisode = episodeRepository.save(episode);'
+assert_empty "${TMP_DIR}/findings.txt" "compilation-error claims should be dropped (CI catches real ones)"
+
+run_filter \
+  "- CRITICAL: MealPlanService chama EpisodeHistoryEvent.builder() mas a classe nao foi importada, provocando falha de compilacao." \
+  $'+import com.nutriai.api.model.EpisodeHistoryEvent;\n+historyEventRepository.save(EpisodeHistoryEvent.builder()...)'
+assert_empty "${TMP_DIR}/findings.txt" "compilation-error claims with 'falha de compilacao' wording should be dropped"
+
+# Rule 9 — claims about "X never declared/imported" are dropped when X appears in the diff.
+run_filter \
+  "- CRITICAL: A variavel \`savedEpisode\` nunca e declarada no metodo." \
+  $'+Episode savedEpisode = episodeRepository.save(episode);\n+historyEventRepository.save(event);'
+assert_empty "${TMP_DIR}/findings.txt" "symbol-not-declared claim should be dropped when symbol is assigned in diff"
+
+run_filter \
+  "- HIGH: Classe \`EpisodeHistoryEvent\` nao importada, gerando classe nao encontrada." \
+  $'+import com.nutriai.api.model.EpisodeHistoryEvent;'
+assert_empty "${TMP_DIR}/findings.txt" "missing-import claim should be dropped when import line is in diff"
+
+run_filter \
+  "- CRITICAL: A variavel \`reallyMissingVar\` nunca e declarada." \
+  $'+const otherVar = 1;'
+assert_contains "${TMP_DIR}/findings.txt" 'reallyMissingVar' "symbol-not-declared claim should remain when symbol is genuinely absent from diff"
+
 echo "ai-review filter regression checks passed"

@@ -28,9 +28,12 @@ jobs:
     env:
       # CONFIG TRAVADA — ver banner no topo do arquivo. Nao mexa sem instrucao explicita.
       AI_REVIEW_PRIMARY_PROVIDER: ollama
-      AI_REVIEW_PRIMARY_MODEL: glm-5.1
+      # Modelo correto e' glm-5.1:cloud (verificado em ollama.com/library/glm-5.1).
+      # "glm-5.1" puro sem :cloud nao e' tag publica e provoca timeouts intermitentes.
+      AI_REVIEW_PRIMARY_MODEL: glm-5.1:cloud
       AI_REVIEW_FALLBACK_PROVIDER: ollama
-      # Fallback DEVE ser modelo distinto do primary; glm-5.1:cloud e' o mesmo glm-5.1.
+      # Fallback distinto do primary; gpt-oss:120b alucina mais que glm, mas o
+      # self_critique_findings filtra alucinacoes na maioria dos casos.
       AI_REVIEW_FALLBACK_MODEL: gpt-oss:120b
       # Chunks pequenos cabem no timeout do glm-5.1; nao subir para 4000 (timeouts).
       AI_REVIEW_CHUNK_LINES: 1500

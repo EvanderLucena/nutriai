@@ -76,14 +76,18 @@ A configuracao do reviewer (`.github/workflows/ai-review.yml` + `.github/scripts
 
 | Var | Valor | Por que esse valor |
 |---|---|---|
-| `AI_REVIEW_PRIMARY_MODEL` | `glm-5.1` | Estavel no Ollama Cloud, custo OK. |
-| `AI_REVIEW_FALLBACK_MODEL` | `gpt-oss:120b` | Modelo **distinto** do primary. NUNCA usar `glm-5.1:cloud` (e' o mesmo modelo, fallback redundante = timeouts duplicados). |
+| `AI_REVIEW_PRIMARY_MODEL` | `glm-5.1:cloud` | Tag canonica do GLM-5.1 no Ollama Cloud (verificada em ollama.com/library/glm-5.1). Usar `glm-5.1` sem `:cloud` causa timeouts intermitentes. |
+| `AI_REVIEW_FALLBACK_MODEL` | `gpt-oss:120b` | Modelo **distinto** do primary. Alucina mais que o glm, mas o segundo passe (`self_critique_findings`) filtra alucinacoes. |
 | `AI_REVIEW_CHUNK_LINES` | `1500` | Chunks maiores (>= 4000) estouram `PROVIDER_MAX_TIME` no glm-5.1. |
 | `AI_REVIEW_MAX_CHUNKS` | `8` | Acomoda PRs ate ~12k linhas com chunks de 1500. |
 | `AI_REVIEW_MAX_PARALLEL` | `4` | Reduz tempo total de ~13min para ~3-4min sem bater rate limit do Ollama Cloud. |
 | `AI_REVIEW_PROVIDER_MAX_TIME` | `180` | 180s e' suficiente para chunk de 1500 linhas; 300s soh atrasa retries. |
 
-**Filtro de falsos positivos** vive em `filter_false_positives()` no script. Cobre 7 padroes (missing migration/test, sem @Valid, hasRole(ADMIN) speculation, "test will fail", beforeAll-shared-state, "if/se/may" sem ancora concreta). Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+**Filtros de falsos positivos** rodam em duas camadas:
+
+1. `filter_false_positives()` — filtro heuristico (regex), 9 regras: missing migration/test, sem @Valid, hasRole(ADMIN) speculation, "test will fail", beforeAll-shared-state, "if/se/may" sem ancora concreta, claims de erro de compilacao (Rule 8) e claims de simbolo X "nunca declarado/importado" quando X aparece no diff (Rule 9). Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+
+2. `self_critique_findings()` — segundo passe LLM. Quando sobram findings CRITICAL/HIGH apos o filtro heuristico, faz **uma chamada extra** ao primary model passando o diff completo + findings restantes, com instrucao para descartar tudo que nao seja **provavel apenas com o conteudo do diff**. Pega alucinacoes que escapam do regex (ex.: claim de "savedX nunca declarada" em frasing nao previsto). Custo: ~15-20% extra de quota por run, soh quando ha CRITICAL/HIGH no resultado heuristico.
 
 **Regra absoluta para qualquer IA assistente trabalhando neste repo:**
 - NAO altere `.github/workflows/ai-review.yml`, `.github/scripts/ai-review.sh` nem `.github/scripts/test-ai-review-filter.sh` sem instrucao **explicita** do usuario que cite a config nominalmente ("muda o chunk size", "adiciona regra X no filter", etc.).

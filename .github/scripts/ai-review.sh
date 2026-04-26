@@ -332,6 +332,29 @@ filter_false_positives() {
       fi
     fi
 
+    # Rule 8: claims about compilation errors are unverifiable from diff alone; backend CI catches real ones.
+    # Drops findings like "gerando erro de compilacao", "fail to compile", "wont compile", "classe nao encontrada".
+    if [[ "$lower" =~ (erro[[:space:]]+de[[:space:]]+compila|falha[[:space:]]+de[[:space:]]+compila|compilation[[:space:]]+(error|fail)|fail[[:space:]]+to[[:space:]]+compile|won.t[[:space:]]+compile|n[aã]o[[:space:]]+compil|classe[[:space:]]+n[aã]o[[:space:]]+encontrada|class[[:space:]]+not[[:space:]]+found|provocando[[:space:]]+falha) ]]; then
+      dropped=$((dropped + 1))
+      continue
+    fi
+
+    # Rule 9: claims that a specific symbol/import is "never declared/defined/imported" — drop if the
+    # symbol (extracted from backticks or PascalCase tokens in the finding) actually appears in the diff
+    # as an assignment, import, class/interface/record definition, or method declaration.
+    # The [a-z[:space:]]{0,20} window catches phrasings like "nunca e declarada" / "never actually imported".
+    if [[ "$lower" =~ (nunca[a-z[:space:]]{0,20}(declarad|inicializ|recebe|importad|definid)|n[aã]o[a-z[:space:]]{0,20}(declarad|importad|definid|encontrad)|never[a-z[:space:]]{0,20}(declared|initialized|imported|defined|assigned)|not[a-z[:space:]]{0,20}(declared|imported|defined)|sem[[:space:]]+(import|declarac)|missing[[:space:]]+(import|declaration)|nao[[:space:]]+importad) ]]; then
+      local symbol
+      symbol=$(printf '%s' "$body" | grep -oE '`[A-Za-z_][A-Za-z0-9_]*`' | head -1 | tr -d '`')
+      if [[ -z "$symbol" ]]; then
+        symbol=$(printf '%s' "$body" | grep -oE '\b[A-Za-z_][A-Za-z0-9_]{3,}\b' | grep -E '^[A-Z]|[a-z][A-Z]' | head -1)
+      fi
+      if [[ -n "$symbol" ]] && grep -qE "(\b${symbol}[[:space:]]*=|import[[:space:]]+[a-zA-Z_.]*${symbol}\b|class[[:space:]]+${symbol}\b|interface[[:space:]]+${symbol}\b|record[[:space:]]+${symbol}\b|enum[[:space:]]+${symbol}\b|\b${symbol}[[:space:]]*\()" "$diff_file"; then
+        dropped=$((dropped + 1))
+        continue
+      fi
+    fi
+
     printf '%s\n' "$line" >> "$filtered"
   done < "$findings_file"
 
@@ -340,6 +363,105 @@ filter_false_positives() {
   fi
 
   mv "$filtered" "$findings_file"
+}
+
+self_critique_findings() {
+  local findings_file="$1"
+  local diff_file="$2"
+
+  if [[ ! -s "$findings_file" ]]; then
+    return 0
+  fi
+
+  # Skip the extra LLM call when there are no blocking findings — MEDIUM/LOW are non-blocking
+  # and the cost of the second pass is only justified to suppress spurious CRITICAL/HIGH.
+  if ! grep -qE '^- (CRITICAL|HIGH):' "$findings_file"; then
+    return 0
+  fi
+
+  if [[ -z "${OLLAMA_API_KEY:-}" ]]; then
+    return 0
+  fi
+
+  local critique_prompt
+  critique_prompt=$(cat <<'EOF'
+You are validating code review findings against a code diff.
+
+For each finding below, decide:
+- KEEP only if the claim is provable from the diff content alone (specific symbols, lines, or text visible in the diff support it).
+- DROP if the claim assumes behavior of code not in the diff, contradicts what is in the diff (e.g., claims a symbol is missing but it is present), or is purely speculative ("may", "could", "if X then Y").
+
+Be STRICT. When in doubt, DROP. False positives in code review erode trust more than false negatives.
+
+Output format: re-emit ONLY the findings to KEEP, one per line, in the EXACT same format ("- LEVEL: description"). No headers, no explanations, no markdown fences.
+If all findings should be dropped, output a single line: none
+EOF
+)
+
+  local request_file response_file output_file
+  request_file=$(mktemp)
+  response_file=$(mktemp)
+  output_file=$(mktemp)
+
+  jq -n \
+    --arg model "$PRIMARY_MODEL" \
+    --arg prompt "$critique_prompt" \
+    --rawfile diff "$diff_file" \
+    --rawfile findings "$findings_file" \
+    '{
+      model: $model,
+      messages: [
+        {role: "system", content: $prompt},
+        {role: "user", content: ("## Diff\n\n" + $diff + "\n\n## Findings to validate\n\n" + $findings)}
+      ],
+      stream: false
+    }' > "$request_file"
+
+  local http_code curl_status
+  set +e
+  http_code=$(curl -sS -w "%{http_code}" -o "$response_file" \
+    --connect-timeout 20 \
+    --max-time "$PROVIDER_MAX_TIME" \
+    "https://ollama.com/v1/chat/completions" \
+    -H "Authorization: Bearer ${OLLAMA_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d @"$request_file")
+  curl_status=$?
+  set -e
+
+  if (( curl_status != 0 )) || [[ ! "$http_code" =~ ^2 ]]; then
+    printf 'self_critique_findings: provider call failed (curl=%d, http=%s); keeping original findings\n' \
+      "$curl_status" "$http_code" >&2
+    rm -f "$request_file" "$response_file" "$output_file"
+    return 0
+  fi
+
+  if ! jq -r '.choices[0].message.content // empty' < "$response_file" > "$output_file" || [[ ! -s "$output_file" ]]; then
+    printf 'self_critique_findings: empty/invalid response; keeping original findings\n' >&2
+    rm -f "$request_file" "$response_file" "$output_file"
+    return 0
+  fi
+
+  local filtered_findings
+  filtered_findings=$(mktemp)
+  if grep -qiE '^[[:space:]]*none[[:space:]]*$' "$output_file"; then
+    : > "$filtered_findings"
+  else
+    grep -iE '^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):' "$output_file" > "$filtered_findings" || true
+  fi
+
+  local before after dropped
+  before=$(grep -cE '^- ' "$findings_file" || true)
+  after=$(grep -cE '^- ' "$filtered_findings" || true)
+  dropped=$((before - after))
+
+  if (( dropped > 0 )); then
+    printf 'self_critique_findings: dropped %d finding(s) as unverifiable from diff alone\n' "$dropped" >&2
+  fi
+
+  mv "$filtered_findings" "$findings_file"
+  rm -f "$request_file" "$response_file" "$output_file"
+  return 0
 }
 
 summarize_success() {
@@ -605,6 +727,7 @@ main() {
   if [[ -s "$findings_raw" ]]; then
     awk '!seen[$0]++' "$findings_raw" > "$findings_unique"
     filter_false_positives "$findings_unique" "$DIFF_FILE" "$MANIFEST_FILE"
+    self_critique_findings "$findings_unique" "$DIFF_FILE"
   else
     : > "$findings_unique"
   fi
