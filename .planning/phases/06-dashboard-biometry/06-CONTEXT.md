@@ -1,7 +1,7 @@
 # Phase 6: Dashboard & Biometry - Context
 
 **Gathered:** 2026-04-24
-**Status:** Ready for planning
+**Status:** 5 plans, ready for execution
 
 <domain>
 ## Phase Boundary
@@ -45,6 +45,18 @@ Nutritionists can track patient biometrics and see clinical insights on the dash
 - Edit-after-save UX for partial biometric records
 - Exact wording for sparse-episode states in Histórico
 - Whether past episode inspection opens inline, in an expanded panel, or in a drill-down layout inside Histórico
+
+### Verification fixes applied during plan restructure
+- **I-5 fix:** Plan 06-05 Task 2 explicitly removes both the WhatsApp KPI ("Refeições registradas · via WhatsApp") and the entire activity card, not just the card.
+- **I-6 fix:** Dashboard hooks stored in `clinicalStore.ts` (not `biometryStore.ts`) to reflect both dashboard and biometry concerns.
+- **I-3 fix:** NewBiometryModal conversion from visual shell to functional form is explicitly scoped (controlled state, validation, mutation, post-save flow).
+- **I-4 fix:** StatusReviewModal component is itemized with props, behavior, and mutation wiring.
+- **I-9 fix:** ANA mock removal is scoped: biometry/skinfolds/perimetry are replaced; macrosToday, weekAdherence, weekMacroFill, timeline, and aiSummary remain as fallback.
+- **G-3 fix:** E2E spec explicitly covers the StatusReviewModal flow after save.
+- **G-6 fix:** Acceptance criteria include graceful empty/single-point chart state handling.
+- **I-7 fix:** Full route manifest documented in 06-02 and 06-03 plans.
+- **I-8 fix:** metadata_json explicitly declared as JSONB with @Column(columnDefinition = "jsonb") String in 06-01 Task 1.
+- **R-7 fix:** DashboardController @PreAuthorize documented in 06-03 must_haves and action text.
 
 </decisions>
 

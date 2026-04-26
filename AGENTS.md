@@ -20,7 +20,7 @@
 2. **Make changes** following conventions in this file
 3. **Verify locally**: `npx tsc --noEmit` (frontend), `./gradlew compileJava` (backend)
 4. **Push and open PR** against `main`
-5. **CI runs automatically**: frontend-ci, backend-ci (path-filtered), ai-review (skipped on doc-only PRs)
+5. **CI runs automatically**: frontend-ci, backend-ci, ai-review (skipped on doc-only PRs)
 6. **AI reviewer** posts a review — APPROVE or REQUEST_CHANGES
 7. **If REQUEST_CHANGES**: address findings, push, AI re-reviews
 8. **Merge** when all required checks pass + 1 approval (AI counts):
@@ -45,8 +45,8 @@ Diretrizes:
 ### Required Checks on `main`
 
 - `ai-review` — required (mas pulado em PRs doc-only via `paths-ignore`)
-- `frontend` — required when `frontend/**` or `.github/workflows/frontend-ci.yml` changed
-- `backend` — required when `backend/**` or `.github/workflows/backend-ci.yml` changed
+- `frontend` — required; workflow roda em todo PR/push e passa como no-op quando nao ha mudanca em `frontend/**` ou `.github/workflows/frontend-ci.yml`
+- `backend` — required; workflow roda em todo PR/push e passa como no-op quando nao ha mudanca em `backend/**` ou `.github/workflows/backend-ci.yml`
 - `e2e` — runs conditionally, not required for merge
 
 ### Branch Protection
@@ -55,6 +55,7 @@ Diretrizes:
 - 1 approval required (AI approval counts)
 - require_code_owner_reviews: false
 - Dismiss stale reviews: yes (pushes invalidam approves anteriores)
+- Require branches up to date before merge: yes (`strict: true`)
 
 ## Secrets (never commit these)
 
@@ -63,7 +64,7 @@ Diretrizes:
 | PostgreSQL password | `NUTRIAI_DATASOURCE_PASSWORD` | `.env` or Docker env |
 | JWT signing key | `NUTRIAI_JWT_SECRET` | `.env` or Docker env |
 | Seed admin password | `NUTRIAI_SEED_ADMIN_PASSWORD` | `.env` or Docker env |
-| Ollama Cloud API key | `OLLAMA_API_KEY` | GitHub repo secrets |
+| Ollama Cloud API key | `OLLAMA_API_KEY` | GitHub Actions repo secrets **and** Dependabot repo secrets |
 | OpenAI fallback review key | `OPENAI_API_KEY` | GitHub repo secrets |
 
 ## AI Reviewer Rules
@@ -679,26 +680,32 @@ E2E tests são a **única camada que valida alinhamento real entre frontend e ba
 
 | Workflow | Trigger | Path Filter | Required |
 |----------|---------|-------------|----------|
-| `frontend-ci.yml` | push/PR to main | `frontend/**`, `.github/workflows/frontend-ci.yml` | Yes |
-| `backend-ci.yml` | push/PR to main | `backend/**`, `.github/workflows/backend-ci.yml` | Yes |
+| `frontend-ci.yml` | push/PR to main | No trigger filter; internal no-op unless `frontend/**` or `.github/workflows/frontend-ci.yml` changed | Yes |
+| `backend-ci.yml` | push/PR to main | No trigger filter; internal no-op unless `backend/**` or `.github/workflows/backend-ci.yml` changed | Yes |
 | `e2e.yml` | push/PR to main | `frontend/**`, `backend/**` | No (path-filtered, runs when code changes) |
 | `ai-review.yml` | PR opened/sync | All code files (`*.java`, `*.ts`, `*.tsx`, `*.css`, `*.yml`, `*.gradle`, `*.sql`, `*.json`, `*.html`) | Yes |
+
+`frontend-ci.yml` and `backend-ci.yml` intentionally run for every PR so GitHub branch protection always sees the required `frontend` and `backend` checks. The jobs detect changed files inside the workflow and skip expensive setup/build/test steps when the area is not affected.
 
 ### Branch Protection (main)
 
 - **Required checks**: `ai-review`, `frontend`, `backend`
-- **2 approvals required** (AI approval via `github-actions` bot counts as 1st)
+- **1 approval required** (AI approval via `github-actions` bot counts)
 - **Dismiss stale reviews**: yes
-- **enforce_admins**: false (owner can bypass 2-approval rule with `--admin` for hotfixes or `.github/`-only changes)
+- **Require branches up to date**: yes (`strict: true`)
+- **enforce_admins**: false (owner can bypass with `--admin`, but normal flow should merge without bypass)
 
 ### AI Reviewer (Ollama Cloud)
 
-- **Model**: `glm-5.1` for all diffs (hardcoded in `ai-review.yml`)
-- **Diff truncation**: reviewer sees at most first 3000 lines; oversized diffs get a warning comment
-- **Decision logic**: 
-  - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve
-  - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
-  - If STATUS: REQUEST_CHANGES → request changes
+- **Primary model**: `glm-5.1:cloud` via Ollama Cloud
+- **Fallback model**: `gpt-oss:120b` via Ollama Cloud
+- **Dependabot PRs**: `OLLAMA_API_KEY` must exist in Dependabot secrets, not only Actions secrets, or reviewer runs cannot publish approvals.
+- **Chunking**: diff is chunked at `AI_REVIEW_CHUNK_LINES=1500`, up to `AI_REVIEW_MAX_CHUNKS=8`
+- **Intra-PR parallelism**: `AI_REVIEW_MAX_PARALLEL=2` limits chunk calls inside one PR; it does not serialize multiple PR workflows.
+- **Decision logic**:
+  - 0 findings -> APPROVE
+  - only MEDIUM/LOW/INFO -> APPROVE with warning
+  - any CRITICAL/HIGH -> REQUEST_CHANGES and sync an `ai-review` issue
 - **Prompt injection guard**: diff content is sent as user message, system prompt instructs to analyze code only
 - **Project-specific rules**: loaded from `.github/review-rules.md` as part of the system prompt
 - **To update reviewer rules**: edit `.github/review-rules.md` and push — next PR automatically uses the new rules
@@ -706,7 +713,7 @@ E2E tests são a **única camada que valida alinhamento real entre frontend e ba
 ### PR Workflow
 
 1. Create branch → push → open PR against `main`
-2. CI checks run automatically (frontend, backend if paths affected)
+2. CI checks run automatically (`frontend`/`backend` always appear; no-op when not affected)
 3. AI reviewer runs on every PR, posts comment with findings
 4. If APPROVE: `github-actions` bot approves the PR
 5. Developer merges manually (or via `gh pr merge`)
@@ -714,11 +721,11 @@ E2E tests são a **única camada que valida alinhamento real entre frontend e ba
 
 ### Frontend CI (`frontend-ci.yml`)
 
-Steps: checkout → Node 20 setup → npm ci → ESLint → TypeScript type check → Vitest unit tests → Build
+Steps: checkout -> detect frontend changes -> no-op when not affected, otherwise Node 20 setup -> npm ci -> TypeScript type check -> ESLint -> Vitest unit tests with coverage -> dependency check -> build
 
 ### Backend CI (`backend-ci.yml`)
 
-Steps: checkout → Java 21 setup → Gradle cache → `./gradlew check` (compile + Checkstyle + unit tests + JaCoCo coverage verification) → `./gradlew integrationTest` (Testcontainers) → JaCoCo HTML report artifact upload
+Steps: checkout -> detect backend changes -> no-op when not affected, otherwise Java 21 setup -> Gradle cache -> `./gradlew check` (compile + Checkstyle + unit tests + JaCoCo coverage verification) -> `./gradlew integrationTest` (Testcontainers) -> JaCoCo HTML report artifact upload
 
 ### E2E CI (`e2e.yml`)
 

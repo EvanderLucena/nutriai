@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Phase 06 UI-SPEC approved
-last_updated: "2026-04-24T19:40:00.000Z"
-last_activity: 2026-04-24
+status: executing
+stopped_at: Phase 06 plans restructured (3 → 5 plans, verification fixes applied)
+last_updated: "2026-04-25T00:08:42.177Z"
+last_activity: 2026-04-25 -- Phase 06 execution started
 progress:
   total_phases: 10
   completed_phases: 5
-  total_plans: 19
+  total_plans: 24
   completed_plans: 19
-  percent: 50
+  percent: 79
 ---
 
 # Project State
@@ -21,15 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 06 — Dashboard & Biometry planning with UI contract ready
+**Current focus:** Phase 06 — dashboard-biometry
 
 ## Current Position
 
-Phase: 05 (meal-plans-food-catalog) — COMPLETED
-Status: All 3 plans executed, review findings resolved, ready for next phase
-Last activity: 2026-04-24
+Phase: 06 (dashboard-biometry) — EXECUTING
+Plan: 1 of 5
+Status: Executing Phase 06
+Last activity: 2026-04-25 -- Phase 06 execution started
 
-Progress: █████░░░░░ 50%
+Progress: ████████░░ 79%
 
 ## Phase 2 Completion Summary
 
@@ -151,12 +152,13 @@ Meal Plans & Food Catalog fully implemented with unified food model:
 - E2E: food-catalog.spec.ts, meal-plans.spec.ts with API contract validation, enum translation, cross-tenant isolation
 
 **Review findings resolved:**
+
 - CR-01: @RequestParam → @RequestBody (fixed)
 - WR-01: patientId in nested endpoints (accepted risk, documented)
 - WR-03: Delete without optimistic update (fixed)
 - All other findings fixed in P5-02 and P5-03
 
-**Next:** Phase 06 (Dashboard & Biometry) — or code quality infrastructure first
+**Next:** Execute Phase 06 (Dashboard & Biometry)
 
 ## Performance Metrics
 
@@ -210,6 +212,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-24T19:40:00.000Z
-Stopped at: Phase 06 UI-SPEC approved
-Resume file: .planning/phases/06-dashboard-biometry/06-UI-SPEC.md
+Last session: 2026-04-24T20:30:00.000Z
+Stopped at: Phase 06 plans restructured (3 → 5 plans, verification fixes applied)
+Resume file: .planning/phases/06-dashboard-biometry/06-01-PLAN.md
