@@ -84,11 +84,53 @@ A configuracao do reviewer (`.github/workflows/ai-review.yml` + `.github/scripts
 | `AI_REVIEW_PROVIDER_MAX_TIME` | `180` | 180s e' suficiente para chunk de 1500 linhas; 300s soh atrasa retries. |
 | `AI_REVIEW_SELF_CRITIQUE_MAX_TIME` | `360` | Self-critique manda o diff completo (muito maior que um chunk), precisa de mais tempo. 360s comporta diffs ate ~10k linhas. |
 
-**Filtros de falsos positivos** rodam em duas camadas:
+**Filtros de falsos positivos** rodam em duas camadas, na ordem:
 
-1. `filter_false_positives()` — filtro heuristico (regex), 9 regras: missing migration/test, sem @Valid, hasRole(ADMIN) speculation, "test will fail", beforeAll-shared-state, "if/se/may" sem ancora concreta, claims de erro de compilacao (Rule 8) e claims de simbolo X "nunca declarado/importado" quando X aparece no diff (Rule 9). Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+#### Camada 1 — `filter_false_positives()` (regex heuristico, custo zero)
 
-2. `self_critique_findings()` — segundo passe LLM. Quando sobram findings CRITICAL/HIGH apos o filtro heuristico, faz **uma chamada extra** ao primary model passando o diff completo + findings restantes, com instrucao para descartar tudo que nao seja **provavel apenas com o conteudo do diff**. Pega alucinacoes que escapam do regex (ex.: claim de "savedX nunca declarada" em frasing nao previsto). Custo: ~15-20% extra de quota por run, soh quando ha CRITICAL/HIGH no resultado heuristico.
+Aplicada a cada linha de finding apos consolidar todos os chunks. Cobre 9 padroes recorrentes de alucinacao do reviewer:
+
+| # | Padrao detectado | Acao | Quando descarta |
+|---|---|---|---|
+| 1 | "missing migration" / "sem migracao" | drop | quando ha `*.sql` no manifest do PR |
+| 2 | "missing tests" / "sem testes" | drop | quando ha `*Test*.java` ou `.spec.ts` no manifest |
+| 3 | "without @Valid" / "sem validacao" | drop | quando ha `@Valid`/`@AssertTrue`/`@NotNull`/etc no diff |
+| 4 | "hasRole(ADMIN) speculation" | drop | quando nenhuma referencia a ADMIN aparece no diff |
+| 5 | "test will fail" / "teste falhara" | drop | sempre (e' especulacao sobre comportamento de teste) |
+| 6 | "beforeAll shared state" | drop | quando o diff so tem `beforeEach` |
+| 7 | "if/se/may/could" no inicio do finding | drop | quando o finding nao cita simbolo/arquivo concreto |
+| 8 | "erro de compilacao" / "compilation error" | drop | sempre (CI ja captura erros de compilacao reais) |
+| 9 | "X nunca declarada/importada" | drop | quando o simbolo X (extraido de backticks ou identifier) aparece no diff como atribuicao, import, class/interface/record/enum/method |
+
+Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+
+#### Camada 2 — `self_critique_findings()` (segundo passe LLM)
+
+**Conceito.** O modelo, na primeira passagem, opera sob o vies "encontrar problemas no codigo" — incentivo implicito a produzir findings, mesmo quando especulativos. Quando os mesmos findings sao re-apresentados a ele com a tarefa explicita de **validar evidencia**, ele consegue avaliar com mais ceticismo. Tecnica analoga a self-refine / Constitutional AI.
+
+**Quando dispara.** Apenas quando o filter heuristico deixa pelo menos 1 finding `CRITICAL` ou `HIGH`. Se sobrou so MEDIUM/LOW, pula (nao vale a chamada extra).
+
+**Como funciona.**
+1. Monta um request ao primary model (`glm-5.1:cloud`) com:
+   - System prompt strict KEEP/DROP, regra "quando em duvida, DROP"
+   - User content: o **diff completo** (nao chunked) + lista dos findings restantes
+2. Modelo retorna apenas as linhas a manter, no formato exato.
+3. Substitui `findings_unique` pelo output filtrado.
+4. Se a chamada falhar (timeout, HTTP 5xx, JSON invalido): preserva os findings originais — degradacao graciosa, nao bloqueia o pipeline.
+
+**Por que e' efetivo.** Filter heuristico cobre padroes conhecidos (~80% dos casos). Self-critique pega o long tail: alucinacoes criativas que escapam de qualquer regex pre-definido (ex.: o reviewer afirmou "savedEpisode nunca e declarada" em PT-BR sem usar nenhuma das palavras-gatilho da Rule 9). No run que aprovou o PR 28, **filter dropou 1, self-critique dropou 11** — todas alucinacoes do tipo "patientId pode ser null", "bean injection failure", "field sem @Column" que existiam claramente no diff.
+
+**Custo.** ~1 chamada LLM extra por run problematico:
+- Input: diff completo (~10k tokens em PR grande) + findings (~500 tokens)
+- Output: lista filtrada (~500 tokens)
+- Em quota Ollama Cloud Pro: marginal, ~5-15% do custo de um run completo
+- So acionado quando o filter heuristico nao conseguiu zerar HIGH+ — em PRs limpos nem roda
+
+**Trade-off.** Pode descartar finding real ambiguo (false negative). Mitigacao: sticky comment continua mostrando MEDIUM/LOW/INFO, e revisao humana segue como ultima camada. Self-critique nao substitui review humano em mudancas sensiveis.
+
+**Falha modes conhecidos.**
+- Timeout: diff > ~10k linhas pode estourar `SELF_CRITIQUE_MAX_TIME=360s`. Em caso de timeout, findings originais sao mantidos.
+- Modelo retornar texto fora de formato: filtra-se com `grep -E '^- (CRITICAL|HIGH|MEDIUM|LOW|INFO):'`; se nada bater, preserva originais.
 
 **Regra absoluta para qualquer IA assistente trabalhando neste repo:**
 - NAO altere `.github/workflows/ai-review.yml`, `.github/scripts/ai-review.sh` nem `.github/scripts/test-ai-review-filter.sh` sem instrucao **explicita** do usuario que cite a config nominalmente ("muda o chunk size", "adiciona regra X no filter", etc.).
