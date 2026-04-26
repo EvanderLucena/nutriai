@@ -51,3 +51,19 @@
 - Existing ESLint/Checkstyle warnings that are already tracked (complexity, max-lines)
 - Test-only helpers or fixtures
 - Files, endpoints, or code NOT present in the diff — only flag what is VISIBLE in the diff
+
+## Known False Positives (project-specific non-issues)
+
+These patterns have surfaced as findings in past reviews but are intentional / safe in this stack. Do NOT raise them again.
+
+### JSON null vs undefined in optional fields
+The frontend may send `null` for some optional numeric fields and omit others (`undefined` → JSON.stringify drops the key). This is NOT a contract inconsistency: Spring/Jackson treat JSON `null` and an absent key as **equivalent** for optional boxed fields (`Integer`, `BigDecimal`, `String`, lists) when there is no `@NotNull` annotation differentiating them. The backend deserializes both cases identically. Do not flag this as an API contract problem.
+
+### Spring constructor injection
+Adding a new repository/service parameter to a Spring `@Service` / `@Component` constructor does NOT require additional bean configuration. Spring auto-wires by type; if the dependency is itself a Spring-managed bean, it is injected automatically. Do not flag "may fail at startup with NoSuchBeanDefinitionException" for plain constructor parameter additions.
+
+### JpaRepository inherited methods
+Spring Data `JpaRepository` interfaces inherit `findAll`, `findById`, `deleteById`, etc. without an explicit `nutritionistId` filter. The project relies on the **service layer** to scope these calls (e.g., always preceded by an ownership check). Do not flag inherited methods as "tenant isolation violation" — flag only when a service method directly calls `findById` or similar without a prior nutritionistId check on the parent entity.
+
+### Test-only repository methods
+`*RepositoryTest` classes use bare repository methods (no nutritionistId scoping) for setup/cleanup. These are integration tests against a sandboxed DB; service-layer scoping rules do not apply. Do not flag tenant-isolation issues in `*RepositoryTest` files.

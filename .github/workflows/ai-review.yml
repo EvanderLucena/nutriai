@@ -12,6 +12,12 @@ name: AI Review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    # Doc-only / planning-only changes nao precisam consumir quota Ollama nem
+    # disparar stale-dismiss em approves anteriores.
+    paths-ignore:
+      - '**/*.md'
+      - '.planning/**'
+      - 'docs/**'
 
 concurrency:
   group: ai-review-${{ github.event.pull_request.number }}
@@ -69,6 +75,14 @@ jobs:
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/pr_files.txt
           echo "Manifest size: $(wc -l < /tmp/pr_files.txt) files"
+
+      - name: Warn on large PR
+        if: steps.diff.outputs.lines > 2500
+        shell: bash
+        env:
+          LINES: ${{ steps.diff.outputs.lines }}
+        run: |
+          echo "::warning title=Large PR::Este PR tem ${LINES} linhas de diff. PRs grandes amplificam falsos positivos do reviewer LLM (mais chunks = mais alucinacoes acumuladas) e cansam o review humano. Considere dividir em PRs menores. Ver AGENTS.md > 'PR sizing convention'."
 
       - name: Load project rules
         shell: bash
