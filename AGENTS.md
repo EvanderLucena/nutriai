@@ -80,8 +80,9 @@ A configuracao do reviewer (`.github/workflows/ai-review.yml` + `.github/scripts
 | `AI_REVIEW_FALLBACK_MODEL` | `gpt-oss:120b` | Modelo **distinto** do primary. Alucina mais que o glm, mas o segundo passe (`self_critique_findings`) filtra alucinacoes. |
 | `AI_REVIEW_CHUNK_LINES` | `1500` | Chunks maiores (>= 4000) estouram `PROVIDER_MAX_TIME` no glm-5.1. |
 | `AI_REVIEW_MAX_CHUNKS` | `8` | Acomoda PRs ate ~12k linhas com chunks de 1500. |
-| `AI_REVIEW_MAX_PARALLEL` | `4` | Reduz tempo total de ~13min para ~3-4min sem bater rate limit do Ollama Cloud. |
+| `AI_REVIEW_MAX_PARALLEL` | `3` | Tier Pro do Ollama Cloud permite **3 modelos concorrentes**. Subir para 4 estoura o limite e o 4o request fica em fila/timeout, forcando fallback alucinante. NUNCA subir alem do tier do usuario. |
 | `AI_REVIEW_PROVIDER_MAX_TIME` | `180` | 180s e' suficiente para chunk de 1500 linhas; 300s soh atrasa retries. |
+| `AI_REVIEW_SELF_CRITIQUE_MAX_TIME` | `360` | Self-critique manda o diff completo (muito maior que um chunk), precisa de mais tempo. 360s comporta diffs ate ~10k linhas. |
 
 **Filtros de falsos positivos** rodam em duas camadas:
 

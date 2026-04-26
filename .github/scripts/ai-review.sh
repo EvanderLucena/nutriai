@@ -54,6 +54,7 @@ FALLBACK_MODEL="${AI_REVIEW_FALLBACK_MODEL:-}"
 MAX_VISIBLE_FINDINGS="${AI_REVIEW_MAX_VISIBLE_FINDINGS:-8}"
 MAX_FINDING_CHARS="${AI_REVIEW_MAX_FINDING_CHARS:-280}"
 PROVIDER_MAX_TIME="${AI_REVIEW_PROVIDER_MAX_TIME:-120}"
+SELF_CRITIQUE_MAX_TIME="${AI_REVIEW_SELF_CRITIQUE_MAX_TIME:-360}"
 PROVIDER_RETRIES="${AI_REVIEW_PROVIDER_RETRIES:-2}"
 
 provider_chain_display() {
@@ -421,7 +422,7 @@ EOF
   set +e
   http_code=$(curl -sS -w "%{http_code}" -o "$response_file" \
     --connect-timeout 20 \
-    --max-time "$PROVIDER_MAX_TIME" \
+    --max-time "$SELF_CRITIQUE_MAX_TIME" \
     "https://ollama.com/v1/chat/completions" \
     -H "Authorization: Bearer ${OLLAMA_API_KEY}" \
     -H "Content-Type: application/json" \
