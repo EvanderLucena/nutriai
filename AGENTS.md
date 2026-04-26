@@ -20,25 +20,41 @@
 2. **Make changes** following conventions in this file
 3. **Verify locally**: `npx tsc --noEmit` (frontend), `./gradlew compileJava` (backend)
 4. **Push and open PR** against `main`
-5. **CI runs automatically**: frontend-ci, backend-ci (path-filtered), ai-review (always)
-6. **AI reviewer** always posts a review — APPROVE or REQUEST_CHANGES
+5. **CI runs automatically**: frontend-ci, backend-ci (path-filtered), ai-review (skipped on doc-only PRs)
+6. **AI reviewer** posts a review — APPROVE or REQUEST_CHANGES
 7. **If REQUEST_CHANGES**: address findings, push, AI re-reviews
-8. **Merge** when all required checks pass + required approvals:
-   - **Internal PRs** (owner/collab): 2 approvals, but owner can merge with `--admin` bypass
-   - **External PRs** (third-party): 2 approvals required — AI (1st) + human maintainer (2nd)
+8. **Merge** when all required checks pass + 1 approval (AI counts):
+   - **Internal PRs**: AI approval is enough; owner is admin and can bypass if needed.
+   - **External PRs**: AI approval + manual approval from owner (convention, not technically enforced).
+
+### PR sizing convention (soft limit ~2.000 linhas de diff)
+
+PRs gigantes (8k+ linhas, fase inteira) **amplificam falsos positivos do reviewer LLM**:
+- Mais chunks = mais chamadas LLM = chance multiplicativa de pelo menos um chunk alucinar.
+- Findings acumulam: 3/chunk × 8 chunks ≈ ~24 candidatos, e a maioria sao especulacoes.
+- Self-critique recebe diff maior, fica perto do timeout, qualidade da validacao cai.
+- O reviewer humano tambem revisa pior um PR de 8k linhas que tres de 2k.
+
+Diretrizes:
+- **Alvo: <2.000 linhas** de diff por PR (warning automatico no `ai-review.yml` quando passar de 2.500).
+- **Slice vertical**: prefira `Dashboard backend` + `Dashboard frontend` + `Biometry backend` + ... ao inves de `Phase 06 inteira`.
+- **Stacked PRs**: branch base intermediaria (ex.: `feat/06-dashboard-biometry`) recebe PRs pequenos das sub-features; quando completa, vai pra `main` em um PR final.
+- **Quando flexibilizar** (passar do limite e' aceitavel): migrations grandes (V13 com 5 tabelas), refactors mecanicos (rename em massa), bumps de dependencia.
+- **Doc-only / planning-only** PRs nao disparam o reviewer (paths-ignore em `*.md`, `.planning/**`, `docs/**`).
 
 ### Required Checks on `main`
 
-- `ai-review` — always required
+- `ai-review` — required (mas pulado em PRs doc-only via `paths-ignore`)
 - `frontend` — required when `frontend/**` or `.github/workflows/frontend-ci.yml` changed
 - `backend` — required when `backend/**` or `.github/workflows/backend-ci.yml` changed
 - `e2e` — runs conditionally, not required for merge
 
 ### Branch Protection
 
-- enforce_admins: **false** (owner can bypass 2-approval rule with `--admin`)
-- 2 approvals required (AI approval counts as 1)
-- Dismiss stale reviews: yes
+- enforce_admins: **false** (owner pode mergear via "Merge anyway" mesmo sem approves)
+- 1 approval required (AI approval counts)
+- require_code_owner_reviews: false
+- Dismiss stale reviews: yes (pushes invalidam approves anteriores)
 
 ## Secrets (never commit these)
 
