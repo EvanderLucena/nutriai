@@ -38,9 +38,10 @@ jobs:
       # Chunks pequenos cabem no timeout do glm-5.1; nao subir para 4000 (timeouts).
       AI_REVIEW_CHUNK_LINES: 1500
       AI_REVIEW_MAX_CHUNKS: 8
-      # Tier Pro do Ollama Cloud permite 3 modelos concorrentes; MAX_PARALLEL=4 estoura
-      # esse limite e o 4o request fica em fila/timeout. Mantemos em 3.
-      AI_REVIEW_MAX_PARALLEL: 3
+      # Tier Pro do Ollama Cloud permite 3 modelos concorrentes. Deixamos em 2 para
+      # liberar 1 slot ao usuario (OpenCode/CLI) sem disputar com o reviewer no CI.
+      # Subir alem de 2 risca timeouts quando o usuario estiver usando o slot extra.
+      AI_REVIEW_MAX_PARALLEL: 2
       AI_REVIEW_MAX_VISIBLE_FINDINGS: 8
       AI_REVIEW_MAX_FINDING_CHARS: 280
       # 180s e' suficiente para chunks de 1500 linhas; 300s soh atrasa retries.
