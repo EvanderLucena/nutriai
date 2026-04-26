@@ -63,14 +63,32 @@ To change what the reviewer checks: edit `.github/review-rules.md` and push. No 
 
 ### AI Reviewer Behavior
 
-- **Model**: `glm-5.1` for all diffs (hardcoded; anti-hallucination prompt included)
-- **Diff truncation**: reviewer sees at most first 3000 lines; oversized diffs emit a GitHub warning + inline comment
-- **Decision logic**: 
-  - If STATUS: APPROVE + no CRITICAL/HIGH/MEDIUM findings → auto-approve (1st approval)
-  - If STATUS: APPROVE + CRITICAL/HIGH/MEDIUM findings found → override to REQUEST_CHANGES
-  - If STATUS: REQUEST_CHANGES → request changes
-- **External contributors**: AI always approves (counts as 1st approval), but adds a warning comment. 2nd approval must come from a human maintainer.
-- **Findings tracking**: HIGH+ findings are auto-created as GitHub Issues with `ai-review` label. Close the issue when findings are addressed.
+- **Decision logic** (driven by `.github/scripts/ai-review.sh:summarize_success`):
+  - 0 findings → `approve` (bot APPROVE)
+  - Only MEDIUM/LOW/INFO → `approve_with_warning` (bot APPROVE com warning)
+  - Any CRITICAL/HIGH → `request_changes` (bot REQUEST_CHANGES)
+- **External contributors**: bot APPROVE counts as 1 approval; humano precisa do segundo approve.
+- **Findings tracking**: HIGH+ findings sao publicados como issue GitHub com label `ai-review`. Issue e' fechada/atualizada automaticamente a cada run.
+
+### AI Review (locked config) — DO NOT TUNE BLINDLY
+
+A configuracao do reviewer (`.github/workflows/ai-review.yml` + `.github/scripts/ai-review.sh`) esta **travada**. Cada variavel deste env tem motivo:
+
+| Var | Valor | Por que esse valor |
+|---|---|---|
+| `AI_REVIEW_PRIMARY_MODEL` | `glm-5.1` | Estavel no Ollama Cloud, custo OK. |
+| `AI_REVIEW_FALLBACK_MODEL` | `gpt-oss:120b` | Modelo **distinto** do primary. NUNCA usar `glm-5.1:cloud` (e' o mesmo modelo, fallback redundante = timeouts duplicados). |
+| `AI_REVIEW_CHUNK_LINES` | `1500` | Chunks maiores (>= 4000) estouram `PROVIDER_MAX_TIME` no glm-5.1. |
+| `AI_REVIEW_MAX_CHUNKS` | `8` | Acomoda PRs ate ~12k linhas com chunks de 1500. |
+| `AI_REVIEW_MAX_PARALLEL` | `4` | Reduz tempo total de ~13min para ~3-4min sem bater rate limit do Ollama Cloud. |
+| `AI_REVIEW_PROVIDER_MAX_TIME` | `180` | 180s e' suficiente para chunk de 1500 linhas; 300s soh atrasa retries. |
+
+**Filtro de falsos positivos** vive em `filter_false_positives()` no script. Cobre 7 padroes (missing migration/test, sem @Valid, hasRole(ADMIN) speculation, "test will fail", beforeAll-shared-state, "if/se/may" sem ancora concreta). Casos cobertos por testes em `.github/scripts/test-ai-review-filter.sh` — rode antes de adicionar/alterar regras.
+
+**Regra absoluta para qualquer IA assistente trabalhando neste repo:**
+- NAO altere `.github/workflows/ai-review.yml`, `.github/scripts/ai-review.sh` nem `.github/scripts/test-ai-review-filter.sh` sem instrucao **explicita** do usuario que cite a config nominalmente ("muda o chunk size", "adiciona regra X no filter", etc.).
+- "Tentar estabilizar" / "tentar reduzir falsos positivos" / "tentar acelerar" sem instrucao especifica ja causou loops de horas e regressoes. NAO faca.
+- Se um run falhar e voce achar que a config e' culpada, **reporte ao usuario** e espere instrucao. Nao toque.
 
 ## Key Architecture Patterns (for new agents)
 

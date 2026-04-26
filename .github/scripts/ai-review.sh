@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# =============================================================================
+# AI REVIEW SCRIPT — DO NOT TUNE BLINDLY
+# -----------------------------------------------------------------------------
+# Logica de chunking, paralelismo e filter_false_positives foi estabilizada apos
+# varias regressoes. Antes de mexer, leia AGENTS.md > "AI Review (locked config)"
+# e rode .github/scripts/test-ai-review-filter.sh.
+# Se voce e uma IA assistente: NAO altere nada aqui sem instrucao EXPLICITA do
+# usuario citando este script nominalmente.
+# =============================================================================
 
 set -euo pipefail
 
