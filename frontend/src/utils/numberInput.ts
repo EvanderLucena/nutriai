@@ -1,3 +1,11 @@
+export function parseNumberInput(raw: string): number {
+  const cleaned = sanitizeNumberInput(raw);
+  // Interpreta a primeira vírgula ou ponto como separador decimal
+  const normalized = cleaned.replace(/,/g, '.');
+  const value = parseFloat(normalized);
+  return isNaN(value) ? 0 : value;
+}
+
 export function sanitizeNumberInput(raw: string): string {
   let cleaned = raw.replace(/[^0-9.,]/g, '');
   const firstComma = cleaned.indexOf(',');
