@@ -43,10 +43,7 @@ export const usePlanUIStore = create<PlanUIState>()((set) => ({
 }));
 
 // Helper: update save status with auto-clear error after 3 seconds
-function withSaveStatus(
-  queryClient: ReturnType<typeof useQueryClient>,
-  patientId: string,
-) {
+function withSaveStatus(queryClient: ReturnType<typeof useQueryClient>, patientId: string) {
   return {
     onMutate: () => {
       usePlanUIStore.getState().setSaveStatus('saving');
@@ -127,7 +124,10 @@ export function useDeleteMealSlot(patientId: string) {
       usePlanUIStore.getState().setSaveStatus('saving');
       const previousPlan = queryClient.getQueryData<MealPlan>(['plan', patientId]);
       if (previousPlan) {
-        const updatedPlan = { ...previousPlan, meals: previousPlan.meals.filter((m) => m.id !== mealId) };
+        const updatedPlan = {
+          ...previousPlan,
+          meals: previousPlan.meals.filter((m) => m.id !== mealId),
+        };
         queryClient.setQueryData(['plan', patientId], updatedPlan);
       }
       return { previousPlan };
@@ -181,10 +181,13 @@ export function useDeleteOption(patientId: string) {
       usePlanUIStore.getState().setSaveStatus('saving');
       const previousPlan = queryClient.getQueryData<MealPlan>(['plan', patientId]);
       if (previousPlan) {
-        const updatedPlan = { ...previousPlan, meals: previousPlan.meals.map((m) => {
-          if (m.id !== mealId) return m;
-          return { ...m, options: m.options.filter((o) => o.id !== optionId) };
-        })};
+        const updatedPlan = {
+          ...previousPlan,
+          meals: previousPlan.meals.map((m) => {
+            if (m.id !== mealId) return m;
+            return { ...m, options: m.options.filter((o) => o.id !== optionId) };
+          }),
+        };
         queryClient.setQueryData(['plan', patientId], updatedPlan);
       }
       return { previousPlan };
@@ -208,8 +211,15 @@ export function useDeleteOption(patientId: string) {
 export function useUpdateOption(patientId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ mealId, optionId, data }: { mealId: string; optionId: string; data: planApi.UpdateOptionRequest }) =>
-      planApi.updateOption(patientId, mealId, optionId, data),
+    mutationFn: ({
+      mealId,
+      optionId,
+      data,
+    }: {
+      mealId: string;
+      optionId: string;
+      data: planApi.UpdateOptionRequest;
+    }) => planApi.updateOption(patientId, mealId, optionId, data),
     ...withSaveStatus(queryClient, patientId),
     onSuccess: () => {
       usePlanUIStore.getState().setSaveStatus('saved');
@@ -220,8 +230,15 @@ export function useUpdateOption(patientId: string) {
 export function useAddFoodItem(patientId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ mealId, optionId, data }: { mealId: string; optionId: string; data: planApi.AddFoodItemRequest }) =>
-      planApi.addFoodItem(patientId, mealId, optionId, data),
+    mutationFn: ({
+      mealId,
+      optionId,
+      data,
+    }: {
+      mealId: string;
+      optionId: string;
+      data: planApi.AddFoodItemRequest;
+    }) => planApi.addFoodItem(patientId, mealId, optionId, data),
     onMutate: ({ mealId, optionId, data }) => {
       usePlanUIStore.getState().setSaveStatus('saving');
       // Optimistic add — show item with placeholder macros
@@ -243,6 +260,7 @@ export function useAddFoodItem(patientId: string) {
               prot: 0,
               carb: 0,
               fat: 0,
+              fiber: 0,
             };
             option.items = [...option.items, placeholderItem];
             queryClient.setQueryData(['plan', patientId], updatedPlan);
@@ -270,29 +288,41 @@ export function useAddFoodItem(patientId: string) {
 export function useUpdateFoodItem(patientId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ mealId, optionId, itemId, data }: { mealId: string; optionId: string; itemId: string; data: planApi.UpdateFoodItemRequest }) =>
-      planApi.updateFoodItem(patientId, mealId, optionId, itemId, data),
+    mutationFn: ({
+      mealId,
+      optionId,
+      itemId,
+      data,
+    }: {
+      mealId: string;
+      optionId: string;
+      itemId: string;
+      data: planApi.UpdateFoodItemRequest;
+    }) => planApi.updateFoodItem(patientId, mealId, optionId, itemId, data),
     onMutate: ({ mealId, optionId, itemId, data }) => {
       usePlanUIStore.getState().setSaveStatus('saving');
       // Optimistic update
       const previousPlan = queryClient.getQueryData<MealPlan>(['plan', patientId]);
       if (previousPlan) {
-        const updatedPlan = { ...previousPlan, meals: previousPlan.meals.map((m) => {
-          if (m.id !== mealId) return m;
-          return {
-            ...m,
-            options: m.options.map((o) => {
-              if (o.id !== optionId) return o;
-              return {
-                ...o,
-                items: o.items.map((it) => {
-                  if (it.id !== itemId) return it;
-                  return { ...it, ...data };
-                }),
-              };
-            }),
-          };
-        })};
+        const updatedPlan = {
+          ...previousPlan,
+          meals: previousPlan.meals.map((m) => {
+            if (m.id !== mealId) return m;
+            return {
+              ...m,
+              options: m.options.map((o) => {
+                if (o.id !== optionId) return o;
+                return {
+                  ...o,
+                  items: o.items.map((it) => {
+                    if (it.id !== itemId) return it;
+                    return { ...it, ...data };
+                  }),
+                };
+              }),
+            };
+          }),
+        };
         queryClient.setQueryData(['plan', patientId], updatedPlan);
       }
       return { previousPlan };
@@ -316,19 +346,29 @@ export function useUpdateFoodItem(patientId: string) {
 export function useDeleteFoodItem(patientId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ mealId, optionId, itemId }: { mealId: string; optionId: string; itemId: string }) =>
-      planApi.deleteFoodItem(patientId, mealId, optionId, itemId),
+    mutationFn: ({
+      mealId,
+      optionId,
+      itemId,
+    }: {
+      mealId: string;
+      optionId: string;
+      itemId: string;
+    }) => planApi.deleteFoodItem(patientId, mealId, optionId, itemId),
     onMutate: async ({ optionId, itemId }) => {
       usePlanUIStore.getState().setSaveStatus('saving');
       const previousPlan = queryClient.getQueryData<MealPlan>(['plan', patientId]);
       if (previousPlan) {
-        const updatedPlan = { ...previousPlan, meals: previousPlan.meals.map((m) => ({
-          ...m,
-          options: m.options.map((o) => {
-            if (o.id !== optionId) return o;
-            return { ...o, items: o.items.filter((it) => it.id !== itemId) };
-          }),
-        }))};
+        const updatedPlan = {
+          ...previousPlan,
+          meals: previousPlan.meals.map((m) => ({
+            ...m,
+            options: m.options.map((o) => {
+              if (o.id !== optionId) return o;
+              return { ...o, items: o.items.filter((it) => it.id !== itemId) };
+            }),
+          })),
+        };
         queryClient.setQueryData(['plan', patientId], updatedPlan);
       }
       return { previousPlan };
@@ -380,7 +420,10 @@ export function useDeleteExtra(patientId: string) {
       usePlanUIStore.getState().setSaveStatus('saving');
       const previousPlan = queryClient.getQueryData<MealPlan>(['plan', patientId]);
       if (previousPlan) {
-        const updatedPlan = { ...previousPlan, extras: previousPlan.extras.filter((e) => e.id !== extraId) };
+        const updatedPlan = {
+          ...previousPlan,
+          extras: previousPlan.extras.filter((e) => e.id !== extraId),
+        };
         queryClient.setQueryData(['plan', patientId], updatedPlan);
       }
       return { previousPlan };
