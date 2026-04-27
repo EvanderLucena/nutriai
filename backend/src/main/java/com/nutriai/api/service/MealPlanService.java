@@ -102,15 +102,14 @@ public class MealPlanService {
                 .build());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PlanResponse getPlan(UUID nutritionistId, UUID patientId) {
         verifyPatientOwnership(patientId, nutritionistId);
 
         Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        MealPlan plan = mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
-                .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
+        MealPlan plan = getOrCreatePlanForEpisode(episode.getId(), nutritionistId);
 
         return buildPlanResponse(plan);
     }
@@ -351,8 +350,16 @@ public class MealPlanService {
         Episode episode = episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Episódio ativo", patientId));
 
-        return mealPlanRepository.findByEpisodeIdAndNutritionistId(episode.getId(), nutritionistId)
-                .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episode.getId()));
+        return getOrCreatePlanForEpisode(episode.getId(), nutritionistId);
+    }
+
+    private MealPlan getOrCreatePlanForEpisode(UUID episodeId, UUID nutritionistId) {
+        return mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)
+                .orElseGet(() -> {
+                    createDefaultPlan(episodeId, nutritionistId);
+                    return mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Plano alimentar", episodeId));
+                });
     }
 
     private void verifyPatientOwnership(UUID patientId, UUID nutritionistId) {

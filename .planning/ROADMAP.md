@@ -40,7 +40,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
 - [x] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
 - [x] **Phase 5: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
-- [ ] **Phase 6: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
+- [x] **Phase 6: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
 - [ ] **Phase 7: WhatsApp Intelligence** - AI conversations via WhatsApp with meal extraction and timeline
 - [ ] **Phase 8: Billing & Subscriptions** - Stripe checkout, subscription management, patient limit enforcement
 - [ ] **Phase 9: LGPD Compliance** - Consent collection, terms/privacy pages, data export and deletion
