@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ViewType = 'home' | 'patients' | 'patient' | 'foods' | 'insights';
+export type ViewType = 'home' | 'patients' | 'patient' | 'foods' | 'insights';
 type StatusFilter = 'all' | 'ontrack' | 'warning' | 'danger';
 
 interface NavigationState {
@@ -17,7 +17,14 @@ interface NavigationState {
 
 function getInitialView(): ViewType {
   const stored = localStorage.getItem('nutriai.view');
-  if (stored === 'home' || stored === 'patients' || stored === 'patient' || stored === 'foods' || stored === 'insights') return stored;
+  if (
+    stored === 'home' ||
+    stored === 'patients' ||
+    stored === 'patient' ||
+    stored === 'foods' ||
+    stored === 'insights'
+  )
+    return stored;
   return 'home';
 }
 
@@ -28,7 +35,8 @@ function getInitialPatientId(): string | null {
 export const useNavigationStore = create<NavigationState>((set) => ({
   activeView: getInitialView(),
   activePatientId: getInitialPatientId(),
-  sidebarOpen: typeof window !== 'undefined' ? !window.matchMedia('(max-width: 1200px)').matches : true,
+  sidebarOpen:
+    typeof window !== 'undefined' ? !window.matchMedia('(max-width: 1200px)').matches : true,
   statusFilter: 'all' as StatusFilter,
   setView: (view) => {
     localStorage.setItem('nutriai.view', view);
