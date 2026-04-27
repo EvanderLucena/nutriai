@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { MealFood } from '../../types/plan';
 import { FOOD_UNIT_SYMBOLS } from '../../types/food';
+import { sanitizeNumberInput } from '../../utils/numberInput';
 
 interface PlanFoodRowProps {
   item: MealFood;
@@ -144,7 +145,7 @@ export function PlanFoodRow({
         inputMode="numeric"
         pattern="[0-9.,]*"
         value={localRef}
-        onChange={(e) => setLocalRef(e.target.value)}
+        onChange={(e) => setLocalRef(sanitizeNumberInput(e.target.value))}
         onBlur={handleRefBlur}
         onKeyDown={(e) => {
           if (e.key.length === 1 && !/[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey) {

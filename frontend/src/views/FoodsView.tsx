@@ -8,6 +8,7 @@ import {
   REVERSE_CATEGORY_LABELS,
 } from '../types/food';
 import type { Food, FoodCategory, FoodCategoryKey, FoodUnit } from '../types/food';
+import { sanitizeNumberInput } from '../utils/numberInput';
 import {
   useFoodUIStore,
   useFoodCatalog,
@@ -193,15 +194,28 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
     label: string,
     val: string,
     set: (v: string) => void,
-    opts: { mono?: boolean; type?: string; placeholder?: string } = {},
+    opts: { mono?: boolean; type?: string; placeholder?: string; numeric?: boolean } = {},
   ) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div className="eyebrow">{label}</div>
       <input
         value={val}
-        onChange={(e) => set(e.target.value)}
-        type={opts.type || 'text'}
+        onChange={(e) => set(opts.numeric ? sanitizeNumberInput(e.target.value) : e.target.value)}
+        {...(opts.numeric
+          ? { inputMode: 'numeric', pattern: '[0-9.,]*' }
+          : { type: opts.type || 'text' })}
         placeholder={opts.placeholder || ''}
+        onKeyDown={(e) => {
+          if (
+            opts.numeric &&
+            e.key.length === 1 &&
+            !/[0-9.,]/.test(e.key) &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
+            e.preventDefault();
+          }
+        }}
         style={{
           padding: '8px 10px',
           border: '1px solid var(--border)',
@@ -300,7 +314,10 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
                 ))}
               </select>
             </div>
-            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, { mono: true })}
+            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, {
+              mono: true,
+              numeric: true,
+            })}
           </div>
           <div className="divider">
             <span>
@@ -309,11 +326,11 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true })}
-            {field('Prot (g)', prot, setProt, { mono: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true })}
-            {field('Gord (g)', fat, setFat, { mono: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true })}
+            {field('Kcal', kcal, setKcal, { mono: true, numeric: true })}
+            {field('Prot (g)', prot, setProt, { mono: true, numeric: true })}
+            {field('Carb (g)', carb, setCarb, { mono: true, numeric: true })}
+            {field('Gord (g)', fat, setFat, { mono: true, numeric: true })}
+            {field('Fibra (g)', fiber, setFiber, { mono: true, numeric: true })}
           </div>
           {field('Preparo sugerido', prep, setPrep, {
             placeholder: 'ex: grelhado, cozido no vapor',
@@ -665,14 +682,26 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
     label: string,
     val: string,
     set: (v: string) => void,
-    opts: { mono?: boolean; placeholder?: string } = {},
+    opts: { mono?: boolean; placeholder?: string; numeric?: boolean } = {},
   ) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       <div className="eyebrow">{label}</div>
       <input
         placeholder={opts.placeholder || ''}
         value={val}
-        onChange={(e) => set(e.target.value)}
+        onChange={(e) => set(opts.numeric ? sanitizeNumberInput(e.target.value) : e.target.value)}
+        {...(opts.numeric ? { inputMode: 'numeric', pattern: '[0-9.,]*' } : {})}
+        onKeyDown={(e) => {
+          if (
+            opts.numeric &&
+            e.key.length === 1 &&
+            !/[0-9.,]/.test(e.key) &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
+            e.preventDefault();
+          }
+        }}
         style={{
           padding: '8px 10px',
           border: '1px solid var(--border)',
@@ -785,11 +814,11 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true })}
-            {field('Prot (g)', prot, setProt, { mono: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true })}
-            {field('Gord (g)', fat, setFat, { mono: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true })}
+            {field('Kcal', kcal, setKcal, { mono: true, numeric: true })}
+            {field('Prot (g)', prot, setProt, { mono: true, numeric: true })}
+            {field('Carb (g)', carb, setCarb, { mono: true, numeric: true })}
+            {field('Gord (g)', fat, setFat, { mono: true, numeric: true })}
+            {field('Fibra (g)', fiber, setFiber, { mono: true, numeric: true })}
           </div>
           {field('Preparo sugerido', prep, setPrep, {
             placeholder: 'ex: grelhado, cozido no vapor',
