@@ -9,6 +9,7 @@ export interface MealFood {
   prot: number;
   carb: number;
   fat: number;
+  fiber: number;
 }
 
 export interface MealOption {
