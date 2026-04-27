@@ -6,12 +6,18 @@ import { useAuthStore } from '../../stores/authStore';
 import { mapPatientFromApi } from '../../types/patient';
 import { IconSearch, IconHome, IconUsers, IconMeal, IconInsight } from '../icons';
 import type { PatientStatus } from '../../types/patient';
+import type { ViewType } from '../../stores/navigationStore';
 
 interface NavItem {
   id: string;
   path: string;
   label: string;
-  Icon: React.FC<{ size?: number; className?: string; color?: string; style?: React.CSSProperties }>;
+  Icon: React.FC<{
+    size?: number;
+    className?: string;
+    color?: string;
+    style?: React.CSSProperties;
+  }>;
   badge?: string;
 }
 
@@ -29,10 +35,117 @@ const STATUS_FILTERS: { key: PatientStatus | 'all'; label: string; dot?: string 
   { key: 'danger', label: '', dot: 'var(--coral)' },
 ];
 
+function PatientQuickItem({
+  patient,
+  navigate,
+  setActivePatientId,
+  setView,
+  isActive,
+}: {
+  patient: ReturnType<typeof mapPatientFromApi>;
+  navigate: ReturnType<typeof useNavigate>;
+  setActivePatientId: (id: string) => void;
+  setView: (v: ViewType) => void;
+  isActive: boolean;
+}) {
+  return (
+    <div
+      className={`pq-item ${isActive ? 'active' : ''}`}
+      onClick={() => {
+        setActivePatientId(patient.id);
+        setView('patient');
+        navigate(`/patient/${patient.id}`);
+      }}
+    >
+      <span className={`pq-status ${patient.status}`} />
+      <div style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div
+          className="pq-name"
+          style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {patient.name}
+        </div>
+        <div
+          className="pq-meta"
+          style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+        >
+          {patient.objective.toUpperCase()}
+        </div>
+      </div>
+      <div className="pq-meta tnum" style={{ flexShrink: 0 }}>
+        {patient.adherence}%
+      </div>
+    </div>
+  );
+}
+
+function StatusFilterRow({
+  statusFilter,
+  setStatusFilter,
+}: {
+  statusFilter: PatientStatus | 'all';
+  setStatusFilter: (s: PatientStatus | 'all') => void;
+}) {
+  return (
+    <div
+      className="nav-section-label"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingRight: 18,
+      }}
+    >
+      <span>Pacientes ativos</span>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {STATUS_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setStatusFilter(f.key)}
+            title={f.key}
+            style={{
+              padding: f.key === 'all' ? '2px 6px' : '4px',
+              borderRadius: 4,
+              border: `1px solid ${statusFilter === f.key ? 'var(--fg)' : 'var(--border)'}`,
+              background: statusFilter === f.key ? 'var(--surface-2)' : 'transparent',
+              fontSize: 9,
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: 'var(--fg-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: f.key === 'all' ? 0 : 18,
+              minHeight: 18,
+              cursor: 'pointer',
+            }}
+          >
+            {f.key === 'all' ? (
+              'TODOS'
+            ) : (
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 999,
+                  background: f.dot,
+                  display: 'block',
+                }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setView, setActivePatientId, statusFilter, setStatusFilter, sidebarOpen } = useNavigationStore();
+  const { setView, setActivePatientId, statusFilter, setStatusFilter, sidebarOpen } =
+    useNavigationStore();
   const user = useAuthStore((s) => s.user);
   const { data } = usePatients();
   const apiPatients = useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
@@ -49,17 +162,32 @@ export function Sidebar() {
     <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
       <div className="sidebar-header">
         <div className="brand-row">
-          <div className="brand-name">Nutri<span style={{ color: 'var(--lime-dim)' }}>AI</span></div>
+          <div className="brand-name">
+            Nutri<span style={{ color: 'var(--lime-dim)' }}>AI</span>
+          </div>
           <div className="brand-tag mono">v2.4</div>
         </div>
-        <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div
+          style={{
+            fontSize: 11.5,
+            color: 'var(--fg-muted)',
+            marginTop: 4,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
           {user?.name || 'Nutricionista'}
         </div>
       </div>
 
       <div className="search">
         <IconSearch size={14} />
-        <input placeholder="Buscar paciente, plano, alimento…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input
+          placeholder="Buscar paciente, plano, alimento…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
         <span className="kbd">⌘K</span>
       </div>
 
@@ -69,7 +197,10 @@ export function Sidebar() {
           <button
             key={it.id}
             className={`nav-item ${location.pathname.startsWith(it.path) ? 'active' : ''}`}
-            onClick={() => { setView(it.id as 'home' | 'patients' | 'foods' | 'insights'); navigate(it.path); }}
+            onClick={() => {
+              setView(it.id as ViewType);
+              navigate(it.path);
+            }}
           >
             <it.Icon size={15} />
             <span>{it.label}</span>
@@ -79,58 +210,24 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="nav-section-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: 18 }}>
-        <span>Pacientes ativos</span>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setStatusFilter(f.key)}
-              title={f.key}
-              style={{
-                padding: f.key === 'all' ? '2px 6px' : '4px',
-                borderRadius: 4,
-                border: `1px solid ${statusFilter === f.key ? 'var(--fg)' : 'var(--border)'}`,
-                background: statusFilter === f.key ? 'var(--surface-2)' : 'transparent',
-                fontSize: 9,
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                color: 'var(--fg-muted)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: f.key === 'all' ? 0 : 18,
-                minHeight: 18,
-                cursor: 'pointer',
-              }}
-            >
-              {f.key === 'all' ? 'TODOS' : <span style={{ width: 6, height: 6, borderRadius: 999, background: f.dot, display: 'block' }} />}
-            </button>
-          ))}
-        </div>
-      </div>
+      <StatusFilterRow statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
 
       <div className="patient-quick">
         {filtered.map((p) => (
-          <div
+          <PatientQuickItem
             key={p.id}
-            className={`pq-item ${location.pathname === `/patient/${p.id}` ? 'active' : ''}`}
-            onClick={() => {
-              setActivePatientId(p.id);
-              setView('patient');
-              navigate(`/patient/${p.id}`);
-            }}
-          >
-            <span className={`pq-status ${p.status}`} />
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
-              <div className="pq-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-              <div className="pq-meta" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.objective.toUpperCase()}</div>
-            </div>
-            <div className="pq-meta tnum" style={{ flexShrink: 0 }}>{p.adherence}%</div>
-          </div>
+            patient={p}
+            navigate={navigate}
+            setActivePatientId={setActivePatientId}
+            setView={setView}
+            isActive={location.pathname === `/patient/${p.id}`}
+          />
         ))}
-        {filtered.length === 0 && <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-subtle)' }}>Nenhum paciente neste filtro.</div>}
+        {filtered.length === 0 && (
+          <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-subtle)' }}>
+            Nenhum paciente neste filtro.
+          </div>
+        )}
       </div>
     </aside>
   );

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useId } from 'react';
+import { useState, useCallback, useEffect, useId, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import {
   usePatientUIStore,
@@ -124,9 +124,7 @@ export function PatientsView() {
   const {
     searchQuery,
     statusFilter,
-    objectiveFilter: _objectiveFilter,
     currentPage,
-    pageSize: _pageSize,
     newPatientModalOpen,
     editingPatientId,
     togglingPatientId,
@@ -148,7 +146,7 @@ export function PatientsView() {
 
   const showInactive = statusFilter === 'inactive';
 
-  const patientsList: Patient[] = data?.content.map(mapPatientFromApi) ?? [];
+  const patientsList = useMemo<Patient[]>(() => data?.content.map(mapPatientFromApi) ?? [], [data]);
   const totalElements = data?.totalElements ?? 0;
   const totalPages = data?.totalPages ?? 1;
 
