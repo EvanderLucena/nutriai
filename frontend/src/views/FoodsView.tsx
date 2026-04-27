@@ -63,6 +63,42 @@ function MiniMacro({
   );
 }
 
+function DropdownItem({
+  onClick,
+  icon,
+  label,
+  color,
+}: {
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  color?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '8px 14px',
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        fontSize: 13,
+        color: color || 'var(--fg)',
+        textAlign: 'left',
+        fontFamily: 'var(--font-ui)',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+    >
+      {icon} {label}
+    </button>
+  );
+}
+
 function FoodMenuDropdown({
   onEdit,
   onDelete,
@@ -97,54 +133,23 @@ function FoodMenuDropdown({
         padding: '4px 0',
       }}
     >
-      <button
+      <DropdownItem
         onClick={() => {
           onEdit();
           onClose();
         }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          width: '100%',
-          padding: '8px 14px',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer',
-          fontSize: 13,
-          color: 'var(--fg)',
-          textAlign: 'left',
-          fontFamily: 'var(--font-ui)',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-      >
-        <IconEdit size={13} /> Editar
-      </button>
-      <button
+        icon={<IconEdit size={13} />}
+        label="Editar"
+      />
+      <DropdownItem
         onClick={() => {
           onDelete();
           onClose();
         }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          width: '100%',
-          padding: '8px 14px',
-          border: 'none',
-          background: 'none',
-          cursor: 'pointer',
-          fontSize: 13,
-          color: 'var(--coral)',
-          textAlign: 'left',
-          fontFamily: 'var(--font-ui)',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-2)')}
-        onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-      >
-        <IconTrash size={13} /> Excluir
-      </button>
+        icon={<IconTrash size={13} />}
+        label="Excluir"
+        color="var(--coral)"
+      />
     </div>
   );
 }
