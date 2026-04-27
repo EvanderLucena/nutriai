@@ -114,7 +114,6 @@ export function mapPatientFromApi(p: PatientApiResponse): Patient {
 
 export interface BiometricEntry {
   date: string;
-  method: string;
   weight: number;
   fat: number;
   lean: number;
@@ -214,7 +213,6 @@ export interface BiometryAssessmentDTO {
   waterPercent: number | null;
   visceralFatLevel: number | null;
   bmrKcal: number | null;
-  device: string | null;
   notes: string | null;
   skinfolds: { measureKey: string; valueMm: number; sortOrder: number }[];
   perimetry: { measureKey: string; valueCm: number; sortOrder: number }[];
@@ -228,7 +226,6 @@ export interface CreateBiometryAssessmentRequest {
   waterPercent?: number | null;
   visceralFatLevel?: number | null;
   bmrKcal?: number | null;
-  device?: string | null;
   notes?: string | null;
   skinfolds?: { measureKey: string; valueMm: number; sortOrder: number }[];
   perimetry?: { measureKey: string; valueCm: number; sortOrder: number }[];
@@ -242,7 +239,6 @@ export interface UpdateBiometryAssessmentRequest {
   waterPercent?: number | null;
   visceralFatLevel?: number | null;
   bmrKcal?: number | null;
-  device?: string | null;
   notes?: string | null;
   skinfolds?: { measureKey: string; valueMm: number; sortOrder: number }[];
   perimetry?: { measureKey: string; valueCm: number; sortOrder: number }[];

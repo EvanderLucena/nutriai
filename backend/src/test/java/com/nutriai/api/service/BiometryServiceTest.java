@@ -74,7 +74,7 @@ class BiometryServiceTest {
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         BiometryAssessmentResponse response = biometryService.createAssessment(nutritionistId, patientId, req);
 
@@ -106,7 +106,7 @@ class BiometryServiceTest {
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                new BigDecimal("58.80"), new BigDecimal("55.00"), 5, 1600, "Omron", "Notes",
+                new BigDecimal("58.80"), new BigDecimal("55.00"), 5, 1600, "Notes",
                 List.of(new CreateBiometryAssessmentRequest.SkinfoldEntry("triceps", new BigDecimal("12.50"), 1)),
                 List.of(new CreateBiometryAssessmentRequest.PerimetryEntry("cintura", new BigDecimal("82.30"), 1)));
 
@@ -114,7 +114,6 @@ class BiometryServiceTest {
 
         assertNotNull(response);
         assertEquals(new BigDecimal("58.80"), response.leanMassKg());
-        assertEquals("Omron", response.device());
         assertEquals(1, response.skinfolds().size());
         assertEquals(1, response.perimetry().size());
 
@@ -138,7 +137,7 @@ class BiometryServiceTest {
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> biometryService.createAssessment(nutritionistId, patientId, req));
@@ -151,7 +150,7 @@ class BiometryServiceTest {
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.createAssessment(nutritionistId, patientId, req));
@@ -177,7 +176,7 @@ class BiometryServiceTest {
         when(historyEventRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
-                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null, null);
+                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null);
 
         BiometryAssessmentResponse response = biometryService.updateAssessment(nutritionistId, patientId, existing.getId(), req);
 
@@ -234,7 +233,7 @@ class BiometryServiceTest {
                 .thenAnswer(inv -> existing.getPerimetries());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
-                null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null,
                 List.of(new UpdateBiometryAssessmentRequest.SkinfoldEntry(
                         skinfoldId, "triceps", new BigDecimal("13.10"), 1)),
                 List.of(new UpdateBiometryAssessmentRequest.PerimetryEntry(
@@ -263,7 +262,7 @@ class BiometryServiceTest {
 
         CreateBiometryAssessmentRequest createReq = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         biometryService.createAssessment(nutritionistId, patientId, createReq);
         verify(historyEventRepository).save(argThat(e ->
@@ -331,7 +330,7 @@ class BiometryServiceTest {
         when(assessmentRepository.findByIdAndPatientIdAndNutritionistId(
                 assessmentId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
-        UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(null, null, null, null, null, null, null, null, null, null, null);
+        UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(null, null, null, null, null, null, null, null, null, null);
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.updateAssessment(nutritionistId, patientId, assessmentId, req));
@@ -344,7 +343,7 @@ class BiometryServiceTest {
                 assessmentId, patientId, nutritionistId)).thenReturn(Optional.empty());
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
-                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null, null);
+                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null);
 
         assertThrows(ResourceNotFoundException.class,
                 () -> biometryService.updateAssessment(nutritionistId, patientId, assessmentId, req));

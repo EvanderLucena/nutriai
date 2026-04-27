@@ -69,9 +69,6 @@ public class BiometryAssessment {
     @Column(name = "bmr_kcal")
     private Integer bmrKcal;
 
-    @Column(length = 100)
-    private String device;
-
     @Column(columnDefinition = "TEXT")
     private String notes;
 

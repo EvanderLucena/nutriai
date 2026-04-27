@@ -334,7 +334,6 @@ public class DataInitializer implements CommandLineRunner {
                 .waterPercent(bd("49.80"))
                 .visceralFatLevel(10)
                 .bmrKcal(1360)
-                .device("Bioimpedancia")
                 .notes("Inicio do primeiro ciclo. Rotina irregular e baixa adesao inicial.")
                 .build());
         assessmentRepository.save(BiometryAssessment.builder()
@@ -348,7 +347,6 @@ public class DataInitializer implements CommandLineRunner {
                 .waterPercent(bd("51.40"))
                 .visceralFatLevel(8)
                 .bmrKcal(1395)
-                .device("Bioimpedancia")
                 .notes("Evolucao positiva antes da pausa do acompanhamento.")
                 .build());
         historyEventRepository.save(EpisodeHistoryEvent.builder()
@@ -385,7 +383,7 @@ public class DataInitializer implements CommandLineRunner {
                 .waterPercent(bd("51.0"))
                 .visceralFatLevel(8 + offset)
                 .bmrKcal(1380 + offset * 35)
-                .device("Bioimpedancia")
+
                 .notes("Avaliacao inicial do ciclo.")
                 .build());
         assessmentRepository.save(BiometryAssessment.builder()
@@ -399,7 +397,7 @@ public class DataInitializer implements CommandLineRunner {
                 .waterPercent(bd("52.1"))
                 .visceralFatLevel(7 + offset)
                 .bmrKcal(1410 + offset * 35)
-                .device("Bioimpedancia")
+
                 .notes("Boa evolucao e adesao parcial ao plano.")
                 .build());
         historyEventRepository.save(EpisodeHistoryEvent.builder()
