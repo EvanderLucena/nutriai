@@ -3,7 +3,6 @@ import type { Food } from '../../types/food';
 import { mapFoodFromApi, FOOD_UNIT_SYMBOLS } from '../../types/food';
 import { listFoods } from '../../api/foods';
 import { IconSearch, IconPlus, IconX } from '../icons';
-import { sanitizeNumberInput } from '../../utils/numberInput';
 
 interface AddFoodModalProps {
   onClose: () => void;
@@ -215,22 +214,9 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
                 <div className="eyebrow">Referência</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
-                    inputMode="numeric"
-                    pattern="[0-9.,]*"
+                    type="number"
                     value={referenceAmount}
-                    onChange={(e) =>
-                      setReferenceAmount(Number(sanitizeNumberInput(e.target.value)) || '')
-                    }
-                    onKeyDown={(e) => {
-                      if (
-                        e.key.length === 1 &&
-                        !/[0-9.,]/.test(e.key) &&
-                        !e.ctrlKey &&
-                        !e.metaKey
-                      ) {
-                        e.preventDefault();
-                      }
-                    }}
+                    onChange={(e) => setReferenceAmount(Number(e.target.value) || '')}
                     placeholder="0"
                     style={{
                       padding: '8px 10px',
