@@ -35,6 +35,80 @@ const STATUS_FILTERS: { key: PatientStatus | 'all'; label: string; dot?: string 
   { key: 'danger', label: '', dot: 'var(--coral)' },
 ];
 
+function SidebarHeader({ user }: { user: { name?: string } | null }) {
+  return (
+    <div className="sidebar-header">
+      <div className="brand-row">
+        <div className="brand-name">
+          Nutri<span style={{ color: 'var(--lime-dim)' }}>AI</span>
+        </div>
+        <div className="brand-tag mono">v2.4</div>
+      </div>
+      <div
+        style={{
+          fontSize: 11.5,
+          color: 'var(--fg-muted)',
+          marginTop: 4,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {user?.name || 'Nutricionista'}
+      </div>
+    </div>
+  );
+}
+
+function SidebarSearch({ q, setQ }: { q: string; setQ: (v: string) => void }) {
+  return (
+    <div className="search">
+      <IconSearch size={14} />
+      <input
+        placeholder="Buscar paciente, plano, alimento…"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      <span className="kbd">⌘K</span>
+    </div>
+  );
+}
+
+function NavSection({
+  location,
+  setView,
+  navigate,
+  apiPatients,
+}: {
+  location: ReturnType<typeof useLocation>;
+  setView: (v: ViewType) => void;
+  navigate: ReturnType<typeof useNavigate>;
+  apiPatients: ReturnType<typeof mapPatientFromApi>[];
+}) {
+  return (
+    <>
+      <div className="nav-section-label">Workspace</div>
+      <div className="nav-list">
+        {NAV_ITEMS.map((it) => (
+          <button
+            key={it.id}
+            className={`nav-item ${location.pathname.startsWith(it.path) ? 'active' : ''}`}
+            onClick={() => {
+              setView(it.id as ViewType);
+              navigate(it.path);
+            }}
+          >
+            <it.Icon size={15} />
+            <span>{it.label}</span>
+            {'badge' in it && it.badge && <span className="count">{it.badge}</span>}
+            {it.id === 'patients' && <span className="count">{apiPatients.length}</span>}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function PatientQuickItem({
   patient,
   navigate,
@@ -141,6 +215,40 @@ function StatusFilterRow({
   );
 }
 
+function PatientList({
+  filtered,
+  navigate,
+  setActivePatientId,
+  setView,
+  location,
+}: {
+  filtered: ReturnType<typeof mapPatientFromApi>[];
+  navigate: ReturnType<typeof useNavigate>;
+  setActivePatientId: (id: string) => void;
+  setView: (v: ViewType) => void;
+  location: ReturnType<typeof useLocation>;
+}) {
+  return (
+    <div className="patient-quick">
+      {filtered.map((p) => (
+        <PatientQuickItem
+          key={p.id}
+          patient={p}
+          navigate={navigate}
+          setActivePatientId={setActivePatientId}
+          setView={setView}
+          isActive={location.pathname === `/patient/${p.id}`}
+        />
+      ))}
+      {filtered.length === 0 && (
+        <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-subtle)' }}>
+          Nenhum paciente neste filtro.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -160,75 +268,22 @@ export function Sidebar() {
 
   return (
     <aside className={`sidebar ${sidebarOpen ? 'open' : 'collapsed'}`}>
-      <div className="sidebar-header">
-        <div className="brand-row">
-          <div className="brand-name">
-            Nutri<span style={{ color: 'var(--lime-dim)' }}>AI</span>
-          </div>
-          <div className="brand-tag mono">v2.4</div>
-        </div>
-        <div
-          style={{
-            fontSize: 11.5,
-            color: 'var(--fg-muted)',
-            marginTop: 4,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {user?.name || 'Nutricionista'}
-        </div>
-      </div>
-
-      <div className="search">
-        <IconSearch size={14} />
-        <input
-          placeholder="Buscar paciente, plano, alimento…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <span className="kbd">⌘K</span>
-      </div>
-
-      <div className="nav-section-label">Workspace</div>
-      <div className="nav-list">
-        {NAV_ITEMS.map((it) => (
-          <button
-            key={it.id}
-            className={`nav-item ${location.pathname.startsWith(it.path) ? 'active' : ''}`}
-            onClick={() => {
-              setView(it.id as ViewType);
-              navigate(it.path);
-            }}
-          >
-            <it.Icon size={15} />
-            <span>{it.label}</span>
-            {'badge' in it && it.badge && <span className="count">{it.badge}</span>}
-            {it.id === 'patients' && <span className="count">{apiPatients.length}</span>}
-          </button>
-        ))}
-      </div>
-
+      <SidebarHeader user={user} />
+      <SidebarSearch q={q} setQ={setQ} />
+      <NavSection
+        location={location}
+        setView={setView}
+        navigate={navigate}
+        apiPatients={apiPatients}
+      />
       <StatusFilterRow statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
-
-      <div className="patient-quick">
-        {filtered.map((p) => (
-          <PatientQuickItem
-            key={p.id}
-            patient={p}
-            navigate={navigate}
-            setActivePatientId={setActivePatientId}
-            setView={setView}
-            isActive={location.pathname === `/patient/${p.id}`}
-          />
-        ))}
-        {filtered.length === 0 && (
-          <div style={{ padding: 16, fontSize: 12, color: 'var(--fg-subtle)' }}>
-            Nenhum paciente neste filtro.
-          </div>
-        )}
-      </div>
+      <PatientList
+        filtered={filtered}
+        navigate={navigate}
+        setActivePatientId={setActivePatientId}
+        setView={setView}
+        location={location}
+      />
     </aside>
   );
 }
