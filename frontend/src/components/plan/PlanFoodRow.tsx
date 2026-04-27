@@ -141,10 +141,16 @@ export function PlanFoodRow({
 
       <input
         ref={refInput}
-        type="number"
+        inputMode="numeric"
+        pattern="[0-9.,]*"
         value={localRef}
         onChange={(e) => setLocalRef(e.target.value)}
         onBlur={handleRefBlur}
+        onKeyDown={(e) => {
+          if (e.key.length === 1 && !/[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+          }
+        }}
         onFocus={(e) => {
           e.target.style.borderColor = 'var(--border)';
           e.target.style.background = 'var(--surface)';
