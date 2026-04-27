@@ -24,13 +24,10 @@ function EditableCell({
 }) {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
-  const syncing = useRef(false);
 
   useEffect(() => {
     if (!ref.current || ref.current !== document.activeElement) {
-      syncing.current = true;
       setLocal(String(value));
-      syncing.current = false;
     }
   }, [value]);
 
@@ -66,52 +63,86 @@ function EditableCell({
   );
 }
 
-export function PlanFoodRow({
-  item,
-  isLast,
-  onReferenceAmountChange,
-  onPrepChange,
-  onRemove,
-}: PlanFoodRowProps) {
-  const [macroFlash, setMacroFlash] = useState(false);
-  const [localRef, setLocalRef] = useState(String(item.referenceAmount));
-  const refInput = useRef<HTMLInputElement>(null);
-  const unitSymbol = FOOD_UNIT_SYMBOLS[item.unit as keyof typeof FOOD_UNIT_SYMBOLS] || 'g';
+function MacroReadonly({
+  value,
+  color,
+  opacity,
+}: {
+  value: string;
+  color: string;
+  opacity: number;
+}) {
+  return (
+    <input
+      readOnly
+      value={value}
+      style={{
+        padding: '5px 7px',
+        border: '1px solid transparent',
+        borderRadius: 5,
+        fontSize: 12.5,
+        background: 'var(--surface-2)',
+        outline: 'none',
+        color,
+        width: '100%',
+        fontFamily: 'var(--font-mono)',
+        textAlign: 'right',
+        opacity,
+        transition: 'opacity 0.2s',
+      }}
+    />
+  );
+}
+
+function RefInput({ value, onBlur }: { value: number; onBlur: (newRef: number) => void }) {
+  const [localRef, setLocalRef] = useState(String(value));
+  const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!refInput.current || refInput.current !== document.activeElement) {
-      setLocalRef(String(item.referenceAmount));
+    if (!ref.current || ref.current !== document.activeElement) {
+      setLocalRef(String(value));
     }
-  }, [item.referenceAmount]);
+  }, [value]);
 
-  const handleRefBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.style.borderColor = 'transparent';
-    e.target.style.background = 'transparent';
-    const newRef = Number(e.target.value) || 0;
-    if (newRef !== item.referenceAmount) {
-      setMacroFlash(true);
-      onReferenceAmountChange(newRef);
-      setTimeout(() => setMacroFlash(false), 200);
-    } else {
-      setLocalRef(String(item.referenceAmount));
-    }
-  };
+  return (
+    <input
+      ref={ref}
+      inputMode="numeric"
+      pattern="[0-9.,]*"
+      value={localRef}
+      onChange={(e) => setLocalRef(sanitizeNumberInput(e.target.value))}
+      onBlur={() => {
+        if (!ref.current) return;
+        ref.current.style.borderColor = 'transparent';
+        ref.current.style.background = 'transparent';
+        onBlur(Number(localRef) || 0);
+      }}
+      onKeyDown={(e) => {
+        if (e.key.length === 1 && !/[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = 'var(--border)';
+        e.target.style.background = 'var(--surface)';
+      }}
+      style={{
+        padding: '5px 7px',
+        border: '1px solid transparent',
+        borderRadius: 5,
+        fontSize: 12.5,
+        background: 'transparent',
+        outline: 'none',
+        color: 'var(--fg)',
+        width: '100%',
+        fontFamily: 'var(--font-mono)',
+        textAlign: 'right',
+      }}
+    />
+  );
+}
 
-  const readonlyStyle = (color: string): React.CSSProperties => ({
-    padding: '5px 7px',
-    border: '1px solid transparent',
-    borderRadius: 5,
-    fontSize: 12.5,
-    background: 'var(--surface-2)',
-    outline: 'none',
-    color,
-    width: '100%',
-    fontFamily: 'var(--font-mono)',
-    textAlign: 'right',
-    transition: 'opacity 0.2s',
-    opacity: macroFlash ? 0.5 : 1,
-  });
-
+function PlanFoodRowGrid({ children, isLast }: { children: React.ReactNode; isLast: boolean }) {
   return (
     <div
       style={{
@@ -123,95 +154,113 @@ export function PlanFoodRow({
         alignItems: 'center',
       }}
     >
-      <div
-        className="mono"
-        title="Vinculado ao catálogo"
-        style={{
-          padding: '5px 7px',
-          fontSize: 12.5,
-          color: 'var(--fg)',
-          background: 'var(--surface-2)',
-          borderRadius: 5,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {item.foodName}
-      </div>
+      {children}
+    </div>
+  );
+}
 
-      <input
-        ref={refInput}
-        inputMode="numeric"
-        pattern="[0-9.,]*"
-        value={localRef}
-        onChange={(e) => setLocalRef(sanitizeNumberInput(e.target.value))}
-        onBlur={handleRefBlur}
-        onKeyDown={(e) => {
-          if (e.key.length === 1 && !/[0-9.,]/.test(e.key) && !e.ctrlKey && !e.metaKey) {
-            e.preventDefault();
-          }
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = 'var(--border)';
-          e.target.style.background = 'var(--surface)';
-        }}
-        style={{
-          padding: '5px 7px',
-          border: '1px solid transparent',
-          borderRadius: 5,
-          fontSize: 12.5,
-          background: 'transparent',
-          outline: 'none',
-          color: 'var(--fg)',
-          width: '100%',
-          fontFamily: 'var(--font-mono)',
-          textAlign: 'right',
-        }}
-      />
+function RemoveButton({ onRemove }: { onRemove: () => void }) {
+  return (
+    <button
+      onClick={onRemove}
+      title="Remover"
+      style={{
+        color: 'var(--fg-subtle)',
+        padding: 4,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--coral)')}
+      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-subtle)')}
+    >
+      ×
+    </button>
+  );
+}
 
-      <div
-        className="mono"
-        style={{
-          padding: '5px 7px',
-          fontSize: 11,
-          color: 'var(--fg-muted)',
-          background: 'var(--surface-2)',
-          borderRadius: 5,
-          textAlign: 'center',
-        }}
-      >
-        {unitSymbol}
-      </div>
+function FoodNameCell({ name }: { name: string }) {
+  return (
+    <div
+      className="mono"
+      title="Vinculado ao catálogo"
+      style={{
+        padding: '5px 7px',
+        fontSize: 12.5,
+        color: 'var(--fg)',
+        background: 'var(--surface-2)',
+        borderRadius: 5,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+    >
+      {name}
+    </div>
+  );
+}
 
+function UnitSymbol({ unitSymbol }: { unitSymbol: string }) {
+  return (
+    <div
+      className="mono"
+      style={{
+        padding: '5px 7px',
+        fontSize: 11,
+        color: 'var(--fg-muted)',
+        background: 'var(--surface-2)',
+        borderRadius: 5,
+        textAlign: 'center',
+      }}
+    >
+      {unitSymbol}
+    </div>
+  );
+}
+
+function MacroCells({ item, opacity }: { item: MealFood; opacity: number }) {
+  return (
+    <>
+      <MacroReadonly value={String(item.kcal)} color="var(--fg)" opacity={opacity} />
+      <MacroReadonly value={String(item.prot)} color="var(--sage-dim)" opacity={opacity} />
+      <MacroReadonly value={String(item.carb)} color="var(--carb)" opacity={opacity} />
+      <MacroReadonly value={String(item.fat)} color="var(--sky)" opacity={opacity} />
+      <MacroReadonly value={String(item.fiber ?? 0)} color="var(--lime-dim)" opacity={opacity} />
+    </>
+  );
+}
+
+export function PlanFoodRow({
+  item,
+  isLast,
+  onReferenceAmountChange,
+  onPrepChange,
+  onRemove,
+}: PlanFoodRowProps) {
+  const [macroFlash, setMacroFlash] = useState(false);
+  const unitSymbol = FOOD_UNIT_SYMBOLS[item.unit as keyof typeof FOOD_UNIT_SYMBOLS] || 'g';
+
+  const handleRefBlur = (newRef: number) => {
+    if (newRef !== item.referenceAmount) {
+      setMacroFlash(true);
+      onReferenceAmountChange(newRef);
+      setTimeout(() => setMacroFlash(false), 200);
+    }
+  };
+
+  return (
+    <PlanFoodRowGrid isLast={isLast}>
+      <FoodNameCell name={item.foodName} />
+      <RefInput value={item.referenceAmount} onBlur={handleRefBlur} />
+      <UnitSymbol unitSymbol={unitSymbol} />
       <EditableCell
         value={item.prep ?? ''}
         color="var(--fg-muted)"
         isNum={false}
         onChange={onPrepChange}
       />
-
-      <input readOnly value={String(item.kcal)} style={readonlyStyle('var(--fg)')} />
-      <input readOnly value={String(item.prot)} style={readonlyStyle('var(--sage-dim)')} />
-      <input readOnly value={String(item.carb)} style={readonlyStyle('var(--carb)')} />
-      <input readOnly value={String(item.fat)} style={readonlyStyle('var(--sky)')} />
-      <input readOnly value={String(item.fiber ?? 0)} style={readonlyStyle('var(--lime-dim)')} />
-
-      <button
-        onClick={onRemove}
-        title="Remover"
-        style={{
-          color: 'var(--fg-subtle)',
-          padding: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--coral)')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--fg-subtle)')}
-      >
-        ×
-      </button>
-    </div>
+      <MacroCells item={item} opacity={macroFlash ? 0.5 : 1} />
+      <RemoveButton onRemove={onRemove} />
+    </PlanFoodRowGrid>
   );
 }
