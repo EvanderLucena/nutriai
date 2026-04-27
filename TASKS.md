@@ -111,10 +111,10 @@
 
 ### Seeds e dados reais de desenvolvimento
 
-- [ ] **Criar seed dev determinístico** — nutricionista demo, pacientes, avaliações, alimentos, planos e histórico suficiente para explorar o app manualmente.
-- [ ] **Separar seed dev de fixtures de teste** — seed para uso local; Playwright deve criar dados próprios via API.
+- [x] **Criar seed dev determinístico** — nutricionista demo, pacientes, avaliações, alimentos, planos e histórico suficiente para explorar o app manualmente.
+- [x] **Separar seed dev de fixtures de teste** — seed para uso local; Playwright deve criar dados próprios via API.
 - [ ] **Documentar como iniciar ambiente com dados demo** — comando/profile claro para backend + banco + frontend.
-- [ ] **Garantir seed seguro** — não ativar dados demo em produção e não depender de senha real commitada.
+- [x] **Garantir seed seguro** — não ativar dados demo em produção e não depender de senha real commitada.
 
 ### Playwright e testes reais de fluxo
 

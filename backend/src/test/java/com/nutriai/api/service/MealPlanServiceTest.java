@@ -202,6 +202,32 @@ class MealPlanServiceTest {
     }
 
     @Test
+    void getPlan_createsDefaultPlanWhenEpisodeHasNoPlan() {
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
+        when(episodeRepository.findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(patientId, nutritionistId)).thenReturn(Optional.of(episode));
+        when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId))
+                .thenReturn(Optional.empty(), Optional.of(plan));
+        when(mealPlanRepository.save(any(MealPlan.class))).thenReturn(plan);
+        when(mealSlotRepository.save(any(MealSlot.class))).thenAnswer(inv -> {
+            MealSlot slot = inv.getArgument(0);
+            slot.setId(UUID.randomUUID());
+            return slot;
+        });
+        when(mealOptionRepository.save(any(MealOption.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(historyEventRepository.save(any(EpisodeHistoryEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(plan.getId(), nutritionistId))
+                .thenReturn(List.of());
+        when(planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId())).thenReturn(List.of());
+
+        PlanResponse resp = mealPlanService.getPlan(nutritionistId, patientId);
+
+        assertEquals(plan.getId(), resp.id());
+        verify(mealPlanRepository).save(any(MealPlan.class));
+        verify(mealSlotRepository, times(6)).save(any(MealSlot.class));
+        verify(mealOptionRepository, times(6)).save(any(MealOption.class));
+    }
+
+    @Test
     void getPlan_throws404ForWrongNutritionist() {
         UUID wrongNutriId = UUID.randomUUID();
         when(patientRepository.findByIdAndNutritionistId(patientId, wrongNutriId)).thenReturn(Optional.empty());
