@@ -19,7 +19,6 @@ public record BiometryAssessmentResponse(
         BigDecimal waterPercent,
         Integer visceralFatLevel,
         Integer bmrKcal,
-        String device,
         String notes,
         List<SkinfoldResponse> skinfolds,
         List<PerimetryResponse> perimetry
@@ -53,7 +52,6 @@ public record BiometryAssessmentResponse(
                 a.getWaterPercent(),
                 a.getVisceralFatLevel(),
                 a.getBmrKcal(),
-                a.getDevice(),
                 a.getNotes(),
                 mapSkinfolds(skinfolds),
                 mapPerimetries(perimetries)

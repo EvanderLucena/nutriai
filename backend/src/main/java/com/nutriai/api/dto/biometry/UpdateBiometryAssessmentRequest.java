@@ -21,7 +21,6 @@ public record UpdateBiometryAssessmentRequest(
         @DecimalMin("0") @DecimalMax("100") BigDecimal waterPercent,
         @PositiveOrZero Integer visceralFatLevel,
         @PositiveOrZero Integer bmrKcal,
-        String device,
         String notes,
         @Valid List<SkinfoldEntry> skinfolds,
         @Valid List<PerimetryEntry> perimetry

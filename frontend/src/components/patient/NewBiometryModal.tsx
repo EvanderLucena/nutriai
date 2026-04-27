@@ -59,7 +59,6 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
     waterPercent: '',
     visceralFatLevel: '',
     bmrKcal: '',
-    device: '',
     notes: '',
   });
   const [skinfoldValues, setSkinfoldValues] = React.useState<Record<string, string>>({});
@@ -194,7 +193,6 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       waterPercent,
       visceralFatLevel,
       bmrKcal,
-      device: form.device || null,
       notes: form.notes || null,
       skinfolds: skinfolds.length > 0 ? skinfolds : undefined,
       perimetry: perimetry.length > 0 ? perimetry : undefined,
@@ -314,12 +312,6 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.bmrKcal}
               onChange={(v) => set('bmrKcal', v)}
-            />
-            <BioField
-              label="Aparelho / marca"
-              placeholder="ex: Tanita BC-601"
-              value={form.device}
-              onChange={(v) => set('device', v)}
             />
           </div>
 

@@ -96,7 +96,7 @@ class BiometryControllerTest {
     void createAssessment_returns200WithEnvelope() throws Exception {
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/patients/{patientId}/biometry", patientId)
                         .header("Authorization", "Bearer " + accessToken)
@@ -152,7 +152,7 @@ class BiometryControllerTest {
         assessment = assessmentRepository.save(assessment);
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
-                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null, null);
+                null, new BigDecimal("74.00"), null, null, null, null, null, null, null, null);
 
         mockMvc.perform(patch("/api/v1/patients/{patientId}/biometry/{assessmentId}", patientId, assessment.getId())
                         .header("Authorization", "Bearer " + accessToken)
@@ -218,7 +218,7 @@ class BiometryControllerTest {
         assessment = assessmentRepository.save(assessment);
 
         UpdateBiometryAssessmentRequest req = new UpdateBiometryAssessmentRequest(
-                null, new BigDecimal("66.00"), null, null, null, null, null, null, null, null, null);
+                null, new BigDecimal("66.00"), null, null, null, null, null, null, null, null);
 
         mockMvc.perform(patch("/api/v1/patients/{patientId}/biometry/{assessmentId}", patientId, assessment.getId())
                         .header("Authorization", "Bearer " + accessToken)
@@ -264,7 +264,7 @@ class BiometryControllerTest {
     void createAssessment_persistsHistoryEventWithEventAt() throws Exception {
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/patients/{patientId}/biometry", patientId)
                         .header("Authorization", "Bearer " + accessToken)
@@ -286,7 +286,7 @@ class BiometryControllerTest {
 
         CreateBiometryAssessmentRequest req = new CreateBiometryAssessmentRequest(
                 LocalDate.of(2025, 1, 10), new BigDecimal("75.00"), new BigDecimal("22.50"),
-                null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/v1/patients/{patientId}/biometry", patientId)
                         .header("Authorization", "Bearer " + accessToken)

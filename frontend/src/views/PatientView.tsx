@@ -652,7 +652,7 @@ function BiometryTab({
               className="serif"
               style={{ fontSize: 22, margin: '4px 0 0', letterSpacing: '-0.01em' }}
             >
-              {fmtDate(last!.assessmentDate)} · {last!.device ?? '—'}
+              {fmtDate(last!.assessmentDate)}
             </div>
           </div>
           <div
@@ -727,7 +727,6 @@ function BiometryTab({
                   water: a.waterPercent ?? 0,
                   visceral: a.visceralFatLevel ?? 0,
                   bmr: a.bmrKcal ?? 0,
-                  method: a.device ?? '—',
                 }))}
                 metrics={[
                   { key: 'weight', color: 'var(--ink-contrast)', label: 'Peso', unit: 'kg' },
@@ -919,13 +918,13 @@ function BiometryTab({
           className="biometry-table-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
+            gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
             padding: '10px 18px',
             borderBottom: '1px solid var(--border)',
             gap: 12,
           }}
         >
-          {['Data', 'Método', 'Peso', '% Gordura', 'Magra', '% Água', 'TMB'].map((h, i) => (
+          {['Data', 'Peso', '% Gordura', 'Magra', '% Água', 'TMB'].map((h, i) => (
             <div key={i} className="eyebrow" style={{ fontSize: 10 }}>
               {h}
             </div>
@@ -936,7 +935,7 @@ function BiometryTab({
             key={b.id ?? i}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
+              gridTemplateColumns: '1.2fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr',
               padding: '12px 18px',
               borderBottom: i === arr.length - 1 ? 'none' : '1px solid var(--border)',
               gap: 12,
@@ -946,7 +945,6 @@ function BiometryTab({
             <div className="mono" style={{ fontSize: 12, color: 'var(--fg)' }}>
               {fmtDate(b.assessmentDate)}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)' }}>{b.device ?? '—'}</div>
             <div className="mono tnum" style={{ fontSize: 12.5, fontWeight: 500 }}>
               {b.weight} kg
             </div>

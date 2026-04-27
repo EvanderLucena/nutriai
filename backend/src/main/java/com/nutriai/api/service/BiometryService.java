@@ -81,7 +81,6 @@ public class BiometryService {
                 .waterPercent(request.waterPercent())
                 .visceralFatLevel(request.visceralFatLevel())
                 .bmrKcal(request.bmrKcal())
-                .device(request.device())
                 .notes(request.notes())
                 .build();
 
@@ -133,7 +132,6 @@ public class BiometryService {
         if (request.waterPercent() != null) assessment.setWaterPercent(request.waterPercent());
         if (request.visceralFatLevel() != null) assessment.setVisceralFatLevel(request.visceralFatLevel());
         if (request.bmrKcal() != null) assessment.setBmrKcal(request.bmrKcal());
-        if (request.device() != null) assessment.setDevice(request.device());
         if (request.notes() != null) assessment.setNotes(request.notes());
 
         if (request.skinfolds() != null) {

@@ -1,0 +1,1 @@
+ALTER TABLE biometry_assessment DROP COLUMN device;
