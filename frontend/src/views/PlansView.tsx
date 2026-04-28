@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { IconPlus, IconDownload, IconX, IconTrash, IconEdit } from '../components/icons';
+import { parseNumberInput } from '../utils/numberInput';
 import {
   PlanFoodRow,
   OptionTab,
@@ -342,10 +343,10 @@ export function PlansView({ patientId }: PlansViewProps) {
   };
 
   const handleSaveTargets = () => {
-    const kcal = Number(targetValues.kcal);
-    const prot = Number(targetValues.prot);
-    const carb = Number(targetValues.carb);
-    const fat = Number(targetValues.fat);
+    const kcal = parseNumberInput(targetValues.kcal);
+    const prot = parseNumberInput(targetValues.prot);
+    const carb = parseNumberInput(targetValues.carb);
+    const fat = parseNumberInput(targetValues.fat);
     if (
       Number.isFinite(kcal) &&
       Number.isFinite(prot) &&
@@ -538,7 +539,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Kcal · meta</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   autoFocus
                   value={targetValues.kcal}
                   onChange={(e) => setTargetValues((v) => ({ ...v, kcal: e.target.value }))}
@@ -563,7 +564,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Proteína</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.prot}
                   onChange={(e) => setTargetValues((v) => ({ ...v, prot: e.target.value }))}
                   onKeyDown={(e) => {
@@ -587,7 +588,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Carboidrato</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.carb}
                   onChange={(e) => setTargetValues((v) => ({ ...v, carb: e.target.value }))}
                   onKeyDown={(e) => {
@@ -611,7 +612,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Gordura</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.fat}
                   onChange={(e) => setTargetValues((v) => ({ ...v, fat: e.target.value }))}
                   onKeyDown={(e) => {

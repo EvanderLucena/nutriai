@@ -1,4 +1,5 @@
 import { useState, useCallback, type ChangeEvent } from 'react';
+import { parseNumberInput } from '../utils/numberInput';
 
 export type ValidationRule = {
   required?: boolean;
@@ -31,13 +32,13 @@ function validateField(value: string, rules: ValidationRule): string | undefined
     return rules.maxLengthMessage || `Máximo de ${rules.maxLength} caracteres.`;
   }
   if (rules.min !== undefined) {
-    const num = Number(value.replace(',', '.'));
+    const num = parseNumberInput(value);
     if (Number.isFinite(num) && num < rules.min) {
       return rules.minMessage || `Valor mínimo: ${rules.min}.`;
     }
   }
   if (rules.max !== undefined) {
-    const num = Number(value.replace(',', '.'));
+    const num = parseNumberInput(value);
     if (Number.isFinite(num) && num > rules.max) {
       return rules.maxMessage || `Valor máximo: ${rules.max}.`;
     }

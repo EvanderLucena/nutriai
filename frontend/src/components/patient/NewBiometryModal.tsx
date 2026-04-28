@@ -4,6 +4,7 @@ import type { BiometryAssessmentDTO, CreateBiometryAssessmentRequest } from '../
 import { resolveMutationErrorMessage } from '../../stores/patientStore';
 import { IconPlus, IconX } from '../icons';
 import { useValidation } from '../../hooks/useValidation';
+import { parseNumberInput } from '../../utils/numberInput';
 
 const SKINFOLD_KEYS = [
   'peitoral',
@@ -86,7 +87,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
         requiredMessage: 'Peso é obrigatório.',
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n) || n <= 0) return 'Informe um peso válido em kg.';
           if (n > 500) return 'Peso deve ser menor que 500 kg.';
           return undefined;
@@ -95,7 +96,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       bodyFatPercent: {
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n)) return 'Valor numérico inválido para % de gordura.';
           if (n <= 0 || n > 100) return '% de gordura deve estar entre 0,01 e 100.';
           return undefined;
@@ -104,7 +105,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       leanMassKg: {
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n)) return 'Valor numérico inválido para massa magra.';
           if (n < 0) return 'Massa magra não pode ser negativa.';
           return undefined;
@@ -113,7 +114,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       waterPercent: {
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n)) return 'Valor numérico inválido para % de água.';
           if (n < 0 || n > 100) return '% de água deve estar entre 0 e 100.';
           return undefined;
@@ -122,7 +123,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       visceralFatLevel: {
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n) || !Number.isInteger(n))
             return 'Nível de gordura visceral deve ser um número inteiro.';
           if (n < 0) return 'Nível de gordura visceral não pode ser negativo.';
@@ -132,7 +133,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       bmrKcal: {
         custom: (v: string) => {
           if (!v.trim()) return undefined;
-          const n = parseFloat(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n) || !Number.isInteger(n)) return 'TMB deve ser um número inteiro.';
           if (n < 0) return 'TMB não pode ser negativa.';
           return undefined;
@@ -148,10 +149,9 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const parseDecimal = (rawValue: string): number | null => {
-    const normalized = rawValue.trim().replace(',', '.');
-    if (!normalized) return null;
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
+    if (!rawValue.trim()) return null;
+    const n = parseNumberInput(rawValue);
+    return Number.isFinite(n) ? n : null;
   };
 
   const parseInteger = (rawValue: string): number | null => {
@@ -317,8 +317,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="Peso (kg)"
-              type="number"
-              placeholder="64.2"
+              inputMode="decimal"
+              placeholder="64,2"
               mono
               value={form.weight}
               onChange={(v: string) => set('weight', v)}
@@ -333,8 +333,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
             <BioField
               label="% Gordura"
-              type="number"
-              placeholder="22.8"
+              inputMode="decimal"
+              placeholder="22,8"
               mono
               value={form.bodyFatPercent}
               onChange={(v: string) => set('bodyFatPercent', v)}
@@ -343,8 +343,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="Massa magra (kg)"
-              type="number"
-              placeholder="49.8"
+              inputMode="decimal"
+              placeholder="49,8"
               mono
               value={form.leanMassKg}
               onChange={(v: string) => set('leanMassKg', v)}
@@ -353,8 +353,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="% Água"
-              type="number"
-              placeholder="54.2"
+              inputMode="decimal"
+              placeholder="54,2"
               mono
               value={form.waterPercent}
               onChange={(v: string) => set('waterPercent', v)}
@@ -363,7 +363,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="Gordura visceral · nível"
-              type="number"
+              inputMode="decimal"
               placeholder="6"
               mono
               value={form.visceralFatLevel}
@@ -373,7 +373,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="TMB (kcal)"
-              type="number"
+              inputMode="decimal"
               placeholder="1420"
               mono
               value={form.bmrKcal}
@@ -390,7 +390,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             {SKINFOLD_KEYS.map((k) => (
               <BioField
                 key={k}
-                type="number"
+                inputMode="decimal"
                 label={SKINFOLD_LABELS[k]}
                 placeholder="—"
                 mono
@@ -446,7 +446,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             {PERIMETRY_KEYS.map((k) => (
               <BioField
                 key={k}
-                type="number"
+                inputMode="decimal"
                 label={PERIMETRY_LABELS[k]}
                 placeholder="—"
                 mono
@@ -531,6 +531,7 @@ function BioField({
   label,
   placeholder,
   type,
+  inputMode,
   kind,
   mono,
   value,
@@ -541,6 +542,7 @@ function BioField({
   label: string;
   placeholder?: string;
   type?: string;
+  inputMode?: 'decimal' | 'numeric' | 'text' | 'tel' | 'url' | 'email' | 'search';
   kind?: string;
   mono?: boolean;
   value?: string;
@@ -579,6 +581,7 @@ function BioField({
         <input
           id={fieldId}
           type={type || 'text'}
+          inputMode={inputMode}
           placeholder={placeholder}
           value={value ?? ''}
           onChange={(e) => onChange?.(e.target.value)}
