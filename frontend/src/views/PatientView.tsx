@@ -75,8 +75,8 @@ export function PatientView() {
     initials: mappedApiData?.initials ?? '--',
     age: mappedApiData?.age ?? 0,
     birthDate: mappedApiData?.birthDate ?? null,
-    sex: mappedApiData?.sex ?? 'F',
-    heightCm: mappedApiData?.heightCm ?? null,
+    sex: mappedApiData?.sex ?? '',
+    heightCm: mappedApiData?.heightCm ?? 0,
     whatsapp: mappedApiData?.whatsapp ?? null,
     objective: mappedApiData?.objective ?? 'Sem objetivo definido',
     status: mappedApiData?.status ?? 'warning',
@@ -117,6 +117,14 @@ export function PatientView() {
         ? patient.weightDelta
         : 0;
   const patientId = id ?? patient.id;
+  const ageLabel =
+    Number.isFinite(patient.age) && patient.age > 0 ? `${patient.age} anos` : 'Idade não informada';
+  const sexLabel =
+    patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : 'Sexo não informado';
+  const heightLabel =
+    patient.heightCm != null && patient.heightCm > 0
+      ? `${patient.heightCm} cm`
+      : 'Altura não informada';
 
   if (isLoading) {
     return (
@@ -212,11 +220,11 @@ export function PatientView() {
               }}
             >
               <span>
-                {patient.age} anos · {patient.sex === 'F' ? 'Feminino' : 'Masculino'}
+                {ageLabel} · {sexLabel}
               </span>
               <span>·</span>
               <span>
-                {patient.heightCm ?? patient.height} cm · {latestBiometryWeight} kg
+                {heightLabel} · {latestBiometryWeight} kg
               </span>
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>
