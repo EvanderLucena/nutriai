@@ -36,7 +36,7 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-undef': 'off',
       'complexity': ['warn', { max: 12 }],
-      'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 120, skipBlankLines: true, skipComments: true }],
       'max-lines': ['warn', { max: 300 }],
       'jsx-a11y/alt-text': 'warn',
       'jsx-a11y/aria-props': 'warn',

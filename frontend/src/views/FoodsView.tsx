@@ -8,6 +8,7 @@ import {
   REVERSE_CATEGORY_LABELS,
 } from '../types/food';
 import type { Food, FoodCategory, FoodCategoryKey, FoodUnit } from '../types/food';
+import { parseNumberInput, sanitizeNumberInput } from '../utils/numberInput';
 import {
   useFoodUIStore,
   useFoodCatalog,
@@ -177,12 +178,12 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
         name: name.trim(),
         category,
         unit,
-        referenceAmount: Number(referenceAmount) || 0,
-        kcal: Number(kcal) || 0,
-        prot: Number(prot) || 0,
-        carb: Number(carb) || 0,
-        fat: Number(fat) || 0,
-        fiber: Number(fiber) || 0,
+        referenceAmount: parseNumberInput(referenceAmount),
+        kcal: parseNumberInput(kcal),
+        prot: parseNumberInput(prot),
+        carb: parseNumberInput(carb),
+        fat: parseNumberInput(fat),
+        fiber: parseNumberInput(fiber),
         prep: prep || null,
       },
     });
@@ -193,32 +194,41 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
     label: string,
     val: string,
     set: (v: string) => void,
-    opts: { mono?: boolean; type?: string; placeholder?: string } = {},
-  ) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div className="eyebrow">{label}</div>
-      <input
-        value={val}
-        onChange={(e) => set(e.target.value)}
-        type={opts.type || 'text'}
-        placeholder={opts.placeholder || ''}
-        style={{
-          padding: '8px 10px',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          fontSize: 13,
-          background: 'var(--surface)',
-          outline: 'none',
-          color: 'var(--fg)',
-          width: '100%',
-          boxSizing: 'border-box',
-          fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
-        }}
-        onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-        onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
-      />
-    </div>
-  );
+    opts: { mono?: boolean; type?: string; placeholder?: string; isNumber?: boolean } = {},
+  ) => {
+    const isNumberField = opts.isNumber ?? false;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div className="eyebrow">{label}</div>
+        <input
+          value={val}
+          onChange={(e) =>
+            set(isNumberField ? sanitizeNumberInput(e.target.value) : e.target.value)
+          }
+          type={isNumberField ? 'text' : opts.type || 'text'}
+          inputMode={isNumberField ? 'decimal' : undefined}
+          placeholder={opts.placeholder || ''}
+          style={{
+            padding: '8px 10px',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            fontSize: 13,
+            background: 'var(--surface)',
+            outline: 'none',
+            color: 'var(--fg)',
+            width: '100%',
+            boxSizing: 'border-box',
+            fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
+          }}
+          onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border)';
+            if (isNumberField) set(String(parseNumberInput(e.target.value)));
+          }}
+        />
+      </div>
+    );
+  };
 
   const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
   const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
@@ -300,7 +310,10 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
                 ))}
               </select>
             </div>
-            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, { mono: true })}
+            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, {
+              mono: true,
+              isNumber: true,
+            })}
           </div>
           <div className="divider">
             <span>
@@ -309,11 +322,11 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true })}
-            {field('Prot (g)', prot, setProt, { mono: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true })}
-            {field('Gord (g)', fat, setFat, { mono: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true })}
+            {field('Kcal', kcal, setKcal, { mono: true, isNumber: true })}
+            {field('Prot (g)', prot, setProt, { mono: true, isNumber: true })}
+            {field('Carb (g)', carb, setCarb, { mono: true, isNumber: true })}
+            {field('Gord (g)', fat, setFat, { mono: true, isNumber: true })}
+            {field('Fibra (g)', fiber, setFiber, { mono: true, isNumber: true })}
           </div>
           {field('Preparo sugerido', prep, setPrep, {
             placeholder: 'ex: grelhado, cozido no vapor',
@@ -649,12 +662,12 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
       name: name.trim(),
       category,
       unit,
-      referenceAmount: Number(referenceAmount) || 0,
-      kcal: Number(kcal) || 0,
-      prot: Number(prot) || 0,
-      carb: Number(carb) || 0,
-      fat: Number(fat) || 0,
-      fiber: Number(fiber) || 0,
+      referenceAmount: parseNumberInput(referenceAmount),
+      kcal: parseNumberInput(kcal),
+      prot: parseNumberInput(prot),
+      carb: parseNumberInput(carb),
+      fat: parseNumberInput(fat),
+      fiber: parseNumberInput(fiber),
       prep: prep || null,
       portionLabel: portionLabel || null,
     });
@@ -665,31 +678,41 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
     label: string,
     val: string,
     set: (v: string) => void,
-    opts: { mono?: boolean; placeholder?: string } = {},
-  ) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div className="eyebrow">{label}</div>
-      <input
-        placeholder={opts.placeholder || ''}
-        value={val}
-        onChange={(e) => set(e.target.value)}
-        style={{
-          padding: '8px 10px',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          fontSize: 13,
-          background: 'var(--surface)',
-          outline: 'none',
-          color: 'var(--fg)',
-          width: '100%',
-          boxSizing: 'border-box',
-          fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
-        }}
-        onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-        onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
-      />
-    </div>
-  );
+    opts: { mono?: boolean; placeholder?: string; isNumber?: boolean } = {},
+  ) => {
+    const isNumberField = opts.isNumber ?? false;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <div className="eyebrow">{label}</div>
+        <input
+          placeholder={opts.placeholder || ''}
+          value={val}
+          onChange={(e) =>
+            set(isNumberField ? sanitizeNumberInput(e.target.value) : e.target.value)
+          }
+          type={isNumberField ? 'text' : 'text'}
+          inputMode={isNumberField ? 'decimal' : undefined}
+          style={{
+            padding: '8px 10px',
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            fontSize: 13,
+            background: 'var(--surface)',
+            outline: 'none',
+            color: 'var(--fg)',
+            width: '100%',
+            boxSizing: 'border-box',
+            fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
+          }}
+          onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
+          onBlur={(e) => {
+            e.target.style.borderColor = 'var(--border)';
+            if (isNumberField) set(String(parseNumberInput(e.target.value)));
+          }}
+        />
+      </div>
+    );
+  };
 
   const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
   const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
@@ -777,6 +800,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, {
             mono: true,
             placeholder: unit === 'GRAMAS' ? '100' : '1',
+            isNumber: true,
           })}
           <div className="divider">
             <span>
@@ -785,11 +809,11 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true })}
-            {field('Prot (g)', prot, setProt, { mono: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true })}
-            {field('Gord (g)', fat, setFat, { mono: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true })}
+            {field('Kcal', kcal, setKcal, { mono: true, isNumber: true })}
+            {field('Prot (g)', prot, setProt, { mono: true, isNumber: true })}
+            {field('Carb (g)', carb, setCarb, { mono: true, isNumber: true })}
+            {field('Gord (g)', fat, setFat, { mono: true, isNumber: true })}
+            {field('Fibra (g)', fiber, setFiber, { mono: true, isNumber: true })}
           </div>
           {field('Preparo sugerido', prep, setPrep, {
             placeholder: 'ex: grelhado, cozido no vapor',
