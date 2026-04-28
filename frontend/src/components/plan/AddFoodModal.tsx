@@ -14,6 +14,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Food | null>(null);
   const [referenceAmount, setReferenceAmount] = useState('');
+  const [amountError, setAmountError] = useState<string | undefined>(undefined);
   const [results, setResults] = useState<Food[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -22,6 +23,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
     setQ(val);
     setSelected(null);
     setReferenceAmount('');
+    setAmountError(undefined);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!val.trim()) {
       setResults([]);
@@ -51,6 +53,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
   const handleSelectFood = (food: Food) => {
     setSelected(food);
     setReferenceAmount(String(food.referenceAmount));
+    setAmountError(undefined);
   };
 
   const getMacroPreview = () => {
@@ -69,11 +72,33 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
 
   const macroPreview = getMacroPreview();
 
+  const validateAmount = (val: string): string | undefined => {
+    if (!val.trim()) return 'Quantidade é obrigatória.';
+    const n = parseNumberInput(val);
+    if (n <= 0) return 'Quantidade deve ser maior que zero.';
+    return undefined;
+  };
+
+  const handleAmountBlur = () => {
+    if (referenceAmount) {
+      setReferenceAmount(String(parseNumberInput(referenceAmount)));
+      const err = validateAmount(referenceAmount);
+      setAmountError(err);
+    }
+  };
+
   const handleAdd = () => {
-    if (!selected || !referenceAmount) return;
+    if (!selected) return;
+    const err = validateAmount(referenceAmount);
+    if (err) {
+      setAmountError(err);
+      return;
+    }
+    const amount = parseNumberInput(referenceAmount);
+    if (!amount || amount <= 0) return;
     onAdd({
       foodId: selected.id,
-      referenceAmount: parseNumberInput(referenceAmount),
+      referenceAmount: amount,
     });
     onClose();
   };
@@ -212,22 +237,26 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
           {selected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div>
-                <div className="eyebrow">Referência</div>
+                <label className="eyebrow" htmlFor="add-ref-amount">
+                  Referência
+                </label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
+                    id="add-ref-amount"
                     type="text"
                     inputMode="decimal"
                     value={referenceAmount}
-                    onChange={(e) => setReferenceAmount(sanitizeNumberInput(e.target.value))}
-                    onBlur={() => {
-                      if (referenceAmount) {
-                        setReferenceAmount(String(parseNumberInput(referenceAmount)));
-                      }
+                    onChange={(e) => {
+                      setReferenceAmount(sanitizeNumberInput(e.target.value));
+                      setAmountError(undefined);
                     }}
+                    onBlur={handleAmountBlur}
+                    aria-invalid={amountError ? 'true' : undefined}
+                    aria-describedby={amountError ? 'add-ref-amount-error' : undefined}
                     placeholder="0"
                     style={{
                       padding: '8px 10px',
-                      border: '1px solid var(--border)',
+                      border: `1px solid ${amountError ? 'var(--coral)' : 'var(--border)'}`,
                       borderRadius: 6,
                       fontSize: 13,
                       background: 'var(--surface)',
@@ -247,6 +276,16 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
                     </span>
                   )}
                 </div>
+                {amountError && (
+                  <p
+                    id="add-ref-amount-error"
+                    className="text-xs text-coral"
+                    role="alert"
+                    style={{ marginTop: 4 }}
+                  >
+                    {amountError}
+                  </p>
+                )}
               </div>
               {macroPreview && (
                 <div

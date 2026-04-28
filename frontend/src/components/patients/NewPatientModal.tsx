@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { OBJECTIVE_LABELS, OBJECTIVE_KEYS } from '../../types/patient';
 import type { ObjectiveOption } from '../../types/patient';
+import { useValidation } from '../../hooks/useValidation';
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '');
@@ -33,56 +34,116 @@ interface NewPatientModalProps {
 }
 
 export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps) {
-  const [form, setForm] = useState({
-    name: '',
-    objective: '' as ObjectiveOption | '',
-    birthDate: '',
-    sex: 'F' as 'F' | 'M',
-    heightCm: '',
-    whatsapp: '',
-    notes: '',
-    terms: false,
-  });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const {
+    values: form,
+    errors,
+    set,
+    onBlur,
+    validateAll,
+    reset,
+  } = useValidation(
+    {
+      name: '',
+      objective: '',
+      birthDate: '',
+      heightCm: '',
+      whatsapp: '',
+      notes: '',
+    } as Record<string, string>,
+    {
+      name: {
+        required: true,
+        requiredMessage: 'Nome é obrigatório.',
+        minLength: 2,
+        minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
+      },
+      objective: {
+        required: true,
+        requiredMessage: 'Selecione um objetivo.',
+      },
+      heightCm: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = Number(v.replace(',', '.'));
+          if (!Number.isFinite(n)) return 'Altura deve ser um número.';
+          if (n < 50 || n > 250) return 'Altura deve estar entre 50 e 250 cm.';
+          return undefined;
+        },
+      },
+      whatsapp: {
+        custom: (v: string) => {
+          const digits = stripPhone(v).replace(/\D/g, '');
+          if (!digits) return undefined;
+          if (digits.length < 10) return 'WhatsApp deve ter pelo menos 10 dígitos.';
+          if (digits.length > 11) return 'WhatsApp deve ter no máximo 11 dígitos.';
+          return undefined;
+        },
+      },
+      birthDate: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const d = new Date(v);
+          if (isNaN(d.getTime())) return 'Data inválida.';
+          if (d > new Date()) return 'Data não pode ser no futuro.';
+          return undefined;
+        },
+      },
+    },
+  );
+
+  const [sex, setSex] = useState<'F' | 'M'>('F');
+  const [terms, setTerms] = useState(false);
 
   const handleSubmit = () => {
-    if (!form.name.trim() || !form.objective) return;
+    if (!terms) return;
+    if (!validateAll()) return;
     onSave?.({
       name: form.name,
       objective: form.objective as ObjectiveOption,
       ...(form.birthDate ? { birthDate: form.birthDate } : {}),
-      sex: form.sex,
+      sex,
       ...(form.heightCm ? { heightCm: Number(form.heightCm) } : {}),
       ...(stripPhone(form.whatsapp) ? { whatsapp: stripPhone(form.whatsapp) } : {}),
-      terms: form.terms,
+      terms,
     });
     onClose();
   };
 
+  const handleClose = () => {
+    reset();
+    setSex('F');
+    setTerms(false);
+    onClose();
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title="Novo paciente">
+    <Modal open={open} onClose={handleClose} title="Novo paciente">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Input
           label="Nome completo"
           placeholder="ex: Ana Beatriz Lima"
+          error={errors.name}
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
+          onBlur={onBlur('name')}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Input
             label="Data de nascimento"
             type="date"
+            error={errors.birthDate}
             value={form.birthDate}
             onChange={(e) => set('birthDate', e.target.value)}
+            onBlur={onBlur('birthDate')}
           />
           <div className="flex flex-col gap-1.5">
             <label className="eyebrow">Sexo</label>
             <div className="seg" style={{ height: 36 }}>
-              <button className={form.sex === 'F' ? 'active' : ''} onClick={() => set('sex', 'F')}>
+              <button className={sex === 'F' ? 'active' : ''} onClick={() => setSex('F')}>
                 Feminino
               </button>
-              <button className={form.sex === 'M' ? 'active' : ''} onClick={() => set('sex', 'M')}>
+              <button className={sex === 'M' ? 'active' : ''} onClick={() => setSex('M')}>
                 Masculino
               </button>
             </div>
@@ -93,17 +154,21 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           <Input
             label="Altura (cm)"
             placeholder="168"
+            error={errors.heightCm}
             value={form.heightCm}
             onChange={(e) => set('heightCm', e.target.value)}
+            onBlur={onBlur('heightCm')}
           />
           <div className="flex flex-col gap-1.5">
             <label className="eyebrow">Objetivo</label>
             <select
               value={form.objective}
               onChange={(e) => set('objective', e.target.value)}
+              onBlur={onBlur('objective')}
+              aria-invalid={errors.objective ? 'true' : undefined}
               style={{
                 padding: '8px 10px',
-                border: '1px solid var(--border)',
+                border: `1px solid ${errors.objective ? 'var(--coral)' : 'var(--border)'}`,
                 borderRadius: 6,
                 fontSize: 13,
                 background: 'var(--surface)',
@@ -119,6 +184,11 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
                 </option>
               ))}
             </select>
+            {errors.objective && (
+              <p id="objective-error" className="text-xs text-coral" role="alert">
+                {errors.objective}
+              </p>
+            )}
           </div>
         </div>
 
@@ -133,9 +203,11 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
             onChange={(e) => set('whatsapp', formatPhone(stripPhone(e.target.value)))}
             type="tel"
             placeholder="(11) 99999-9999"
+            aria-invalid={errors.whatsapp ? 'true' : undefined}
+            aria-describedby={errors.whatsapp ? 'whatsapp-error' : undefined}
             style={{
               padding: '8px 10px',
-              border: '1px solid var(--border)',
+              border: `1px solid ${errors.whatsapp ? 'var(--coral)' : 'var(--border)'}`,
               borderRadius: 6,
               fontSize: 13,
               background: 'var(--surface)',
@@ -145,9 +217,19 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
               boxSizing: 'border-box',
               outline: 'none',
             }}
-            onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-            onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+            onFocus={(e) => {
+              if (!errors.whatsapp) e.target.style.borderColor = 'var(--fg-muted)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = errors.whatsapp ? 'var(--coral)' : 'var(--border)';
+              onBlur('whatsapp')();
+            }}
           />
+          {errors.whatsapp && (
+            <p id="whatsapp-error" className="text-xs text-coral" role="alert">
+              {errors.whatsapp}
+            </p>
+          )}
         </div>
         <div
           style={{
@@ -168,7 +250,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
         <Input
           label="Observações iniciais · opcional"
           placeholder="ex: histórico de diabetes, alergia a lactose"
-          value={form.notes}
+          value={form.notes ?? ''}
           onChange={(e) => set('notes', e.target.value)}
         />
 
@@ -184,8 +266,8 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
         >
           <input
             type="checkbox"
-            checked={form.terms}
-            onChange={(e) => setForm((f) => ({ ...f, terms: e.target.checked }))}
+            checked={terms}
+            onChange={(e) => setTerms(e.target.checked)}
             style={{ marginTop: 2 }}
           />
           <span>
@@ -195,12 +277,12 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" onClick={handleClose}>
           Cancelar
         </Button>
         <Button
           variant="primary"
-          disabled={!form.name.trim() || !form.objective || !form.terms}
+          disabled={!form.name.trim() || !form.objective || !terms}
           onClick={handleSubmit}
         >
           Cadastrar paciente

@@ -3,6 +3,7 @@ import type { UseMutationResult } from '@tanstack/react-query';
 import type { BiometryAssessmentDTO, CreateBiometryAssessmentRequest } from '../../types/patient';
 import { resolveMutationErrorMessage } from '../../stores/patientStore';
 import { IconPlus, IconX } from '../icons';
+import { useValidation } from '../../hooks/useValidation';
 
 const SKINFOLD_KEYS = [
   'peitoral',
@@ -51,24 +52,100 @@ interface NewBiometryModalProps {
 }
 
 export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiometryModalProps) {
-  const [form, setForm] = React.useState({
-    assessmentDate: new Date().toISOString().slice(0, 10),
-    weight: '',
-    bodyFatPercent: '',
-    leanMassKg: '',
-    waterPercent: '',
-    visceralFatLevel: '',
-    bmrKcal: '',
-    notes: '',
-  });
-  const [skinfoldValues, setSkinfoldValues] = React.useState<Record<string, string>>({});
-  const [perimetryValues, setPerimetryValues] = React.useState<Record<string, string>>({});
-  const [validationError, setValidationError] = React.useState<string | null>(null);
+  const {
+    values: form,
+    errors,
+    set,
+    onBlur,
+    validateAll,
+  } = useValidation(
+    {
+      assessmentDate: new Date().toISOString().slice(0, 10),
+      weight: '',
+      bodyFatPercent: '',
+      leanMassKg: '',
+      waterPercent: '',
+      visceralFatLevel: '',
+      bmrKcal: '',
+      notes: '',
+    } as Record<string, string>,
+    {
+      assessmentDate: {
+        required: true,
+        requiredMessage: 'Data da avaliação é obrigatória.',
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const d = new Date(v);
+          if (isNaN(d.getTime())) return 'Data inválida.';
+          if (d > new Date()) return 'Data não pode ser no futuro.';
+          return undefined;
+        },
+      },
+      weight: {
+        required: true,
+        requiredMessage: 'Peso é obrigatório.',
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n) || n <= 0) return 'Informe um peso válido em kg.';
+          if (n > 500) return 'Peso deve ser menor que 500 kg.';
+          return undefined;
+        },
+      },
+      bodyFatPercent: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n)) return 'Valor numérico inválido para % de gordura.';
+          if (n <= 0 || n > 100) return '% de gordura deve estar entre 0,01 e 100.';
+          return undefined;
+        },
+      },
+      leanMassKg: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n)) return 'Valor numérico inválido para massa magra.';
+          if (n < 0) return 'Massa magra não pode ser negativa.';
+          return undefined;
+        },
+      },
+      waterPercent: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n)) return 'Valor numérico inválido para % de água.';
+          if (n < 0 || n > 100) return '% de água deve estar entre 0 e 100.';
+          return undefined;
+        },
+      },
+      visceralFatLevel: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n) || !Number.isInteger(n))
+            return 'Nível de gordura visceral deve ser um número inteiro.';
+          if (n < 0) return 'Nível de gordura visceral não pode ser negativo.';
+          return undefined;
+        },
+      },
+      bmrKcal: {
+        custom: (v: string) => {
+          if (!v.trim()) return undefined;
+          const n = parseFloat(v.replace(',', '.'));
+          if (!Number.isFinite(n) || !Number.isInteger(n)) return 'TMB deve ser um número inteiro.';
+          if (n < 0) return 'TMB não pode ser negativa.';
+          return undefined;
+        },
+      },
+    },
+  );
 
-  const set = (k: string, v: string) => {
-    setValidationError(null);
-    setForm((f) => ({ ...f, [k]: v }));
-  };
+  const [skinfoldValues, setSkinfoldValues] = React.useState<Record<string, string>>({});
+  const [skinfoldErrors, setSkinfoldErrors] = React.useState<Record<string, string>>({});
+  const [perimetryValues, setPerimetryValues] = React.useState<Record<string, string>>({});
+  const [perimetryErrors, setPerimetryErrors] = React.useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   const parseDecimal = (rawValue: string): number | null => {
     const normalized = rawValue.trim().replace(',', '.');
@@ -83,111 +160,82 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
     return parsed;
   };
 
+  const validateSkinfold = (key: string, value: string): string | undefined => {
+    if (!value.trim()) return undefined;
+    const parsed = parseDecimal(value);
+    if (parsed == null) return `Valor inválido em ${SKINFOLD_LABELS[key]}.`;
+    if (parsed < 0) return `${SKINFOLD_LABELS[key]} não pode ser negativo.`;
+    return undefined;
+  };
+
+  const validatePerimetry = (key: string, value: string): string | undefined => {
+    if (!value.trim()) return undefined;
+    const parsed = parseDecimal(value);
+    if (parsed == null) return `Valor inválido em ${PERIMETRY_LABELS[key]}.`;
+    if (parsed < 0) return `${PERIMETRY_LABELS[key]} não pode ser negativo.`;
+    return undefined;
+  };
+
   const handleSubmit = () => {
-    setValidationError(null);
+    setSubmitError(null);
+
+    if (!validateAll()) return;
+
+    let hasInvalid = false;
+    const newSkinfoldErrors: Record<string, string> = {};
+    for (const key of SKINFOLD_KEYS) {
+      const val = skinfoldValues[key]?.trim() ?? '';
+      if (val) {
+        const err = validateSkinfold(key, val);
+        if (err) {
+          newSkinfoldErrors[key] = err;
+          hasInvalid = true;
+        }
+      }
+    }
+    setSkinfoldErrors(newSkinfoldErrors);
+
+    const newPerimetryErrors: Record<string, string> = {};
+    for (const key of PERIMETRY_KEYS) {
+      const val = perimetryValues[key]?.trim() ?? '';
+      if (val) {
+        const err = validatePerimetry(key, val);
+        if (err) {
+          newPerimetryErrors[key] = err;
+          hasInvalid = true;
+        }
+      }
+    }
+    setPerimetryErrors(newPerimetryErrors);
+
+    if (hasInvalid) return;
 
     const weight = parseDecimal(form.weight);
-    if (weight == null || weight <= 0) {
-      setValidationError('Informe um peso válido em kg.');
-      return;
-    }
-
     const bodyFatPercent = parseDecimal(form.bodyFatPercent);
-    if (form.bodyFatPercent.trim() && bodyFatPercent == null) {
-      setValidationError('Informe um valor numérico válido para % de gordura.');
-      return;
-    }
-    if (bodyFatPercent != null && (bodyFatPercent <= 0 || bodyFatPercent > 100)) {
-      setValidationError('% de gordura deve estar entre 0,01 e 100.');
-      return;
-    }
-
     const leanMassKg = parseDecimal(form.leanMassKg);
-    if (form.leanMassKg.trim() && leanMassKg == null) {
-      setValidationError('Informe um valor numérico válido para massa magra.');
-      return;
-    }
-    if (leanMassKg != null && leanMassKg < 0) {
-      setValidationError('Massa magra não pode ser negativa.');
-      return;
-    }
-
     const waterPercent = parseDecimal(form.waterPercent);
-    if (form.waterPercent.trim() && waterPercent == null) {
-      setValidationError('Informe um valor numérico válido para % de água.');
-      return;
-    }
-    if (waterPercent != null && (waterPercent < 0 || waterPercent > 100)) {
-      setValidationError('% de água deve estar entre 0 e 100.');
-      return;
-    }
-
     const visceralFatLevel = parseInteger(form.visceralFatLevel);
-    if (form.visceralFatLevel.trim() && visceralFatLevel == null) {
-      setValidationError('Nível de gordura visceral deve ser um número inteiro.');
-      return;
-    }
-    if (visceralFatLevel != null && visceralFatLevel < 0) {
-      setValidationError('Nível de gordura visceral não pode ser negativo.');
-      return;
-    }
-
     const bmrKcal = parseInteger(form.bmrKcal);
-    if (form.bmrKcal.trim() && bmrKcal == null) {
-      setValidationError('TMB deve ser um número inteiro.');
-      return;
-    }
-    if (bmrKcal != null && bmrKcal < 0) {
-      setValidationError('TMB não pode ser negativa.');
-      return;
-    }
 
-    let invalidField: string | null = null;
     const skinfolds = SKINFOLD_KEYS.flatMap((key, i) => {
       const rawValue = skinfoldValues[key]?.trim() ?? '';
       if (!rawValue) return [];
       const parsed = parseDecimal(rawValue);
-      if (parsed == null) {
-        invalidField = SKINFOLD_LABELS[key];
-        return [];
-      }
-      return [
-        {
-          measureKey: key,
-          valueMm: parsed,
-          sortOrder: i + 1,
-        },
-      ];
+      if (parsed == null) return [];
+      return [{ measureKey: key, valueMm: parsed, sortOrder: i + 1 }];
     });
-    if (invalidField) {
-      setValidationError(`Valor inválido em dobra cutânea: ${invalidField}.`);
-      return;
-    }
 
     const perimetry = PERIMETRY_KEYS.flatMap((key, i) => {
       const rawValue = perimetryValues[key]?.trim() ?? '';
       if (!rawValue) return [];
       const parsed = parseDecimal(rawValue);
-      if (parsed == null) {
-        invalidField = PERIMETRY_LABELS[key];
-        return [];
-      }
-      return [
-        {
-          measureKey: key,
-          valueCm: parsed,
-          sortOrder: i + 1,
-        },
-      ];
+      if (parsed == null) return [];
+      return [{ measureKey: key, valueCm: parsed, sortOrder: i + 1 }];
     });
-    if (invalidField) {
-      setValidationError(`Valor inválido em perimetria: ${invalidField}.`);
-      return;
-    }
 
     const payload: CreateBiometryAssessmentRequest = {
       assessmentDate: form.assessmentDate,
-      weight,
+      weight: weight!,
       bodyFatPercent,
       leanMassKg,
       waterPercent,
@@ -203,7 +251,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
         onSuccess();
       },
       onError: (error) => {
-        setValidationError(
+        setSubmitError(
           resolveMutationErrorMessage(
             error,
             'Não foi possível salvar a avaliação. Tente novamente.',
@@ -264,6 +312,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               type="date"
               value={form.assessmentDate}
               onChange={(v) => set('assessmentDate', v)}
+              onBlur={() => onBlur('assessmentDate')()}
+              error={errors.assessmentDate}
             />
             <BioField
               label="Peso (kg)"
@@ -272,6 +322,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.weight}
               onChange={(v: string) => set('weight', v)}
+              onBlur={() => onBlur('weight')()}
+              error={errors.weight}
             />
           </div>
 
@@ -286,6 +338,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.bodyFatPercent}
               onChange={(v: string) => set('bodyFatPercent', v)}
+              onBlur={() => onBlur('bodyFatPercent')()}
+              error={errors.bodyFatPercent}
             />
             <BioField
               label="Massa magra (kg)"
@@ -294,6 +348,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.leanMassKg}
               onChange={(v: string) => set('leanMassKg', v)}
+              onBlur={() => onBlur('leanMassKg')()}
+              error={errors.leanMassKg}
             />
             <BioField
               label="% Água"
@@ -302,6 +358,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.waterPercent}
               onChange={(v: string) => set('waterPercent', v)}
+              onBlur={() => onBlur('waterPercent')()}
+              error={errors.waterPercent}
             />
             <BioField
               label="Gordura visceral · nível"
@@ -310,6 +368,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.visceralFatLevel}
               onChange={(v: string) => set('visceralFatLevel', v)}
+              onBlur={() => onBlur('visceralFatLevel')()}
+              error={errors.visceralFatLevel}
             />
             <BioField
               label="TMB (kcal)"
@@ -318,6 +378,8 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
               mono
               value={form.bmrKcal}
               onChange={(v: string) => set('bmrKcal', v)}
+              onBlur={() => onBlur('bmrKcal')()}
+              error={errors.bmrKcal}
             />
           </div>
 
@@ -334,9 +396,26 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
                 mono
                 value={skinfoldValues[k] ?? ''}
                 onChange={(v: string) => {
-                  setValidationError(null);
                   setSkinfoldValues((prev) => ({ ...prev, [k]: v }));
+                  const err = validateSkinfold(k, v);
+                  setSkinfoldErrors((prev) => {
+                    const next = { ...prev };
+                    if (err) next[k] = err;
+                    else delete next[k];
+                    return next;
+                  });
                 }}
+                onBlur={() => {
+                  const val = skinfoldValues[k]?.trim() ?? '';
+                  const err = validateSkinfold(k, val);
+                  setSkinfoldErrors((prev) => {
+                    const next = { ...prev };
+                    if (err) next[k] = err;
+                    else delete next[k];
+                    return next;
+                  });
+                }}
+                error={skinfoldErrors[k]}
               />
             ))}
           </div>
@@ -373,9 +452,26 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
                 mono
                 value={perimetryValues[k] ?? ''}
                 onChange={(v: string) => {
-                  setValidationError(null);
                   setPerimetryValues((prev) => ({ ...prev, [k]: v }));
+                  const err = validatePerimetry(k, v);
+                  setPerimetryErrors((prev) => {
+                    const next = { ...prev };
+                    if (err) next[k] = err;
+                    else delete next[k];
+                    return next;
+                  });
                 }}
+                onBlur={() => {
+                  const val = perimetryValues[k]?.trim() ?? '';
+                  const err = validatePerimetry(k, val);
+                  setPerimetryErrors((prev) => {
+                    const next = { ...prev };
+                    if (err) next[k] = err;
+                    else delete next[k];
+                    return next;
+                  });
+                }}
+                error={perimetryErrors[k]}
               />
             ))}
           </div>
@@ -388,7 +484,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             onChange={(v) => set('notes', v)}
           />
 
-          {validationError && (
+          {submitError && (
             <div
               style={{
                 padding: '10px 12px',
@@ -397,8 +493,9 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
                 fontSize: 13,
                 color: 'var(--coral)',
               }}
+              role="alert"
             >
-              {validationError}
+              {submitError}
             </div>
           )}
         </div>
@@ -438,6 +535,8 @@ function BioField({
   mono,
   value,
   onChange,
+  onBlur,
+  error,
 }: {
   label: string;
   placeholder?: string;
@@ -446,10 +545,13 @@ function BioField({
   mono?: boolean;
   value?: string;
   onChange?: (v: string) => void;
+  onBlur?: () => void;
+  error?: string;
 }) {
+  const fieldId = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   const style: React.CSSProperties = {
     padding: '8px 10px',
-    border: '1px solid var(--border)',
+    border: `1px solid ${error ? 'var(--coral)' : 'var(--border)'}`,
     borderRadius: 6,
     fontSize: 13,
     background: 'var(--surface)',
@@ -460,23 +562,36 @@ function BioField({
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div className="eyebrow">{label}</div>
+      <label className="eyebrow" htmlFor={fieldId}>
+        {label}
+      </label>
       {kind === 'textarea' ? (
         <textarea
+          id={fieldId}
           placeholder={placeholder}
           rows={2}
           value={value ?? ''}
           onChange={(e) => onChange?.(e.target.value)}
+          onBlur={onBlur}
           style={{ ...style, resize: 'vertical', fontFamily: 'var(--font-ui)' }}
         />
       ) : (
         <input
+          id={fieldId}
           type={type || 'text'}
           placeholder={placeholder}
           value={value ?? ''}
           onChange={(e) => onChange?.(e.target.value)}
+          onBlur={onBlur}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={error ? `${fieldId}-error` : undefined}
           style={style}
         />
+      )}
+      {error && (
+        <p id={`${fieldId}-error`} className="text-xs text-coral" role="alert">
+          {error}
+        </p>
       )}
     </div>
   );
