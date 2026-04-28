@@ -545,17 +545,55 @@ Painel clínico para nutricionistas solo (Brasil) que gerencia pacientes, planos
 No project skills found. Add skills to any of: `.OpenCode/skills/`, `.agents/skills/`, `.cursor/skills/`, or `.github/skills/` with a `SKILL.md` index file.
 <!-- GSD:skills-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
+<!-- GSD:workflow-start source:GSD-QUICKSTART.md -->
+## GSD Workflow
 
-Before using edit, write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+This project uses the **GSD (Get Shit Done)** project management system with structured workflows: plan → execute → verify → ship. All planning artifacts live in `.planning/`.
 
-Use these entry points:
-- `/gsd-quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd-debug` for investigation and bug fixing
-- `/gsd-execute-phase` for planned phase work
+**Prerequisite:** GSD must be installed globally (skill + commands at `~/.config/opencode/get-shit-done/`). Slash commands are available in OpenCode. In other runtimes, read the workflow files directly.
 
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+### Entry Points (OpenCode slash commands)
+
+| Command | Purpose |
+|---------|---------|
+| `/gsd:execute-phase <N>` | Execute a planned phase with wave-based parallel execution |
+| `/gsd:plan-phase <N>` | Create execution plans for a phase (researches first) |
+| `/gsd:discuss-phase <N>` | Gather context and surface gray areas before planning |
+| `/gsd:research-phase <N>` | Research technical approaches for a phase |
+| `/gsd-quick <desc>` | Small ad-hoc task with GSD guarantees (atomic commits, STATE tracking) |
+| `/gsd-debug <desc>` | Systematic debugging using scientific method |
+| `/gsd:verify-work <N>` | Goal-backward verification of phase completion |
+| `/gsd:code-review` | Review source files for bugs, security, and quality |
+| `/gsd:progress` | Show current project position and next action |
+| `/gsd:next` | Show what to work on next |
+
+### Quick Task Flags (`/gsd-quick`)
+
+| Flag | Effect |
+|------|--------|
+| `--full` | Discussion + research + plan-checking + verification |
+| `--discuss` | Lightweight discussion before planning |
+| `--research` | Spawn researcher before planning |
+| `--validate` | Plan-checking + post-execution verification |
+
+### Fallback: When Slash Commands Don't Work
+
+If slash commands are unavailable (e.g. Claude Code, Paperclip agent):
+
+1. Read the GSD SKILL.md directly: `~/.agents/skills/majiayu000-gsd/SKILL.md`
+2. Read the relevant workflow in `~/.config/opencode/get-shit-done/workflows/` (each has a complete `<process>` section)
+3. Follow the process manually — the workflows are agent-agnostic instructions
+4. Full quickstart guide: `docs/GSD-QUICKSTART.md`
+
+### Key GSD Conventions
+
+- **Plans are prompts** — `XX-YY-PLAN.md` files are execution prompts, not documentation
+- **Goal-backward planning** — start from "what must be TRUE", derive what to build
+- **Atomic commits** — each task commits independently
+- **Context budget** — plans target ~50% context usage; stop before quality degrades
+- **STATE.md is the memory** — always read `.planning/STATE.md` before starting work
+
+Before starting any phase or task, read `.planning/STATE.md` for current position and `.planning/ROADMAP.md` for phase context.
 <!-- GSD:workflow-end -->
 
 ## Anti-Stall Protocol
