@@ -4,17 +4,14 @@ import { useToastStore } from '../../stores/toastStore';
 import type { Patient, ObjectiveOption } from '../../types/patient';
 import { OBJECTIVE_LABELS, OBJECTIVE_KEYS, REVERSE_OBJECTIVE_LABELS } from '../../types/patient';
 import { IconX, IconCheck } from '../icons';
-
-interface EditPatientModalProps {
-  patient: Patient;
-  onClose: () => void;
-}
+import { useValidation } from '../../hooks/useValidation';
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '');
   if (digits.length <= 2) return `(${digits}`;
   if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 11) return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  if (digits.length <= 11)
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
 }
 
@@ -22,28 +19,81 @@ function stripPhone(value: string): string {
   return value.replace(/\D/g, '').slice(0, 11);
 }
 
+interface EditPatientModalProps {
+  patient: Patient;
+  onClose: () => void;
+}
+
 export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
   const updateMutation = useUpdatePatient();
-  const [name, setName] = useState(patient.name);
-  const [birthDate, setBirthDate] = useState(patient.birthDate ?? '');
   const [sex, setSex] = useState(patient.sex || 'F');
-  const [heightCm, setHeightCm] = useState(patient.heightCm != null ? String(patient.heightCm) : '');
-  const [whatsapp, setWhatsapp] = useState(formatPhone(patient.whatsapp ?? ''));
   const [objective, setObjective] = useState<ObjectiveOption>(
-    (REVERSE_OBJECTIVE_LABELS[patient.objective] ?? patient.objective) as ObjectiveOption
+    (REVERSE_OBJECTIVE_LABELS[patient.objective] ?? patient.objective) as ObjectiveOption,
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const {
+    values: form,
+    errors,
+    set,
+    onBlur,
+    validateAll,
+  } = useValidation(
+    {
+      name: patient.name,
+      birthDate: patient.birthDate ?? '',
+      heightCm: patient.heightCm != null ? String(patient.heightCm) : '',
+      whatsapp: formatPhone(patient.whatsapp ?? ''),
+    } as Record<string, string>,
+    {
+      name: {
+        required: true,
+        requiredMessage: 'Nome é obrigatório.',
+        minLength: 2,
+        minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
+      },
+      birthDate: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const d = new Date(v);
+          if (isNaN(d.getTime())) return 'Data inválida.';
+          if (d > new Date()) return 'Data não pode ser no futuro.';
+          return undefined;
+        },
+      },
+      heightCm: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = Number(v.replace(',', '.'));
+          if (!Number.isFinite(n)) return 'Altura deve ser um número.';
+          if (n < 50 || n > 250) return 'Altura deve estar entre 50 e 250 cm.';
+          return undefined;
+        },
+      },
+      whatsapp: {
+        custom: (v) => {
+          const digits = stripPhone(v).replace(/\D/g, '');
+          if (!digits) return undefined;
+          if (digits.length < 10) return 'WhatsApp deve ter pelo menos 10 dígitos.';
+          if (digits.length > 11) return 'WhatsApp deve ter no máximo 11 dígitos.';
+          return undefined;
+        },
+      },
+    },
   );
 
-  const handle = () => {
-    if (!name.trim()) return;
+  const handleSave = () => {
+    if (!validateAll()) return;
+    setSubmitError(null);
     updateMutation.mutate(
       {
         id: patient.id,
         data: {
-          name: name.trim(),
-          ...(birthDate ? { birthDate } : {}),
+          name: form.name.trim(),
+          ...(form.birthDate ? { birthDate: form.birthDate } : {}),
           sex,
-          ...(heightCm ? { heightCm: Number(heightCm) } : {}),
-          ...(stripPhone(whatsapp) ? { whatsapp: stripPhone(whatsapp) } : {}),
+          ...(form.heightCm ? { heightCm: Number(form.heightCm) } : {}),
+          ...(stripPhone(form.whatsapp) ? { whatsapp: stripPhone(form.whatsapp) } : {}),
           objective,
         },
       },
@@ -52,42 +102,50 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           useToastStore.getState().showSuccess('Paciente atualizado com sucesso');
           onClose();
         },
+        onError: (error) => {
+          setSubmitError(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível atualizar o paciente. Tente novamente.',
+          );
+        },
       },
     );
   };
 
-  const field = (label: string, val: string, set: (v: string) => void, opts: { type?: string; mono?: boolean; placeholder?: string } = {}) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <div className="eyebrow">{label}</div>
-      <input
-        value={val}
-        onChange={(e) => set(e.target.value)}
-        type={opts.type || 'text'}
-        placeholder={opts.placeholder || ''}
-        style={{
-          padding: '8px 10px',
-          border: '1px solid var(--border)',
-          borderRadius: 6,
-          fontSize: 13,
-          background: 'var(--surface)',
-          outline: 'none',
-          color: 'var(--fg)',
-          width: '100%',
-          boxSizing: 'border-box',
-          fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
-        }}
-        onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-        onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
-      />
-    </div>
-  );
+  const fieldStyle = (hasError: boolean): React.CSSProperties => ({
+    padding: '8px 10px',
+    border: `1px solid ${hasError ? 'var(--coral)' : 'var(--border)'}`,
+    borderRadius: 6,
+    fontSize: 13,
+    background: 'var(--surface)',
+    outline: 'none',
+    color: 'var(--fg)',
+    width: '100%',
+    boxSizing: 'border-box',
+    fontFamily: 'var(--font-ui)',
+  });
+
+  const canSubmit = form.name.trim().length >= 2 && !updateMutation.isPending;
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(11,12,10,0.4)', zIndex: 200, display: 'grid', placeItems: 'center', padding: 20 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(11,12,10,0.4)',
+        zIndex: 200,
+        display: 'grid',
+        placeItems: 'center',
+        padding: 20,
+      }}
       onClick={onClose}
     >
-      <div className="card" style={{ width: 'min(480px, 100%)', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="card"
+        style={{ width: 'min(480px, 100%)', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="card-h">
           <div className="title">Editar paciente</div>
           <div className="spacer" />
@@ -96,9 +154,48 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           </button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {field('Nome completo', name, setName, { placeholder: 'Ana Beatriz Lopes' })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="edit-name">
+              Nome completo
+            </label>
+            <input
+              id="edit-name"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              onBlur={onBlur('name')}
+              aria-invalid={errors.name ? 'true' : undefined}
+              aria-describedby={errors.name ? 'edit-name-error' : undefined}
+              placeholder="Ana Beatriz Lopes"
+              style={fieldStyle(!!errors.name)}
+            />
+            {errors.name && (
+              <p id="edit-name-error" className="text-xs text-coral" role="alert">
+                {errors.name}
+              </p>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {field('Data de nascimento', birthDate, setBirthDate, { type: 'date' })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label className="eyebrow" htmlFor="edit-birthdate">
+                Data de nascimento
+              </label>
+              <input
+                id="edit-birthdate"
+                type="date"
+                value={form.birthDate}
+                onChange={(e) => set('birthDate', e.target.value)}
+                onBlur={onBlur('birthDate')}
+                aria-invalid={errors.birthDate ? 'true' : undefined}
+                aria-describedby={errors.birthDate ? 'edit-birthdate-error' : undefined}
+                style={fieldStyle(!!errors.birthDate)}
+              />
+              {errors.birthDate && (
+                <p id="edit-birthdate-error" className="text-xs text-coral" role="alert">
+                  {errors.birthDate}
+                </p>
+              )}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <div className="eyebrow">Sexo</div>
               <div className="seg" style={{ height: 36 }}>
@@ -111,42 +208,92 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
               </div>
             </div>
           </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {field('Altura (cm)', heightCm, setHeightCm, { type: 'number', mono: true, placeholder: '168' })}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">WhatsApp</div>
+              <label className="eyebrow" htmlFor="edit-height">
+                Altura (cm)
+              </label>
               <input
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(formatPhone(stripPhone(e.target.value)))}
+                id="edit-height"
+                type="number"
+                value={form.heightCm}
+                onChange={(e) => set('heightCm', e.target.value)}
+                onBlur={onBlur('heightCm')}
+                aria-invalid={errors.heightCm ? 'true' : undefined}
+                aria-describedby={errors.heightCm ? 'edit-height-error' : undefined}
+                placeholder="168"
+                style={{ ...fieldStyle(!!errors.heightCm), fontFamily: 'var(--font-mono)' }}
+              />
+              {errors.heightCm && (
+                <p id="edit-height-error" className="text-xs text-coral" role="alert">
+                  {errors.heightCm}
+                </p>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label className="eyebrow" htmlFor="edit-whatsapp">
+                WhatsApp
+              </label>
+              <input
+                id="edit-whatsapp"
+                value={form.whatsapp}
+                onChange={(e) => set('whatsapp', formatPhone(stripPhone(e.target.value)))}
+                onBlur={onBlur('whatsapp')}
                 type="tel"
                 placeholder="(11) 99999-9999"
-                style={{
-                  padding: '8px 10px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  background: 'var(--surface)',
-                  outline: 'none',
-                  color: 'var(--fg)',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  fontFamily: 'var(--font-mono)',
-                }}
-                onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+                aria-invalid={errors.whatsapp ? 'true' : undefined}
+                aria-describedby={errors.whatsapp ? 'edit-whatsapp-error' : undefined}
+                style={{ ...fieldStyle(!!errors.whatsapp), fontFamily: 'var(--font-mono)' }}
               />
+              {errors.whatsapp && (
+                <p id="edit-whatsapp-error" className="text-xs text-coral" role="alert">
+                  {errors.whatsapp}
+                </p>
+              )}
             </div>
           </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-            <div className="eyebrow">Objetivo clínico</div>
+            <label className="eyebrow" htmlFor="edit-objective">
+              Objetivo clínico
+            </label>
             <select
+              id="edit-objective"
               value={objective}
               onChange={(e) => setObjective(e.target.value as ObjectiveOption)}
-              style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 13, background: 'var(--surface)', color: 'var(--fg)', width: '100%' }}
+              style={{
+                padding: '8px 10px',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                fontSize: 13,
+                background: 'var(--surface)',
+                color: 'var(--fg)',
+                width: '100%',
+              }}
             >
-              {OBJECTIVE_KEYS.map(o => <option key={o} value={o}>{OBJECTIVE_LABELS[o]}</option>)}
+              {OBJECTIVE_KEYS.map((o) => (
+                <option key={o} value={o}>
+                  {OBJECTIVE_LABELS[o]}
+                </option>
+              ))}
             </select>
           </div>
+
+          {submitError && (
+            <div
+              style={{
+                padding: '10px 12px',
+                background: 'rgba(255,107,74,0.1)',
+                borderRadius: 6,
+                fontSize: 13,
+                color: 'var(--coral)',
+              }}
+              role="alert"
+            >
+              {submitError}
+            </div>
+          )}
         </div>
         <div
           style={{
@@ -161,7 +308,12 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           <button className="btn btn-ghost" onClick={onClose}>
             Cancelar
           </button>
-          <button className="btn btn-primary" onClick={handle} disabled={!name.trim() || updateMutation.isPending} style={{ opacity: name.trim() ? 1 : 0.45 }}>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={!canSubmit}
+            style={{ opacity: canSubmit ? 1 : 0.45 }}
+          >
             <IconCheck size={13} /> Salvar
           </button>
         </div>

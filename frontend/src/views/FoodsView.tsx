@@ -25,6 +25,7 @@ import {
   IconCheck,
   IconTrash,
 } from '../components/icons';
+import { useValidation } from '../hooks/useValidation';
 
 function MiniMacro({
   label,
@@ -156,79 +157,125 @@ function FoodMenuDropdown({
 }
 
 function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => void }) {
-  const [name, setName] = useState(food.name);
   const [category, setCategory] = useState<FoodCategoryKey>(
     REVERSE_CATEGORY_LABELS[food.category] || (food.category as FoodCategoryKey),
   );
   const [unit, setUnit] = useState<FoodUnit>(food.unit);
-  const [referenceAmount, setReferenceAmount] = useState(String(food.referenceAmount));
-  const [kcal, setKcal] = useState(String(food.kcal));
-  const [prot, setProt] = useState(String(food.prot));
-  const [carb, setCarb] = useState(String(food.carb));
-  const [fat, setFat] = useState(String(food.fat));
-  const [fiber, setFiber] = useState(String(food.fiber));
   const [prep, setPrep] = useState(food.prep);
   const updateFood = useUpdateFood();
 
-  const handle = () => {
-    if (!name.trim()) return;
+  const {
+    values: form,
+    errors,
+    set,
+    onBlur,
+    validateAll,
+  } = useValidation(
+    {
+      name: food.name,
+      referenceAmount: String(food.referenceAmount),
+      kcal: String(food.kcal),
+      prot: String(food.prot),
+      carb: String(food.carb),
+      fat: String(food.fat),
+      fiber: String(food.fiber),
+    } as Record<string, string>,
+    {
+      name: {
+        required: true,
+        requiredMessage: 'Nome é obrigatório.',
+        minLength: 2,
+        minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
+      },
+      referenceAmount: {
+        required: true,
+        requiredMessage: 'Quantidade de referência é obrigatória.',
+        custom: (v) => {
+          const n = parseNumberInput(v);
+          if (!n || n <= 0) return 'Referência deve ser maior que zero.';
+          return undefined;
+        },
+      },
+      kcal: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      prot: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      carb: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      fat: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      fiber: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+    },
+  );
+
+  const handleSave = () => {
+    if (!validateAll()) return;
     updateFood.mutate({
       id: food.id,
       data: {
-        name: name.trim(),
+        name: form.name.trim(),
         category,
         unit,
-        referenceAmount: parseNumberInput(referenceAmount),
-        kcal: parseNumberInput(kcal),
-        prot: parseNumberInput(prot),
-        carb: parseNumberInput(carb),
-        fat: parseNumberInput(fat),
-        fiber: parseNumberInput(fiber),
+        referenceAmount: parseNumberInput(form.referenceAmount),
+        kcal: parseNumberInput(form.kcal),
+        prot: parseNumberInput(form.prot),
+        carb: parseNumberInput(form.carb),
+        fat: parseNumberInput(form.fat),
+        fiber: parseNumberInput(form.fiber),
         prep: prep || null,
       },
     });
     onClose();
   };
 
-  const field = (
-    label: string,
-    val: string,
-    set: (v: string) => void,
-    opts: { mono?: boolean; type?: string; placeholder?: string; isNumber?: boolean } = {},
-  ) => {
-    const isNumberField = opts.isNumber ?? false;
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <div className="eyebrow">{label}</div>
-        <input
-          value={val}
-          onChange={(e) =>
-            set(isNumberField ? sanitizeNumberInput(e.target.value) : e.target.value)
-          }
-          type={isNumberField ? 'text' : opts.type || 'text'}
-          inputMode={isNumberField ? 'decimal' : undefined}
-          placeholder={opts.placeholder || ''}
-          style={{
-            padding: '8px 10px',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            fontSize: 13,
-            background: 'var(--surface)',
-            outline: 'none',
-            color: 'var(--fg)',
-            width: '100%',
-            boxSizing: 'border-box',
-            fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border)';
-            if (isNumberField) set(String(parseNumberInput(e.target.value)));
-          }}
-        />
-      </div>
-    );
-  };
+  const fieldStyle = (hasError: boolean, mono = false): React.CSSProperties => ({
+    padding: '8px 10px',
+    border: `1px solid ${hasError ? 'var(--coral)' : 'var(--border)'}`,
+    borderRadius: 6,
+    fontSize: 13,
+    background: 'var(--surface)',
+    outline: 'none',
+    color: 'var(--fg)',
+    width: '100%',
+    boxSizing: 'border-box',
+    fontFamily: mono ? 'var(--font-mono)' : 'var(--font-ui)',
+  });
 
   const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
   const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
@@ -264,11 +311,32 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
           </button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {field('Nome', name, setName)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="edit-catalog-name">
+              Nome
+            </label>
+            <input
+              id="edit-catalog-name"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              onBlur={onBlur('name')}
+              aria-invalid={errors.name ? 'true' : undefined}
+              aria-describedby={errors.name ? 'edit-catalog-name-error' : undefined}
+              style={fieldStyle(!!errors.name)}
+            />
+            {errors.name && (
+              <p id="edit-catalog-name-error" className="text-xs text-coral" role="alert">
+                {errors.name}
+              </p>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">Categoria</div>
+              <label className="eyebrow" htmlFor="edit-catalog-category">
+                Categoria
+              </label>
               <select
+                id="edit-catalog-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as FoodCategoryKey)}
                 style={{
@@ -289,8 +357,11 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
               </select>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">Unidade</div>
+              <label className="eyebrow" htmlFor="edit-catalog-unit">
+                Unidade
+              </label>
               <select
+                id="edit-catalog-unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as FoodUnit)}
                 style={{
@@ -310,27 +381,84 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
                 ))}
               </select>
             </div>
-            {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, {
-              mono: true,
-              isNumber: true,
-            })}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label className="eyebrow" htmlFor="edit-catalog-ref">
+                Referência ({refLabel})
+              </label>
+              <input
+                id="edit-catalog-ref"
+                value={form.referenceAmount}
+                onChange={(e) => set('referenceAmount', sanitizeNumberInput(e.target.value))}
+                onBlur={() => {
+                  set('referenceAmount', String(parseNumberInput(form.referenceAmount)));
+                  onBlur('referenceAmount')();
+                }}
+                aria-invalid={errors.referenceAmount ? 'true' : undefined}
+                aria-describedby={errors.referenceAmount ? 'edit-catalog-ref-error' : undefined}
+                inputMode="decimal"
+                style={fieldStyle(!!errors.referenceAmount, true)}
+              />
+              {errors.referenceAmount && (
+                <p id="edit-catalog-ref-error" className="text-xs text-coral" role="alert">
+                  {errors.referenceAmount}
+                </p>
+              )}
+            </div>
           </div>
           <div className="divider">
             <span>
-              Valores por {referenceAmount || '?'}
+              Valores por {form.referenceAmount || '?'}
               {unitSymbol}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true, isNumber: true })}
-            {field('Prot (g)', prot, setProt, { mono: true, isNumber: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true, isNumber: true })}
-            {field('Gord (g)', fat, setFat, { mono: true, isNumber: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true, isNumber: true })}
+            {(['kcal', 'prot', 'carb', 'fat', 'fiber'] as const).map((key) => {
+              const labels: Record<string, string> = {
+                kcal: 'Kcal',
+                prot: 'Prot (g)',
+                carb: 'Carb (g)',
+                fat: 'Gord (g)',
+                fiber: 'Fibra (g)',
+              };
+              return (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <label className="eyebrow" htmlFor={`edit-catalog-${key}`}>
+                    {labels[key]}
+                  </label>
+                  <input
+                    id={`edit-catalog-${key}`}
+                    value={form[key]}
+                    onChange={(e) => set(key, sanitizeNumberInput(e.target.value))}
+                    onBlur={() => {
+                      set(key, String(parseNumberInput(form[key])));
+                      onBlur(key)();
+                    }}
+                    aria-invalid={errors[key] ? 'true' : undefined}
+                    aria-describedby={errors[key] ? `edit-catalog-${key}-error` : undefined}
+                    inputMode="decimal"
+                    style={fieldStyle(!!errors[key], true)}
+                  />
+                  {errors[key] && (
+                    <p id={`edit-catalog-${key}-error`} className="text-xs text-coral" role="alert">
+                      {errors[key]}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {field('Preparo sugerido', prep, setPrep, {
-            placeholder: 'ex: grelhado, cozido no vapor',
-          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="edit-catalog-prep">
+              Preparo sugerido
+            </label>
+            <input
+              id="edit-catalog-prep"
+              value={prep}
+              onChange={(e) => setPrep(e.target.value)}
+              placeholder="ex: grelhado, cozido no vapor"
+              style={fieldStyle(false)}
+            />
+          </div>
         </div>
         <div
           style={{
@@ -347,9 +475,9 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
           </button>
           <button
             className="btn btn-primary"
-            onClick={handle}
-            disabled={!name.trim()}
-            style={{ opacity: name.trim() ? 1 : 0.45 }}
+            onClick={handleSave}
+            disabled={!form.name.trim() || !form.referenceAmount.trim()}
+            style={{ opacity: form.name.trim() && form.referenceAmount.trim() ? 1 : 0.45 }}
           >
             <IconCheck size={13} /> Salvar
           </button>
@@ -643,76 +771,123 @@ function FoodsPagination({
 }
 
 function CreateFoodModal({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState('');
   const [category, setCategory] = useState<FoodCategoryKey>('PROTEINA');
   const [unit, setUnit] = useState<FoodUnit>('GRAMAS');
-  const [referenceAmount, setReferenceAmount] = useState('');
-  const [kcal, setKcal] = useState('');
-  const [prot, setProt] = useState('');
-  const [carb, setCarb] = useState('');
-  const [fat, setFat] = useState('');
-  const [fiber, setFiber] = useState('');
   const [prep, setPrep] = useState('');
   const [portionLabel, setPortionLabel] = useState('');
   const createFood = useCreateFood();
 
-  const handle = () => {
-    if (!name.trim()) return;
+  const {
+    values: form,
+    errors,
+    set,
+    onBlur,
+    validateAll,
+  } = useValidation(
+    {
+      name: '',
+      referenceAmount: '',
+      kcal: '',
+      prot: '',
+      carb: '',
+      fat: '',
+      fiber: '',
+    } as Record<string, string>,
+    {
+      name: {
+        required: true,
+        requiredMessage: 'Nome do alimento é obrigatório.',
+        minLength: 2,
+        minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
+      },
+      referenceAmount: {
+        required: true,
+        requiredMessage: 'Quantidade de referência é obrigatória.',
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (!n || n <= 0) return 'Referência deve ser maior que zero.';
+          return undefined;
+        },
+      },
+      kcal: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      prot: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      carb: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      fat: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+      fiber: {
+        custom: (v) => {
+          if (!v.trim()) return undefined;
+          const n = parseNumberInput(v);
+          if (n == null || !Number.isFinite(n)) return 'Valor numérico inválido.';
+          if (n < 0) return 'Valor não pode ser negativo.';
+          return undefined;
+        },
+      },
+    },
+  );
+
+  const handleCreate = () => {
+    if (!validateAll()) return;
     createFood.mutate({
-      name: name.trim(),
+      name: form.name.trim(),
       category,
       unit,
-      referenceAmount: parseNumberInput(referenceAmount),
-      kcal: parseNumberInput(kcal),
-      prot: parseNumberInput(prot),
-      carb: parseNumberInput(carb),
-      fat: parseNumberInput(fat),
-      fiber: parseNumberInput(fiber),
+      referenceAmount: parseNumberInput(form.referenceAmount),
+      kcal: parseNumberInput(form.kcal),
+      prot: parseNumberInput(form.prot),
+      carb: parseNumberInput(form.carb),
+      fat: parseNumberInput(form.fat),
+      fiber: parseNumberInput(form.fiber),
       prep: prep || null,
       portionLabel: portionLabel || null,
     });
     onClose();
   };
 
-  const field = (
-    label: string,
-    val: string,
-    set: (v: string) => void,
-    opts: { mono?: boolean; placeholder?: string; isNumber?: boolean } = {},
-  ) => {
-    const isNumberField = opts.isNumber ?? false;
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <div className="eyebrow">{label}</div>
-        <input
-          placeholder={opts.placeholder || ''}
-          value={val}
-          onChange={(e) =>
-            set(isNumberField ? sanitizeNumberInput(e.target.value) : e.target.value)
-          }
-          type={isNumberField ? 'text' : 'text'}
-          inputMode={isNumberField ? 'decimal' : undefined}
-          style={{
-            padding: '8px 10px',
-            border: '1px solid var(--border)',
-            borderRadius: 6,
-            fontSize: 13,
-            background: 'var(--surface)',
-            outline: 'none',
-            color: 'var(--fg)',
-            width: '100%',
-            boxSizing: 'border-box',
-            fontFamily: opts.mono ? 'var(--font-mono)' : 'var(--font-ui)',
-          }}
-          onFocus={(e) => (e.target.style.borderColor = 'var(--fg-muted)')}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border)';
-            if (isNumberField) set(String(parseNumberInput(e.target.value)));
-          }}
-        />
-      </div>
-    );
-  };
+  const fieldStyle = (hasError: boolean, mono = false): React.CSSProperties => ({
+    padding: '8px 10px',
+    border: `1px solid ${hasError ? 'var(--coral)' : 'var(--border)'}`,
+    borderRadius: 6,
+    fontSize: 13,
+    background: 'var(--surface)',
+    outline: 'none',
+    color: 'var(--fg)',
+    width: '100%',
+    boxSizing: 'border-box',
+    fontFamily: mono ? 'var(--font-mono)' : 'var(--font-ui)',
+  });
 
   const unitSymbol = FOOD_UNIT_SYMBOLS[unit];
   const refLabel = unit === 'UNIDADE' ? 'unidade' : unit === 'ML' ? 'ml' : 'g';
@@ -750,11 +925,33 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
         <div
           style={{ padding: '18px 20px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-          {field('Nome do alimento', name, setName, { placeholder: 'ex: Frango desfiado' })}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="create-food-name">
+              Nome do alimento
+            </label>
+            <input
+              id="create-food-name"
+              placeholder="ex: Frango desfiado"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              onBlur={onBlur('name')}
+              aria-invalid={errors.name ? 'true' : undefined}
+              aria-describedby={errors.name ? 'create-food-name-error' : undefined}
+              style={fieldStyle(!!errors.name)}
+            />
+            {errors.name && (
+              <p id="create-food-name-error" className="text-xs text-coral" role="alert">
+                {errors.name}
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">Categoria</div>
+              <label className="eyebrow" htmlFor="create-food-category">
+                Categoria
+              </label>
               <select
+                id="create-food-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as FoodCategoryKey)}
                 style={{
@@ -775,8 +972,11 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <div className="eyebrow">Unidade</div>
+              <label className="eyebrow" htmlFor="create-food-unit">
+                Unidade
+              </label>
               <select
+                id="create-food-unit"
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as FoodUnit)}
                 style={{
@@ -796,31 +996,97 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
                 ))}
               </select>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label className="eyebrow" htmlFor="create-food-ref">
+                Referência ({refLabel})
+              </label>
+              <input
+                id="create-food-ref"
+                value={form.referenceAmount}
+                onChange={(e) => set('referenceAmount', sanitizeNumberInput(e.target.value))}
+                onBlur={() => {
+                  set('referenceAmount', String(parseNumberInput(form.referenceAmount)));
+                  onBlur('referenceAmount')();
+                }}
+                aria-invalid={errors.referenceAmount ? 'true' : undefined}
+                aria-describedby={errors.referenceAmount ? 'create-food-ref-error' : undefined}
+                inputMode="decimal"
+                placeholder={unit === 'GRAMAS' ? '100' : '1'}
+                style={fieldStyle(!!errors.referenceAmount, true)}
+              />
+              {errors.referenceAmount && (
+                <p id="create-food-ref-error" className="text-xs text-coral" role="alert">
+                  {errors.referenceAmount}
+                </p>
+              )}
+            </div>
           </div>
-          {field(`Referência (${refLabel})`, referenceAmount, setReferenceAmount, {
-            mono: true,
-            placeholder: unit === 'GRAMAS' ? '100' : '1',
-            isNumber: true,
-          })}
           <div className="divider">
             <span>
-              Valores por {referenceAmount || '?'}
+              Valores por {form.referenceAmount || '?'}
               {unitSymbol}
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-            {field('Kcal', kcal, setKcal, { mono: true, isNumber: true })}
-            {field('Prot (g)', prot, setProt, { mono: true, isNumber: true })}
-            {field('Carb (g)', carb, setCarb, { mono: true, isNumber: true })}
-            {field('Gord (g)', fat, setFat, { mono: true, isNumber: true })}
-            {field('Fibra (g)', fiber, setFiber, { mono: true, isNumber: true })}
+            {(['kcal', 'prot', 'carb', 'fat', 'fiber'] as const).map((key) => {
+              const labels: Record<string, string> = {
+                kcal: 'Kcal',
+                prot: 'Prot (g)',
+                carb: 'Carb (g)',
+                fat: 'Gord (g)',
+                fiber: 'Fibra (g)',
+              };
+              return (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <label className="eyebrow" htmlFor={`create-food-${key}`}>
+                    {labels[key]}
+                  </label>
+                  <input
+                    id={`create-food-${key}`}
+                    value={form[key]}
+                    onChange={(e) => set(key, sanitizeNumberInput(e.target.value))}
+                    onBlur={() => {
+                      set(key, String(parseNumberInput(form[key])));
+                      onBlur(key)();
+                    }}
+                    aria-invalid={errors[key] ? 'true' : undefined}
+                    aria-describedby={errors[key] ? `create-food-${key}-error` : undefined}
+                    inputMode="decimal"
+                    style={fieldStyle(!!errors[key], true)}
+                  />
+                  {errors[key] && (
+                    <p id={`create-food-${key}-error`} className="text-xs text-coral" role="alert">
+                      {errors[key]}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          {field('Preparo sugerido', prep, setPrep, {
-            placeholder: 'ex: grelhado, cozido no vapor',
-          })}
-          {field('Descrição da porção', portionLabel, setPortionLabel, {
-            placeholder: 'ex: 1 unidade · 100g',
-          })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="create-food-prep">
+              Preparo sugerido
+            </label>
+            <input
+              id="create-food-prep"
+              value={prep}
+              onChange={(e) => setPrep(e.target.value)}
+              placeholder="ex: grelhado, cozido no vapor"
+              style={fieldStyle(false)}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <label className="eyebrow" htmlFor="create-food-portion">
+              Descrição da porção
+            </label>
+            <input
+              id="create-food-portion"
+              value={portionLabel}
+              onChange={(e) => setPortionLabel(e.target.value)}
+              placeholder="ex: 1 unidade · 100g"
+              style={fieldStyle(false)}
+            />
+          </div>
         </div>
         <div
           style={{
@@ -837,9 +1103,9 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             className="btn btn-primary"
-            onClick={handle}
-            disabled={!name.trim()}
-            style={{ opacity: name.trim() ? 1 : 0.45 }}
+            onClick={handleCreate}
+            disabled={!form.name.trim() || !form.referenceAmount.trim()}
+            style={{ opacity: form.name.trim() && form.referenceAmount.trim() ? 1 : 0.45 }}
           >
             <IconCheck size={13} /> Salvar no catálogo
           </button>
