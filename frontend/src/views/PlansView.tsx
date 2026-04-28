@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { IconPlus, IconDownload, IconX, IconTrash } from '../components/icons';
+import { IconPlus, IconDownload, IconX, IconTrash, IconEdit } from '../components/icons';
 import {
   PlanFoodRow,
   OptionTab,
@@ -262,6 +262,13 @@ export function PlansView({ patientId }: PlansViewProps) {
   const [titleValue, setTitleValue] = useState('');
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
   const [mealLabelValue, setMealLabelValue] = useState('');
+  const [editingTargets, setEditingTargets] = useState(false);
+  const [targetValues, setTargetValues] = useState({
+    kcal: '',
+    prot: '',
+    carb: '',
+    fat: '',
+  });
 
   const updatePlan = useUpdatePlan(patientId);
   const addMealSlot = useAddMealSlot(patientId);
@@ -332,6 +339,31 @@ export function PlansView({ patientId }: PlansViewProps) {
 
   const handleAddExtra = () => {
     addExtra.mutate({ name: '', quantity: '' });
+  };
+
+  const handleSaveTargets = () => {
+    const kcal = Number(targetValues.kcal);
+    const prot = Number(targetValues.prot);
+    const carb = Number(targetValues.carb);
+    const fat = Number(targetValues.fat);
+    if (
+      Number.isFinite(kcal) &&
+      Number.isFinite(prot) &&
+      Number.isFinite(carb) &&
+      Number.isFinite(fat)
+    ) {
+      updatePlan.mutate({
+        kcalTarget: kcal,
+        protTarget: prot,
+        carbTarget: carb,
+        fatTarget: fat,
+      });
+    }
+    setEditingTargets(false);
+  };
+
+  const handleCancelTargets = () => {
+    setEditingTargets(false);
   };
 
   const exportPDF = () => {
@@ -493,16 +525,151 @@ export function PlansView({ patientId }: PlansViewProps) {
 
         <div
           className="plans-macros-row"
-          style={{ display: 'flex', gap: 20, marginTop: 16, flexWrap: 'wrap' }}
+          style={{
+            display: 'flex',
+            gap: 20,
+            marginTop: 16,
+            flexWrap: 'wrap',
+            alignItems: 'flex-end',
+          }}
         >
-          <DailyMacro
-            label="Kcal · meta"
-            value={`${plan.kcalTarget}`}
-            color="var(--ink-contrast)"
-          />
-          <DailyMacro label="Proteína" value={`${plan.protTarget}g`} color="var(--sage)" />
-          <DailyMacro label="Carboidrato" value={`${plan.carbTarget}g`} color="var(--amber)" />
-          <DailyMacro label="Gordura" value={`${plan.fatTarget}g`} color="var(--sky)" />
+          {editingTargets ? (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
+                <div className="eyebrow">Kcal · meta</div>
+                <input
+                  type="number"
+                  autoFocus
+                  value={targetValues.kcal}
+                  onChange={(e) => setTargetValues((v) => ({ ...v, kcal: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTargets();
+                  }}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'var(--ink-contrast)',
+                    letterSpacing: '-0.02em',
+                    marginTop: 2,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--fg)',
+                    outline: 'none',
+                    width: 90,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
+                <div className="eyebrow">Proteína</div>
+                <input
+                  type="number"
+                  value={targetValues.prot}
+                  onChange={(e) => setTargetValues((v) => ({ ...v, prot: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTargets();
+                  }}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'var(--sage)',
+                    letterSpacing: '-0.02em',
+                    marginTop: 2,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--fg)',
+                    outline: 'none',
+                    width: 90,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
+                <div className="eyebrow">Carboidrato</div>
+                <input
+                  type="number"
+                  value={targetValues.carb}
+                  onChange={(e) => setTargetValues((v) => ({ ...v, carb: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTargets();
+                  }}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'var(--amber)',
+                    letterSpacing: '-0.02em',
+                    marginTop: 2,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--fg)',
+                    outline: 'none',
+                    width: 90,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
+                <div className="eyebrow">Gordura</div>
+                <input
+                  type="number"
+                  value={targetValues.fat}
+                  onChange={(e) => setTargetValues((v) => ({ ...v, fat: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTargets();
+                  }}
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: 'var(--sky)',
+                    letterSpacing: '-0.02em',
+                    marginTop: 2,
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: '1px solid var(--fg)',
+                    outline: 'none',
+                    width: 90,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', alignItems: 'center' }}>
+                <button className="btn btn-ghost" onClick={handleCancelTargets}>
+                  Cancelar
+                </button>
+                <button className="btn btn-primary" onClick={handleSaveTargets}>
+                  Salvar
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DailyMacro
+                label="Kcal · meta"
+                value={`${plan.kcalTarget}`}
+                color="var(--ink-contrast)"
+              />
+              <DailyMacro label="Proteína" value={`${plan.protTarget}g`} color="var(--sage)" />
+              <DailyMacro label="Carboidrato" value={`${plan.carbTarget}g`} color="var(--amber)" />
+              <DailyMacro label="Gordura" value={`${plan.fatTarget}g`} color="var(--sky)" />
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setTargetValues({
+                      kcal: String(plan.kcalTarget),
+                      prot: String(plan.protTarget),
+                      carb: String(plan.carbTarget),
+                      fat: String(plan.fatTarget),
+                    });
+                    setEditingTargets(true);
+                  }}
+                  style={{ fontSize: 12, padding: '4px 8px' }}
+                >
+                  <IconEdit size={12} /> Editar metas
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div
