@@ -476,8 +476,8 @@ function EditFoodCatalogModal({ food, onClose }: { food: Food; onClose: () => vo
           <button
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={!form.name.trim()}
-            style={{ opacity: form.name.trim() ? 1 : 0.45 }}
+            disabled={!form.name.trim() || !form.referenceAmount.trim()}
+            style={{ opacity: form.name.trim() && form.referenceAmount.trim() ? 1 : 0.45 }}
           >
             <IconCheck size={13} /> Salvar
           </button>
@@ -1104,8 +1104,8 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
           <button
             className="btn btn-primary"
             onClick={handleCreate}
-            disabled={!form.name.trim()}
-            style={{ opacity: form.name.trim() ? 1 : 0.45 }}
+            disabled={!form.name.trim() || !form.referenceAmount.trim()}
+            style={{ opacity: form.name.trim() && form.referenceAmount.trim() ? 1 : 0.45 }}
           >
             <IconCheck size={13} /> Salvar no catálogo
           </button>
