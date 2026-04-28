@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useParams } from 'react-router';
-import { ANA } from '../data/ana';
 import { usePatient } from '../stores/patientStore';
 import { usePlan } from '../stores/planStore';
 import { mapPatientFromApi } from '../types/patient';
@@ -61,41 +60,50 @@ function formatBiometryMeasureLabel(measureKey: string) {
 export function PatientView() {
   const { id } = useParams();
   const routePatientId = id ?? null;
-  const { data: apiData, isLoading } = usePatient(id ?? null);
+  const { data: apiData, isLoading, isError } = usePatient(id ?? null);
   const { data: biometryAssessments } = usePatientBiometry(routePatientId);
   const { data: plan } = usePlan(routePatientId);
   const [tab, setTab] = React.useState<Tab>('today');
   const [editOpen, setEditOpen] = React.useState(false);
 
   const mappedApiData = apiData ? mapPatientFromApi(apiData) : null;
+  const hasRealPatient = mappedApiData !== null;
 
   const patient: DetailedPatient = {
-    ...ANA,
-    ...(mappedApiData
-      ? {
-          id: mappedApiData.id,
-          name: mappedApiData.name,
-          initials: mappedApiData.initials,
-          age: mappedApiData.age,
-          birthDate: mappedApiData.birthDate ?? ANA.birthDate,
-          sex: mappedApiData.sex ?? ANA.sex,
-          heightCm: mappedApiData.heightCm ?? ANA.height,
-          whatsapp: mappedApiData.whatsapp ?? ANA.whatsapp,
-          objective: mappedApiData.objective,
-          status: mappedApiData.status,
-          adherence: mappedApiData.adherence,
-          weight: mappedApiData.weight,
-          weightDelta: mappedApiData.weightDelta,
-          tag: mappedApiData.tag,
-          active: mappedApiData.active,
-        }
-      : {}),
+    id: mappedApiData?.id ?? '',
+    name: mappedApiData?.name ?? 'Paciente sem dados',
+    initials: mappedApiData?.initials ?? '--',
+    age: mappedApiData?.age ?? 0,
+    birthDate: mappedApiData?.birthDate ?? null,
+    sex: mappedApiData?.sex ?? '',
+    heightCm: mappedApiData?.heightCm ?? 0,
+    whatsapp: mappedApiData?.whatsapp ?? null,
+    objective: mappedApiData?.objective ?? 'Sem objetivo definido',
+    status: mappedApiData?.status ?? 'warning',
+    adherence: mappedApiData?.adherence ?? 0,
+    weight: mappedApiData?.weight ?? 0,
+    weightDelta: mappedApiData?.weightDelta ?? 0,
+    tag: mappedApiData?.tag ?? '',
+    active: mappedApiData?.active ?? false,
+    height: mappedApiData?.heightCm ?? 0,
+    since: '',
+    macrosToday: {
+      kcal: { target: 0, actual: 0 },
+      prot: { target: 0, actual: 0 },
+      carb: { target: 0, actual: 0 },
+      fat: { target: 0, actual: 0 },
+    },
+    biometry: [],
+    skinfolds: { date: '', method: '', folds: [] },
+    perimetry: { date: '', measures: [] },
+    weekAdherence: [],
+    weekMacroFill: [],
+    timeline: [],
+    aiSummary: '',
   };
 
-  const fallbackLatestBiometryWeight =
-    patient.biometry[patient.biometry.length - 1]?.weight ?? patient.weight;
-  const fallbackPreviousBiometryWeight =
-    patient.biometry.length > 1 ? patient.biometry[patient.biometry.length - 2]?.weight : null;
+  const fallbackLatestBiometryWeight = patient.weight;
+  const fallbackPreviousBiometryWeight = null;
   const latestBiometryWeight =
     biometryAssessments?.[biometryAssessments.length - 1]?.weight ?? fallbackLatestBiometryWeight;
   const previousBiometryWeight =
@@ -109,11 +117,37 @@ export function PatientView() {
         ? patient.weightDelta
         : 0;
   const patientId = id ?? patient.id;
+  const ageLabel =
+    Number.isFinite(patient.age) && patient.age > 0 ? `${patient.age} anos` : 'Idade não informada';
+  const sexLabel =
+    patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : 'Sexo não informado';
+  const heightLabel =
+    patient.heightCm != null && patient.heightCm > 0
+      ? `${patient.heightCm} cm`
+      : 'Altura não informada';
 
   if (isLoading) {
     return (
       <div className="page" style={{ maxWidth: 'none', padding: 40, textAlign: 'center' }}>
         <p style={{ color: 'var(--fg-subtle)', fontSize: 14 }}>Carregando paciente...</p>
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <div className="page" style={{ maxWidth: 'none', padding: 40, textAlign: 'center' }}>
+        <p style={{ color: 'var(--coral)', fontSize: 14 }}>
+          Erro ao carregar paciente. Tente novamente.
+        </p>
+      </div>
+    );
+  }
+  if (!hasRealPatient) {
+    return (
+      <div className="page" style={{ maxWidth: 'none', padding: 40, textAlign: 'center' }}>
+        <p style={{ color: 'var(--fg-subtle)', fontSize: 14 }}>
+          Sem dados reais deste paciente no momento.
+        </p>
       </div>
     );
   }
@@ -186,11 +220,11 @@ export function PatientView() {
               }}
             >
               <span>
-                {patient.age} anos · {patient.sex === 'F' ? 'Feminino' : 'Masculino'}
+                {ageLabel} · {sexLabel}
               </span>
               <span>·</span>
               <span>
-                {patient.heightCm ?? patient.height} cm · {latestBiometryWeight} kg
+                {heightLabel} · {latestBiometryWeight} kg
               </span>
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>

@@ -138,8 +138,12 @@ const PAGE_SIZE = 8;
 export function HomeView() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const { data, isLoading } = usePatients();
-  const { data: dashboardData } = useDashboard();
+  const { data, isLoading, isError } = usePatients();
+  const {
+    data: dashboardData,
+    isLoading: isDashboardLoading,
+    isError: isDashboardError,
+  } = useDashboard();
   const activePats = React.useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const patientSlice = activePats.slice(0, PAGE_SIZE);
 
@@ -158,6 +162,33 @@ export function HomeView() {
       ? Math.round(activePats.reduce((sum, p) => sum + p.adherence, 0) / activePats.length)
       : 0);
   const patientCountText = `${activePats.length} ${activePats.length === 1 ? 'paciente' : 'pacientes'}`;
+  const headerDate = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  if (isLoading || isDashboardLoading) {
+    return <div className="page">Carregando painel...</div>;
+  }
+
+  if (isError || isDashboardError) {
+    return <div className="page">Erro ao carregar dados do painel.</div>;
+  }
+
+  if (!kpis || activePats.length === 0) {
+    return (
+      <div className="page">
+        <h1 className="serif" style={{ fontSize: 34, margin: 0, fontWeight: 400 }}>
+          Sem dados agregados disponíveis
+        </h1>
+        <p style={{ color: 'var(--fg-muted)', marginTop: 10 }}>
+          Assim que houver pacientes e eventos clínicos, o resumo da carteira aparecerá aqui.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -173,7 +204,7 @@ export function HomeView() {
         }}
       >
         <div>
-          <div className="eyebrow">Quarta-feira · 17 abril 2026</div>
+          <div className="eyebrow">{headerDate}</div>
           <h1
             className="serif"
             style={{
@@ -244,16 +275,8 @@ export function HomeView() {
           label="Pacientes ativos"
           value={String(kpis?.activePatients ?? data?.totalElements ?? 0)}
           sub={patientCountText}
-          sparklineData={[44, 45, 46, 47, 46, 48, 48]}
-          trend="up"
         />
-        <KPI
-          label="Adesão média"
-          value={`${avgAdherence}%`}
-          sub="média da carteira"
-          sparklineData={[78, 79, 80, 81, 80, 82, 82]}
-          trend="up"
-        />
+        <KPI label="Adesão média" value={`${avgAdherence}%`} sub="média da carteira" />
         <KPI
           label="Avaliados 30d"
           value={String(kpis?.assessedInLast30Days ?? 0)}
