@@ -4,11 +4,9 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -18,13 +16,10 @@ import java.math.RoundingMode;
 public class JacksonConfig {
 
     @Bean
-    @Primary
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
+    public SimpleModule ptBRBigDecimalModule() {
         SimpleModule module = new SimpleModule();
         module.addDeserializer(BigDecimal.class, new PtBRBigDecimalDeserializer());
-        mapper.registerModule(module);
-        return mapper;
+        return module;
     }
 
     static class PtBRBigDecimalDeserializer extends JsonDeserializer<BigDecimal> {
@@ -62,6 +57,16 @@ public class JacksonConfig {
                     "Valor numérico inválido. Informe um número como 4.5 ou 4,5.");
             }
 
+            if (working.contains("..") || working.contains(",,")) {
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw + "'. Separadores duplicados não são permitidos.");
+            }
+
+            if (working.contains(",.") || working.contains(".,") ) {
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw + "'. Use vírgula para decimal ou ponto, mas não ambos adjacentes.");
+            }
+
             int firstComma = working.indexOf(',');
             int firstDot = working.indexOf('.');
             int lastComma = working.lastIndexOf(',');
@@ -72,6 +77,22 @@ public class JacksonConfig {
             if (firstComma == -1 && firstDot == -1) {
                 normalized = working;
             } else if (firstComma != -1 && firstDot != -1) {
+                long dotCount = working.chars().filter(c -> c == '.').count();
+                long commaCount = working.chars().filter(c -> c == ',').count();
+
+                if (dotCount > 1 && commaCount > 0) {
+                    throw new IllegalArgumentException(
+                        "Valor numérico inválido: '" + raw + "'. Formato ambíguo — combine separadores de forma clara (ex: 1.234,5 ou 1,234.5).");
+                }
+
+                if (dotCount == 1 && commaCount == 1) {
+                    int diff = Math.abs(firstDot - firstComma);
+                    if (diff <= 2) {
+                        throw new IllegalArgumentException(
+                            "Valor numérico inválido: '" + raw + "'. Separadores muito próximos — formato ambíguo.");
+                    }
+                }
+
                 if (lastComma > lastDot) {
                     String beforeComma = working.substring(0, lastComma).replace(".", "");
                     String afterComma = working.substring(lastComma + 1);
@@ -94,7 +115,27 @@ public class JacksonConfig {
             } else {
                 long dotCount = working.chars().filter(c -> c == '.').count();
                 if (dotCount > 1) {
-                    normalized = working.replace(".", "");
+                    String[] chunks = working.split("\\.");
+                    for (String chunk : chunks) {
+                        if (chunk.isEmpty()) {
+                            throw new IllegalArgumentException(
+                                "Valor numérico inválido: '" + raw + "'. Separadores de milhar mal posicionados.");
+                        }
+                    }
+                    boolean allGrouped3 = true;
+                    for (int i = 0; i < chunks.length - 1; i++) {
+                        if (chunks[i].length() != 3) {
+                            allGrouped3 = false;
+                            break;
+                        }
+                    }
+                    String lastChunk = chunks[chunks.length - 1];
+                    if (allGrouped3 && lastChunk.length() == 3) {
+                        normalized = working.replace(".", "");
+                    } else {
+                        throw new IllegalArgumentException(
+                            "Valor numérico inválido: '" + raw + "'. Separadores de milhar mal posicionados.");
+                    }
                 } else {
                     String before = working.substring(0, firstDot);
                     String after = working.substring(firstDot + 1);

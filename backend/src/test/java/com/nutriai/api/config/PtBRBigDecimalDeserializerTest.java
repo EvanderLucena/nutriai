@@ -1,6 +1,7 @@
 package com.nutriai.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,9 @@ class PtBRBigDecimalDeserializerTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new JacksonConfig().objectMapper();
+        mapper = new ObjectMapper();
+        SimpleModule module = new JacksonConfig().ptBRBigDecimalModule();
+        mapper.registerModule(module);
         deserializer = new JacksonConfig.PtBRBigDecimalDeserializer();
     }
 
@@ -84,15 +87,39 @@ class PtBRBigDecimalDeserializerTest {
     }
 
     @Test
-    @DisplayName("thrown for ambiguous format: 1,2.3")
+    @DisplayName("rejects ambiguous format: 1,2.3 — separators too close")
     void ambiguousFormat() {
-        // With last-separator rule, 1,2.3 → last is dot → international: 12.3
-        BigDecimal result = deserializer.parsePtBRDecimal("1,2.3");
-        assertEquals(new BigDecimal("12.3"), result);
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1,2.3");
+        });
     }
 
     @Test
-    @DisplayName("thrown for empty string")
+    @DisplayName("rejects double dots: 1..2")
+    void doubleDots() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1..2");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects adjacent different separators: 1,.2")
+    void adjacentSeparatorsCommaDot() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1,.2");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects adjacent different separators: 1.,2")
+    void adjacentSeparatorsDotComma() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1.,2");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects empty string")
     void emptyString() {
         assertThrows(IllegalArgumentException.class, () -> {
             deserializer.parsePtBRDecimal("");
@@ -100,7 +127,7 @@ class PtBRBigDecimalDeserializerTest {
     }
 
     @Test
-    @DisplayName("thrown for pure text input")
+    @DisplayName("rejects pure text input")
     void pureText() {
         assertThrows(IllegalArgumentException.class, () -> {
             deserializer.parsePtBRDecimal("abc");

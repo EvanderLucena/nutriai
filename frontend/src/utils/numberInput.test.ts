@@ -24,7 +24,6 @@ describe('sanitizeNumberInput', () => {
   });
 
   it('treats comma as decimal with 3 decimal digits (1,840 → 1.840 numeric = 1.84)', () => {
-    // Comma is the decimal separator in pt-BR, so 1,840 → 1.840 (which equals 1.84)
     expect(sanitizeNumberInput('1,840')).toBe('1.840');
   });
 
@@ -34,10 +33,6 @@ describe('sanitizeNumberInput', () => {
 
   it('handles international thousands: 1,234.5 → 1234.5', () => {
     expect(sanitizeNumberInput('1,234.5')).toBe('1234.5');
-  });
-
-  it('last-separator rule: 1,2.3 interprets as international → 12.3', () => {
-    expect(sanitizeNumberInput('1,2.3')).toBe('12.3');
   });
 
   it('handles negative numbers', () => {
@@ -65,12 +60,19 @@ describe('sanitizeNumberInput', () => {
   });
 
   it('handles multiple commas (last is decimal)', () => {
-    // 1,23,4 → last comma at index 4 is decimal, 123 before → 123.4
     expect(sanitizeNumberInput('1,23,4')).toBe('123.4');
   });
 
-  it('handles multiple dots (international thousands)', () => {
+  it('handles multiple dots (thousands separators)', () => {
     expect(sanitizeNumberInput('1.234.567')).toBe('1234567');
+  });
+
+  it('returns empty for double dots (1..2)', () => {
+    expect(sanitizeNumberInput('1..2')).toBe('');
+  });
+
+  it('sanitizes ambiguous mixed separator 1,2.3 (both separators single)', () => {
+    expect(sanitizeNumberInput('1,2.3')).toBe('12.3');
   });
 });
 
@@ -107,8 +109,12 @@ describe('parseNumberInput', () => {
     expect(parseNumberInput('   ')).toBe(0);
   });
 
-  it('parses ambiguous 1,2.3 as 12.3', () => {
-    expect(parseNumberInput('1,2.3')).toBe(12.3);
+  it('returns NaN for ambiguous 1,2.3 (rejected by isValidNumberInput)', () => {
+    expect(parseNumberInput('1,2.3')).toBeNaN();
+  });
+
+  it('returns NaN for double dots 1..2', () => {
+    expect(parseNumberInput('1..2')).toBeNaN();
   });
 
   it('parses simple integer', () => {
@@ -117,6 +123,10 @@ describe('parseNumberInput', () => {
 
   it('parses negative number', () => {
     expect(parseNumberInput('-4,5')).toBe(-4.5);
+  });
+
+  it('returns NaN for pure text abc', () => {
+    expect(parseNumberInput('abc')).toBeNaN();
   });
 });
 
@@ -133,12 +143,44 @@ describe('isValidNumberInput', () => {
     expect(isValidNumberInput('   ')).toBe(true);
   });
 
-  it('returns true for 1,2.3 (parsable via last-separator rule)', () => {
-    expect(isValidNumberInput('1,2.3')).toBe(true);
+  it('returns false for ambiguous mixed separator 1,2.3', () => {
+    expect(isValidNumberInput('1,2.3')).toBe(false);
   });
 
-  it('returns false for pure text', () => {
+  it('returns false for double dots 1..2', () => {
+    expect(isValidNumberInput('1..2')).toBe(false);
+  });
+
+  it('returns false for pure text abc', () => {
     expect(isValidNumberInput('abc')).toBe(false);
+  });
+
+  it('returns false for adjacent different separators 1,.2', () => {
+    expect(isValidNumberInput('1,.2')).toBe(false);
+  });
+
+  it('returns false for adjacent different separators 1.,2', () => {
+    expect(isValidNumberInput('1.,2')).toBe(false);
+  });
+
+  it('returns true for pt-BR format with thousands 1.234,5', () => {
+    expect(isValidNumberInput('1.234,5')).toBe(true);
+  });
+
+  it('returns true for international format 1,234.5', () => {
+    expect(isValidNumberInput('1,234.5')).toBe(true);
+  });
+
+  it('returns true for simple decimal 4.5', () => {
+    expect(isValidNumberInput('4.5')).toBe(true);
+  });
+
+  it('returns true for integer', () => {
+    expect(isValidNumberInput('42')).toBe(true);
+  });
+
+  it('returns false for multiple dots with comma (ambiguous)', () => {
+    expect(isValidNumberInput('1.23.4,5')).toBe(false);
   });
 });
 
