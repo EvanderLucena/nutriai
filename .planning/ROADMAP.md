@@ -167,10 +167,10 @@ Plans:
 **Plans:** 5 plans in 4 waves
 Plans:
 - [x] 06-01-PLAN.md — Schema, entities, and repositories for biometry and episode history
-- [ ] 06-02-PLAN.md — Biometry CRUD service, controller, DTOs, and tests
-- [ ] 06-03-PLAN.md — Dashboard aggregate endpoint and closed-cycle history snapshots
-- [ ] 06-04-PLAN.md — Lifecycle event emission (PatientService, MealPlanService)
-- [ ] 06-05-PLAN.md — Frontend dashboard/biometry/history wiring, tests, and E2E
+- [x] 06-02-PLAN.md — Biometry CRUD service, controller, DTOs, and tests
+- [x] 06-03-PLAN.md — Dashboard aggregate endpoint and closed-cycle history snapshots
+- [x] 06-04-PLAN.md — Lifecycle event emission (PatientService, MealPlanService)
+- [x] 06-05-PLAN.md — Frontend dashboard/biometry/history wiring, tests, and E2E
 **UI hint**: yes
 
 ### Phase 7: WhatsApp Intelligence
@@ -253,7 +253,7 @@ Phase 10 depends on both Phase 8 and Phase 9 (deploy complete SaaS with billing 
 | 3. Auth & Onboarding | 3/3 | Complete ✓ | 2026-04-21 |
 | 4. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
 | 5. Meal Plans & Food Catalog | 3/3 | Complete ✓ | 2026-04-22 |
-| 6. Dashboard & Biometry | 0/5 | Planned | - |
+| 6. Dashboard & Biometry | 5/5 | Complete ✓ | 2026-04-27 |
 | 7. WhatsApp Intelligence | 0/? | Not started | - |
 | 8. Billing & Subscriptions | 0/? | Not started | - |
 | 9. LGPD Compliance | 0/? | Not started | - |

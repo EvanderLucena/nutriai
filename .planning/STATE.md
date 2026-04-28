@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed_phase_06
-stopped_at: Phase 06 completed and merged to main
-last_updated: "2026-04-27T00:00:00.000Z"
-last_activity: 2026-04-27 -- Phase 06 completed
+status: ready_for_phase_07
+stopped_at: Phase 06 completed and merged to main; Phase 07 not started
+last_updated: "2026-04-28T00:00:00.000Z"
+last_activity: 2026-04-28 -- GSD artifacts aligned after Phase 06 close
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 24
   completed_plans: 24
-  percent: 100
+  percent: 60
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** O nutricionista cria o plano alimentar e acompanha seus pacientes em um painel web, enquanto a IA responde ao paciente via WhatsApp usando o plano como base.
-**Current focus:** Phase 06 — dashboard-biometry
+**Current focus:** Phase 07 — WhatsApp Intelligence
 
 ## Current Position
 
 Phase: 06 (dashboard-biometry) — COMPLETED
 Plan: 5 of 5
-Status: Phase 06 completed, ready for Phase 07
-Last activity: 2026-04-27 -- Phase 06 completed and merged
+Status: Phase 06 completed and merged; Phase 07 not started
+Last activity: 2026-04-28 -- GSD artifacts aligned after Phase 06 close
 
-Progress: ██████████ 100% (phases 1-6)
+Progress: ██████░░░░ 60% (6 of 10 phases)
 
 ## Phase 2 Completion Summary
 
@@ -158,13 +158,41 @@ Meal Plans & Food Catalog fully implemented with unified food model:
 - WR-03: Delete without optimistic update (fixed)
 - All other findings fixed in P5-02 and P5-03
 
-**Next:** Execute Phase 06 (Dashboard & Biometry)
+**Next:** Phase 7 — WhatsApp Intelligence
+
+## Phase 6 Completion Summary
+
+Dashboard & Biometry fully implemented with clinical insights and evolution charts:
+
+**Backend (5 plans executed, 3 review findings, all resolved):**
+
+- Biometry CRUD (create, list, get, update) with active-episode enforcement and nutritionist-scoped reads/writes
+- Biometric assessment persistence: bioimpedance, skinfolds, perimetry as child tables
+- Episode history events emitted on episode open/close, plan creation, and biometry create/update
+- Dashboard aggregate endpoint serving KPIs (active patients, adherence, trends) from real data
+- Review findings resolved: CR-01 scoped episodeId to patientId+nutritionistId; WR-01 added eventAt to history events; WR-02 added patientId to update assessment lookup
+
+**Frontend (connected to real API with TanStack Query):**
+
+- Biometry API module (biometry.ts) with assessment CRUD endpoints
+- clinicalStore.ts (Zustand + TanStack Query hooks: useBiometryAssessments, useCreateAssessment, useUpdateAssessment, useBiometryHistory)
+- Dashboard API module (dashboard.ts) for KPI aggregate data
+- HomeView — KPI cards with real patient data via dashboard endpoint
+- PatientView biometry tab — assessment recording and evolution charts
+- Numeric input sanitization (shared parseNumberInput utility)
+
+**Tests:**
+
+- BiometryServiceTest — 7 unit tests (validation, active-episode, tenant isolation, history emission)
+- BiometryControllerTest — 6 unit tests (create 200, missing fields 400, update, list, cross-tenant 404, no active episode 400)
+- clinicalStore.test.ts — store state transitions and API integration
+- All review findings verified in code before close
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 19
+- Total plans completed: 24
 - Average duration: ~1 session per wave
 - Total execution time: ~5 sessions (including code review + user testing fixes)
 
@@ -180,6 +208,8 @@ Meal Plans & Food Catalog fully implemented with unified food model:
 | 04 | 2 | - | - |
 | Phase 05 P01 | 15min | 3 tasks | 36 files |
 | Phase 05 P02 | 45min | 3 tasks | 24 files |
+| 5. Meal Plans & Food Catalog | 3 | Complete ✓ | 2026-04-22 |
+| 6. Dashboard & Biometry | 5 | Complete ✓ | 2026-04-27 |
 
 ## Accumulated Context
 
@@ -198,10 +228,12 @@ Recent decisions affecting current work:
 - [Phase 05]: Macro calculation: BigDecimal with HALF_UP rounding scale=1, formula per100 * grams / 100 for BASE, preset values for PRESET
 - [Phase 05]: AddFoodModal onAdd passes simplified shape (foodId+grams+qty) — parent PlansView calls addFoodItem.mutate
 - [Phase 05]: Macros frozen from backend: PlanFoodRow shows read-only macros, only grams and qty editable (D-20)
+- [Phase 06]: History snapshot scoped to patientId+nutritionistId (CR-01 fix) — prevents cross-episode data leakage
+- [Phase 06]: BiometryService.updateAssessment uses findByIdAndPatientIdAndNutritionistId (WR-02 fix) — REST path consistency
 
 ### Pending Todos
 
-- None for Phase 2 — all views complete with user testing fixes
+- None for Phase 6 — all plans complete, review findings resolved
 
 ### Blockers/Concerns
 
@@ -212,6 +244,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-24T20:30:00.000Z
-Stopped at: Phase 06 plans restructured (3 → 5 plans, verification fixes applied)
-Resume file: .planning/phases/06-dashboard-biometry/06-01-PLAN.md
+Last session: 2026-04-28T00:00:00.000Z
+Stopped at: GSD artifacts aligned after Phase 06 close — STATE.md and ROADMAP.md now consistent
+Resume file: .planning/phases/07-whatsapp-intelligence/07-01-PLAN.md (to be created)
