@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useParams } from 'react-router';
 import { ANA } from '../data/ana';
 import { usePatient } from '../stores/patientStore';
+import { usePlan } from '../stores/planStore';
 import { mapPatientFromApi } from '../types/patient';
 import type {
   BiometryAssessmentDTO,
@@ -26,6 +27,7 @@ import {
 } from '../stores/clinicalStore';
 import { PlansView } from './PlansView';
 import type { PatientStatus } from '../types/patient';
+import type { MealPlan } from '../types/plan';
 
 type Tab = 'today' | 'plan' | 'biometry' | 'insights' | 'history';
 
@@ -61,6 +63,7 @@ export function PatientView() {
   const routePatientId = id ?? null;
   const { data: apiData, isLoading } = usePatient(id ?? null);
   const { data: biometryAssessments } = usePatientBiometry(routePatientId);
+  const { data: plan } = usePlan(routePatientId);
   const [tab, setTab] = React.useState<Tab>('today');
   const [editOpen, setEditOpen] = React.useState(false);
 
@@ -259,7 +262,7 @@ export function PatientView() {
           ))}
         </div>
       </div>
-      {tab === 'today' && <TodayTab patient={patient} onSetTab={setTab} />}
+      {tab === 'today' && <TodayTab patient={patient} plan={plan ?? null} onSetTab={setTab} />}
       {tab === 'plan' && <PlansView patientId={patientId} />}
       {tab === 'biometry' && <BiometryTab patientId={patientId} patientStatus={patient.status} />}
       {tab === 'insights' && <InsightsTab />}
@@ -270,8 +273,23 @@ export function PatientView() {
   );
 }
 
-function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (t: Tab) => void }) {
+function TodayTab({
+  patient,
+  plan,
+  onSetTab,
+}: {
+  patient: DetailedPatient;
+  plan: MealPlan | null;
+  onSetTab: (t: Tab) => void;
+}) {
   const reportedMacrosToday: MacroTarget = patient.macrosToday;
+
+  const kcalTarget = plan?.kcalTarget ?? patient.macrosToday.kcal.target;
+  const protTarget = plan?.protTarget ?? patient.macrosToday.prot.target;
+  const carbTarget = plan?.carbTarget ?? patient.macrosToday.carb.target;
+  const fatTarget = plan?.fatTarget ?? patient.macrosToday.fat.target;
+
+  const mealCount = plan?.meals?.length ?? 6;
 
   return (
     <div>
@@ -313,7 +331,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
               >
                 <div className="eyebrow">META DIÁRIA</div>
                 <div className="mono tnum" style={{ fontSize: 14, color: 'var(--fg-muted)' }}>
-                  6 refeições
+                  {mealCount} {mealCount === 1 ? 'refeição' : 'refeições'}
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
@@ -323,7 +341,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                     className="mono tnum"
                     style={{ fontSize: 20, fontWeight: 500, marginTop: 2 }}
                   >
-                    {patient.macrosToday.kcal.target.toLocaleString('pt-BR')}
+                    {kcalTarget.toLocaleString('pt-BR')}
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -337,7 +355,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                       marginTop: 2,
                     }}
                   >
-                    {patient.macrosToday.prot.target}g
+                    {protTarget}g
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -346,7 +364,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                     className="mono tnum"
                     style={{ fontSize: 20, fontWeight: 500, color: 'var(--carb)', marginTop: 2 }}
                   >
-                    {patient.macrosToday.carb.target}g
+                    {carbTarget}g
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -355,7 +373,7 @@ function TodayTab({ patient, onSetTab }: { patient: DetailedPatient; onSetTab: (
                     className="mono tnum"
                     style={{ fontSize: 20, fontWeight: 500, color: 'var(--sky)', marginTop: 2 }}
                   >
-                    {patient.macrosToday.fat.target}g
+                    {fatTarget}g
                   </div>
                 </div>
               </div>
