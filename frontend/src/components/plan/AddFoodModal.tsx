@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Food } from '../../types/food';
 import { mapFoodFromApi, FOOD_UNIT_SYMBOLS } from '../../types/food';
 import { listFoods } from '../../api/foods';
+import { parseNumberInput, sanitizeNumberInput } from '../../utils/numberInput';
 import { IconSearch, IconPlus, IconX } from '../icons';
 
 interface AddFoodModalProps {
@@ -12,7 +13,7 @@ interface AddFoodModalProps {
 export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
   const [q, setQ] = useState('');
   const [selected, setSelected] = useState<Food | null>(null);
-  const [referenceAmount, setReferenceAmount] = useState<number | ''>('');
+  const [referenceAmount, setReferenceAmount] = useState('');
   const [results, setResults] = useState<Food[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,12 +50,12 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
 
   const handleSelectFood = (food: Food) => {
     setSelected(food);
-    setReferenceAmount(food.referenceAmount);
+    setReferenceAmount(String(food.referenceAmount));
   };
 
   const getMacroPreview = () => {
     if (!selected || !referenceAmount) return null;
-    const ref = Number(referenceAmount) || 0;
+    const ref = parseNumberInput(referenceAmount) || 0;
     const foodRef = selected.referenceAmount;
     if (!foodRef) return null;
     const scale = ref / foodRef;
@@ -72,7 +73,7 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
     if (!selected || !referenceAmount) return;
     onAdd({
       foodId: selected.id,
-      referenceAmount: Number(referenceAmount),
+      referenceAmount: parseNumberInput(referenceAmount),
     });
     onClose();
   };
@@ -214,9 +215,15 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
                 <div className="eyebrow">Referência</div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={referenceAmount}
-                    onChange={(e) => setReferenceAmount(Number(e.target.value) || '')}
+                    onChange={(e) => setReferenceAmount(sanitizeNumberInput(e.target.value))}
+                    onBlur={() => {
+                      if (referenceAmount) {
+                        setReferenceAmount(String(parseNumberInput(referenceAmount)));
+                      }
+                    }}
                     placeholder="0"
                     style={{
                       padding: '8px 10px',
