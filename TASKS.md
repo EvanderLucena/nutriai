@@ -100,7 +100,7 @@
 
 ### Validação e acabamento de formulários
 
-- [ ] **Sanitizar todos os inputs numéricos restantes** — AddFoodModal (quantidade ao adicionar alimento ao plano), NewBiometryModal (peso, altura, dobras, perimetria, etc.), EditFoodCatalogModal e CreateFoodModal em FoodsView (macros do catálogo). Usar `sanitizeNumberInput`/`parseNumberInput` do `utils/numberInput`.
+- [x] **Sanitizar todos os inputs numéricos restantes** — AddFoodModal (quantidade ao adicionar alimento ao plano), NewBiometryModal (peso, altura, dobras, perimetria, etc.), EditFoodCatalogModal e CreateFoodModal em FoodsView (macros do catálogo). Usar `sanitizeNumberInput`/`parseNumberInput` do `utils/numberInput`.
 - [ ] **Padronizar validação frontend por campo** — mensagens pt-BR, bloqueio de submit, `aria-invalid` quando aplicável e feedback sem fechar modal antes de sucesso.
 - [ ] **Paciente: validar cadastro/edição** — nome, objetivo, nascimento não futuro, altura plausível, WhatsApp com máscara e 10/11 dígitos.
 - [ ] **Biometria: alinhar obrigatórios com backend** — decidir se `% gordura` é obrigatório ou opcional e ajustar frontend/backend/testes juntos.
