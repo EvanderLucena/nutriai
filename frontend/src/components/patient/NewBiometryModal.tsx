@@ -267,10 +267,11 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             />
             <BioField
               label="Peso (kg)"
+              type="number"
               placeholder="64.2"
               mono
               value={form.weight}
-              onChange={(v) => set('weight', v)}
+              onChange={(v: string) => set('weight', v)}
             />
           </div>
 
@@ -280,38 +281,43 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
             <BioField
               label="% Gordura"
+              type="number"
               placeholder="22.8"
               mono
               value={form.bodyFatPercent}
-              onChange={(v) => set('bodyFatPercent', v)}
+              onChange={(v: string) => set('bodyFatPercent', v)}
             />
             <BioField
               label="Massa magra (kg)"
+              type="number"
               placeholder="49.8"
               mono
               value={form.leanMassKg}
-              onChange={(v) => set('leanMassKg', v)}
+              onChange={(v: string) => set('leanMassKg', v)}
             />
             <BioField
               label="% Água"
+              type="number"
               placeholder="54.2"
               mono
               value={form.waterPercent}
-              onChange={(v) => set('waterPercent', v)}
+              onChange={(v: string) => set('waterPercent', v)}
             />
             <BioField
               label="Gordura visceral · nível"
+              type="number"
               placeholder="6"
               mono
               value={form.visceralFatLevel}
-              onChange={(v) => set('visceralFatLevel', v)}
+              onChange={(v: string) => set('visceralFatLevel', v)}
             />
             <BioField
               label="TMB (kcal)"
+              type="number"
               placeholder="1420"
               mono
               value={form.bmrKcal}
-              onChange={(v) => set('bmrKcal', v)}
+              onChange={(v: string) => set('bmrKcal', v)}
             />
           </div>
 
@@ -322,11 +328,12 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             {SKINFOLD_KEYS.map((k) => (
               <BioField
                 key={k}
+                type="number"
                 label={SKINFOLD_LABELS[k]}
                 placeholder="—"
                 mono
                 value={skinfoldValues[k] ?? ''}
-                onChange={(v) => {
+                onChange={(v: string) => {
                   setValidationError(null);
                   setSkinfoldValues((prev) => ({ ...prev, [k]: v }));
                 }}
@@ -360,11 +367,12 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             {PERIMETRY_KEYS.map((k) => (
               <BioField
                 key={k}
+                type="number"
                 label={PERIMETRY_LABELS[k]}
                 placeholder="—"
                 mono
                 value={perimetryValues[k] ?? ''}
-                onChange={(v) => {
+                onChange={(v: string) => {
                   setValidationError(null);
                   setPerimetryValues((prev) => ({ ...prev, [k]: v }));
                 }}

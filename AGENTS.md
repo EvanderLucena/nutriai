@@ -16,6 +16,14 @@
 
 ## Development Workflow
 
+### Regra Absoluta — NUNCA commit direto na `main`
+
+> **Nenhum agente de IA deve commitar, pushar ou mergear diretamente na branch `main`.**  
+> Sempre criar uma branch de feature/fix, abrir um Pull Request contra `main` e deixar o fluxo de CI/review cumprir seu papel.  
+> Esta regra não admite exceções — nem para "correção rápida", "doc update" ou "mudança pequena".
+
+Fluxo padrão:
+
 1. **Create a branch** from `main` (e.g. `feat/my-feature`, `fix/my-bug`)
 2. **Make changes** following conventions in this file
 3. **Verify locally**: `npx tsc --noEmit` (frontend), `./gradlew compileJava` (backend)
