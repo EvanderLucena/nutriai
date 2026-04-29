@@ -1,4 +1,5 @@
 import { useState, useCallback, type ChangeEvent } from 'react';
+import { parseNumberInput } from '../utils/numberInput';
 
 export type ValidationRule = {
   required?: boolean;
@@ -19,30 +20,36 @@ export type ValidationRule = {
 export type FieldRules = Record<string, ValidationRule>;
 
 function validateField(value: string, rules: ValidationRule): string | undefined {
-  if (rules.required && !value.trim()) {
+  const trimmedValue = value.trim();
+
+  if (rules.required && !trimmedValue) {
     return rules.requiredMessage || 'Campo obrigatório.';
   }
-  if (!value.trim() && !rules.required) return undefined;
+  if (!trimmedValue && !rules.required) return undefined;
 
-  if (rules.minLength && value.trim().length < rules.minLength) {
+  const hasNumericBounds = rules.min !== undefined || rules.max !== undefined;
+  const parsedNumber = hasNumericBounds ? parseNumberInput(trimmedValue) : undefined;
+  if (hasNumericBounds && !Number.isFinite(parsedNumber)) {
+    return 'Valor numérico inválido.';
+  }
+
+  if (rules.minLength && trimmedValue.length < rules.minLength) {
     return rules.minLengthMessage || `Mínimo de ${rules.minLength} caracteres.`;
   }
-  if (rules.maxLength && value.trim().length > rules.maxLength) {
+  if (rules.maxLength && trimmedValue.length > rules.maxLength) {
     return rules.maxLengthMessage || `Máximo de ${rules.maxLength} caracteres.`;
   }
   if (rules.min !== undefined) {
-    const num = Number(value.replace(',', '.'));
-    if (Number.isFinite(num) && num < rules.min) {
+    if ((parsedNumber as number) < rules.min) {
       return rules.minMessage || `Valor mínimo: ${rules.min}.`;
     }
   }
   if (rules.max !== undefined) {
-    const num = Number(value.replace(',', '.'));
-    if (Number.isFinite(num) && num > rules.max) {
+    if ((parsedNumber as number) > rules.max) {
       return rules.maxMessage || `Valor máximo: ${rules.max}.`;
     }
   }
-  if (rules.pattern && !rules.pattern.test(value.trim())) {
+  if (rules.pattern && !rules.pattern.test(trimmedValue)) {
     return rules.patternMessage || 'Formato inválido.';
   }
   if (rules.custom) {

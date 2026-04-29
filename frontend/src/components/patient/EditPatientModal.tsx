@@ -5,6 +5,7 @@ import type { Patient, ObjectiveOption } from '../../types/patient';
 import { OBJECTIVE_LABELS, OBJECTIVE_KEYS, REVERSE_OBJECTIVE_LABELS } from '../../types/patient';
 import { IconX, IconCheck } from '../icons';
 import { useValidation } from '../../hooks/useValidation';
+import { parseNumberInput } from '../../utils/numberInput';
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, '');
@@ -64,7 +65,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
       heightCm: {
         custom: (v) => {
           if (!v.trim()) return undefined;
-          const n = Number(v.replace(',', '.'));
+          const n = parseNumberInput(v);
           if (!Number.isFinite(n)) return 'Altura deve ser um número.';
           if (n < 50 || n > 250) return 'Altura deve estar entre 50 e 250 cm.';
           return undefined;
@@ -85,6 +86,12 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
   const handleSave = () => {
     if (!validateAll()) return;
     setSubmitError(null);
+    const parsedHeightCm = form.heightCm.trim() ? parseNumberInput(form.heightCm) : undefined;
+    if (parsedHeightCm !== undefined && !Number.isFinite(parsedHeightCm)) {
+      setSubmitError('Altura deve ser um número válido.');
+      return;
+    }
+
     updateMutation.mutate(
       {
         id: patient.id,
@@ -92,7 +99,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           name: form.name.trim(),
           ...(form.birthDate ? { birthDate: form.birthDate } : {}),
           sex,
-          ...(form.heightCm ? { heightCm: Number(form.heightCm) } : {}),
+          ...(parsedHeightCm !== undefined ? { heightCm: parsedHeightCm } : {}),
           ...(stripPhone(form.whatsapp) ? { whatsapp: stripPhone(form.whatsapp) } : {}),
           objective,
         },
@@ -216,7 +223,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
               </label>
               <input
                 id="edit-height"
-                type="number"
+                inputMode="decimal"
                 value={form.heightCm}
                 onChange={(e) => set('heightCm', e.target.value)}
                 onBlur={onBlur('heightCm')}

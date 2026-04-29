@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { IconPlus, IconDownload, IconX, IconTrash, IconEdit } from '../components/icons';
+import { parseNumberInput } from '../utils/numberInput';
 import {
   PlanFoodRow,
   OptionTab,
@@ -23,6 +24,7 @@ import {
   useUpdateExtra,
   useDeleteExtra,
 } from '../stores/planStore';
+import { useToastStore } from '../stores/toastStore';
 
 function DailyMacro({
   label,
@@ -342,23 +344,19 @@ export function PlansView({ patientId }: PlansViewProps) {
   };
 
   const handleSaveTargets = () => {
-    const kcal = Number(targetValues.kcal);
-    const prot = Number(targetValues.prot);
-    const carb = Number(targetValues.carb);
-    const fat = Number(targetValues.fat);
-    if (
-      Number.isFinite(kcal) &&
-      Number.isFinite(prot) &&
-      Number.isFinite(carb) &&
-      Number.isFinite(fat)
-    ) {
-      updatePlan.mutate({
-        kcalTarget: kcal,
-        protTarget: prot,
-        carbTarget: carb,
-        fatTarget: fat,
-      });
+    const parsedTargets = {
+      kcalTarget: parseNumberInput(targetValues.kcal),
+      protTarget: parseNumberInput(targetValues.prot),
+      carbTarget: parseNumberInput(targetValues.carb),
+      fatTarget: parseNumberInput(targetValues.fat),
+    };
+    const hasInvalidTarget = Object.values(parsedTargets).some((value) => !Number.isFinite(value));
+    if (hasInvalidTarget) {
+      useToastStore.getState().showError('Preencha metas numéricas válidas antes de salvar');
+      return;
     }
+
+    updatePlan.mutate(parsedTargets);
     setEditingTargets(false);
   };
 
@@ -538,7 +536,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Kcal · meta</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   autoFocus
                   value={targetValues.kcal}
                   onChange={(e) => setTargetValues((v) => ({ ...v, kcal: e.target.value }))}
@@ -563,7 +561,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Proteína</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.prot}
                   onChange={(e) => setTargetValues((v) => ({ ...v, prot: e.target.value }))}
                   onKeyDown={(e) => {
@@ -587,7 +585,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Carboidrato</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.carb}
                   onChange={(e) => setTargetValues((v) => ({ ...v, carb: e.target.value }))}
                   onKeyDown={(e) => {
@@ -611,7 +609,7 @@ export function PlansView({ patientId }: PlansViewProps) {
               <div style={{ display: 'flex', flexDirection: 'column', minWidth: 82 }}>
                 <div className="eyebrow">Gordura</div>
                 <input
-                  type="number"
+                  inputMode="decimal"
                   value={targetValues.fat}
                   onChange={(e) => setTargetValues((v) => ({ ...v, fat: e.target.value }))}
                   onKeyDown={(e) => {
