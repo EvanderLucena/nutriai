@@ -4,6 +4,7 @@ import com.nutriai.api.dto.ApiResponse;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -71,6 +72,27 @@ public class GlobalExceptionHandler {
         body.put("success", false);
         body.put("message", ex.getMessage() != null ? ex.getMessage() : "Valor inválido");
 
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    /**
+     * Handle JSON/body parsing errors — returns 400 with root numeric message when available.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("success", false);
+
+        String message = "Requisição inválida";
+        Throwable cause = ex.getMostSpecificCause();
+        if (cause != null && cause.getMessage() != null) {
+            String causeMsg = cause.getMessage();
+            if (causeMsg.contains("Valor numérico")) {
+                message = causeMsg.split(" at ")[0].split("\\n")[0].trim();
+            }
+        }
+
+        body.put("message", message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 

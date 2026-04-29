@@ -71,6 +71,10 @@ describe('sanitizeNumberInput', () => {
     expect(sanitizeNumberInput('1.234.567')).toBe('1234567');
   });
 
+  it('returns empty for malformed dot groups without valid thousands pattern', () => {
+    expect(sanitizeNumberInput('1.234.5')).toBe('');
+  });
+
   it('returns empty for malformed mixed separators with repeated decimal candidate', () => {
     expect(sanitizeNumberInput('1,234.5,6')).toBe('');
   });
@@ -111,6 +115,10 @@ describe('parseNumberInput', () => {
 
   it('parses multiple dot thousands groups', () => {
     expect(parseNumberInput('1.234.567')).toBe(1234567);
+  });
+
+  it('returns NaN for malformed dot groups without valid thousands pattern', () => {
+    expect(parseNumberInput('1.234.5')).toBeNaN();
   });
 
   it('treats 0.840 as 0.84 (dot = decimal)', () => {
@@ -197,6 +205,10 @@ describe('isValidNumberInput', () => {
 
   it('returns false for malformed mixed separators with repeated decimal candidate', () => {
     expect(isValidNumberInput('1,234.5,6')).toBe(false);
+  });
+
+  it('returns false for malformed dot groups without valid thousands pattern', () => {
+    expect(isValidNumberInput('1.234.5')).toBe(false);
   });
 
   it('returns false for adjacent different separators 1,.2', () => {

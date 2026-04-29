@@ -25,6 +25,12 @@ function validateField(value: string, rules: ValidationRule): string | undefined
   }
   if (!value.trim() && !rules.required) return undefined;
 
+  const hasNumericBounds = rules.min !== undefined || rules.max !== undefined;
+  const parsedNumber = hasNumericBounds ? parseNumberInput(value) : undefined;
+  if (hasNumericBounds && !Number.isFinite(parsedNumber)) {
+    return 'Valor numérico inválido.';
+  }
+
   if (rules.minLength && value.trim().length < rules.minLength) {
     return rules.minLengthMessage || `Mínimo de ${rules.minLength} caracteres.`;
   }
@@ -32,14 +38,12 @@ function validateField(value: string, rules: ValidationRule): string | undefined
     return rules.maxLengthMessage || `Máximo de ${rules.maxLength} caracteres.`;
   }
   if (rules.min !== undefined) {
-    const num = parseNumberInput(value);
-    if (Number.isFinite(num) && num < rules.min) {
+    if ((parsedNumber as number) < rules.min) {
       return rules.minMessage || `Valor mínimo: ${rules.min}.`;
     }
   }
   if (rules.max !== undefined) {
-    const num = parseNumberInput(value);
-    if (Number.isFinite(num) && num > rules.max) {
+    if ((parsedNumber as number) > rules.max) {
       return rules.maxMessage || `Valor máximo: ${rules.max}.`;
     }
   }

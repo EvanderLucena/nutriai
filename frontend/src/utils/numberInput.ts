@@ -71,11 +71,6 @@ export function sanitizeNumberInput(raw: string): string {
       return sign + cleaned.replace(/\./g, '');
     }
 
-    if (firstOk && middleOk && /^\d{0,3}$/.test(lastChunk) && lastChunk.length > 0) {
-      const whole = chunks.slice(0, -1).join('');
-      return sign + whole + '.' + lastChunk;
-    }
-
     return '';
   }
 
