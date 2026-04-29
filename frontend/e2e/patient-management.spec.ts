@@ -219,6 +219,7 @@ test.describe('Patient Management — UI→API Integration', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
+    await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
