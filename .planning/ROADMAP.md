@@ -35,20 +35,20 @@ Every phase must include tests as part of its "Done" criteria. No phase is compl
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Monorepo & Infrastructure** - Working dev environment with all services booting together
-- [x] **Phase 2: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
-- [x] **Phase 3: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
-- [x] **Phase 4: Patient Management** - Patient CRUD with status tracking, search, and data isolation
-- [x] **Phase 5: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
-- [x] **Phase 6: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
-- [ ] **Phase 7: WhatsApp Intelligence** - AI conversations via WhatsApp with meal extraction and timeline
-- [ ] **Phase 8: Billing & Subscriptions** - Stripe checkout, subscription management, patient limit enforcement
-- [ ] **Phase 9: LGPD Compliance** - Consent collection, terms/privacy pages, data export and deletion
+- [x] **Phase 01: Monorepo & Infrastructure** - Working dev environment with all services booting together
+- [x] **Phase 02: Frontend Migration** - All prototype UI preserved in Vite+TS+Tailwind modern build
+- [x] **Phase 03: Authentication & Onboarding** - Real accounts, JWT sessions, trial activation, onboarding flow
+- [x] **Phase 04: Patient Management** - Patient CRUD with status tracking, search, and data isolation
+- [x] **Phase 05: Meal Plans & Food Catalog** - Complete meal plan editor with food catalog and macro calculation
+- [x] **Phase 06: Dashboard & Biometry** - Clinical dashboard, biometric recording, and evolution charts
+- [ ] **Phase 07: WhatsApp Intelligence** - AI conversations via WhatsApp with meal extraction and timeline
+- [ ] **Phase 08: Billing & Subscriptions** - Stripe checkout, subscription management, patient limit enforcement
+- [ ] **Phase 09: LGPD Compliance** - Consent collection, terms/privacy pages, data export and deletion
 - [ ] **Phase 10: CI/CD & Deployment** - Automated deployment pipeline to production VPS
 
 ## Phase Details
 
-### Phase 1: Monorepo & Infrastructure
+### Phase 01: Monorepo & Infrastructure
 **Goal**: Development environment is reproducible and all services boot together
 **Depends on**: Nothing (first phase)
 **Requirements**: INFRA-01, INFRA-03, INFRA-04
@@ -67,9 +67,9 @@ Plans:
 - [x] 01-02-PLAN.md — Frontend scaffold with Tailwind theme and component library
 - [x] 01-03-PLAN.md — Docker Compose integration and verification
 
-### Phase 2: Frontend Migration
+### Phase 02: Frontend Migration
 **Goal**: All prototype UI works in a modern build pipeline without runtime Babel
-**Depends on**: Phase 1
+**Depends on**: Phase 01
 **Requirements**: INFRA-02
 **Success Criteria** (what must be TRUE):
   1. All 14+ prototype screens and components compile as TypeScript modules with proper ES imports (no window globals)
@@ -92,9 +92,9 @@ Plans:
 - [x] 02-07-PLAN.md — UAT gap fixes: theme tokens, deletion confirmation, login disabled state
 - [x] 02-08-PLAN.md — Verification gap closure: hardcoded colors + wire orphaned viz components
 
-### Phase 3: Authentication & Onboarding
+### Phase 03: Authentication & Onboarding
 **Goal**: Nutritionists can create real accounts and begin using the application
-**Depends on**: Phase 2
+**Depends on**: Phase 02
 **Requirements**: AUTH-01, AUTH-02, AUTH-03, AUTH-04, AUTH-05
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can sign up with email and password, creating a persistent account in PostgreSQL
@@ -113,9 +113,9 @@ Plans:
 - [x] 03-02-PLAN.md — Frontend auth wiring: LoginView, SignupView, OnboardingView, authStore refactor
 - [x] 03-E2E-TEST-PLAN.md — E2E auth test strategy and coverage plan
 
-### Phase 4: Patient Management
+### Phase 04: Patient Management
 **Goal**: Nutritionists can manage their patient roster with complete data isolation
-**Depends on**: Phase 3
+**Depends on**: Phase 03
 **Requirements**: PAT-01, PAT-02, PAT-03, PAT-04
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can create, edit, and deactivate patients with all demographic and clinical fields
@@ -131,9 +131,9 @@ Plans:
 - [x] 04-01-PLAN.md — Backend Patient CRUD with data isolation (entities, API, tests)
 - [x] 04-02-PLAN.md — Frontend patient management wiring (store, views, E2E tests)
 
-### Phase 5: Meal Plans & Food Catalog
+### Phase 05: Meal Plans & Food Catalog
 **Goal**: Nutritionists can create complete meal plans using the food catalog
-**Depends on**: Phase 4
+**Depends on**: Phase 04
 **Requirements**: PLAN-01, PLAN-02, PLAN-03, PLAN-04, PLAN-05
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can create and edit meal plans with meals, options, and individual foods using inline editing
@@ -151,7 +151,7 @@ Plans:
 - [x] 05-02-PLAN.md — Frontend types, API modules, stores, view wiring, auto-save UI components
 - [x] 05-03-PLAN.md — Unified food model refactor across backend and frontend
 
-### Phase 6: Dashboard & Biometry
+### Phase 06: Dashboard & Biometry
 **Goal**: Nutritionists can track patient biometrics and see clinical insights on the dashboard
 **Depends on**: Phase 4, Phase 5
 **Requirements**: BIO-01, BIO-02, BIO-03
@@ -173,9 +173,9 @@ Plans:
 - [x] 06-05-PLAN.md — Frontend dashboard/biometry/history wiring, tests, and E2E
 **UI hint**: yes
 
-### Phase 7: WhatsApp Intelligence
+### Phase 07: WhatsApp Intelligence
 **Goal**: Patients can interact with the AI via WhatsApp and nutritionists see extracted meal data
-**Depends on**: Phase 5, Phase 6
+**Depends on**: Phase 05, Phase 6
 **Requirements**: WA-01, WA-02, WA-03, WA-04, WA-05
 **Success Criteria** (what must be TRUE):
   1. Nutritionist can generate a unique WhatsApp activation link per patient
@@ -190,7 +190,7 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 8: Billing & Subscriptions
+### Phase 08: Billing & Subscriptions
 **Goal**: Nutritionists can subscribe, pay, and have plan limits enforced
 **Depends on**: Phase 3, Phase 4
 **Requirements**: BILL-01, BILL-02, BILL-03, PAT-05
@@ -206,7 +206,7 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 9: LGPD Compliance
+### Phase 09: LGPD Compliance
 **Goal**: Application complies with Brazilian data protection requirements for health data
 **Depends on**: Phase 4, Phase 5, Phase 6, Phase 7
 **Requirements**: LGPD-01, LGPD-02, LGPD-03
@@ -238,23 +238,23 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10
 
-Note: Phase 6 depends on both Phase 4 and Phase 5 (history snapshots consume MealPlanService, lifecycle events modify it).
-Phase 7 depends on Phase 5 and Phase 6 (uses EpisodeHistoryEvent infrastructure and dashboard structure).
-Phase 8 depends on Phase 3 and Phase 4 (patient counts for tier enforcement) — can run in parallel with 5-7.
-Phase 9 depends on Phases 4-7 (data export must cover patients, meal plans, biometry, and WhatsApp data).
-Phase 10 depends on both Phase 8 and Phase 9 (deploy complete SaaS with billing and compliance).
+Note: Phase 06 depends on both Phase 04 and Phase 05 (history snapshots consume MealPlanService, lifecycle events modify it).
+Phase 07 depends on Phase 05 and Phase 06 (uses EpisodeHistoryEvent infrastructure and dashboard structure).
+Phase 08 depends on Phase 03 and Phase 04 (patient counts for tier enforcement) — can run in parallel with 05-07.
+Phase 09 depends on Phases 04-07 (data export must cover patients, meal plans, biometry, and WhatsApp data).
+Phase 10 depends on both Phase 08 and Phase 09 (deploy complete SaaS with billing and compliance).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
-| 2. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
-| 3. Auth & Onboarding | 3/3 | Complete ✓ | 2026-04-21 |
-| 4. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
-| 5. Meal Plans & Food Catalog | 3/3 | Complete ✓ | 2026-04-22 |
-| 6. Dashboard & Biometry | 5/5 | Complete ✓ | 2026-04-27 |
-| 7. WhatsApp Intelligence | 0/? | Not started | - |
-| 8. Billing & Subscriptions | 0/? | Not started | - |
-| 9. LGPD Compliance | 0/? | Not started | - |
+| 01. Monorepo & Infrastructure | 3/3 | Complete ✓ | 2026-04-19 |
+| 02. Frontend Migration | 8/8 | Complete ✓ | 2026-04-20 |
+| 03. Auth & Onboarding | 3/3 | Complete ✓ | 2026-04-21 |
+| 04. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
+| 05. Meal Plans & Food Catalog | 3/3 | Complete ✓ | 2026-04-22 |
+| 06. Dashboard & Biometry | 5/5 | Complete ✓ | 2026-04-27 |
+| 07. WhatsApp Intelligence | 0/? | Not started | - |
+| 08. Billing & Subscriptions | 0/? | Not started | - |
+| 09. LGPD Compliance | 0/? | Not started | - |
 | 10. CI/CD & Deployment | 0/? | Not started | - |
