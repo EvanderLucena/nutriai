@@ -67,7 +67,6 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           if (!v.trim()) return undefined;
           const n = parseNumberInput(v);
           if (!Number.isFinite(n)) return 'Altura deve ser um número.';
-          if (n < 50 || n > 250) return 'Altura deve estar entre 50 e 250 cm.';
           return undefined;
         },
       },

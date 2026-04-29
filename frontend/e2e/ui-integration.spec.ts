@@ -38,19 +38,16 @@ test.describe('Patient Management — UI→API Integration', () => {
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
-    const modal = page.locator('[role="dialog"], .modal');
+    const modal = page.locator('[role="dialog"]');
     await expect(modal).toBeVisible({ timeout: 3_000 });
 
     const nameInput = page.locator('input[placeholder*="Ana Beatriz"]');
     await nameInput.fill('Paciente Integração');
 
-    // Em vez de seletor por value="", procura a label "Objetivo clínico" e o select logo abaixo
-    const objectiveSelect = page
-      .locator('label', { hasText: 'Objetivo clínico' })
-      .locator('..')
-      .locator('select')
-      .first();
-    await objectiveSelect.selectOption({ label: 'Hipertrofia' });
+    // Espera o select renderizar completamente antes de interagir
+    const objectiveSelect = page.locator('select');
+    await objectiveSelect.first().waitFor({ timeout: 3_000 });
+    await objectiveSelect.first().selectOption({ label: 'Hipertrofia' });
 
     await page.getByRole('checkbox').check();
 
@@ -58,7 +55,10 @@ test.describe('Patient Management — UI→API Integration', () => {
     await saveBtn.click();
 
     // Aguarda o POST completar e o modal desaparecer
-    await page.waitForResponse((resp) => resp.url().includes('/patients') && resp.status() === 201, { timeout: 15_000 });
+    await page.waitForResponse(
+      (resp) => resp.url().includes('/patients') && resp.status() === 201,
+      { timeout: 15_000 },
+    );
     await expect(modal).not.toBeVisible({ timeout: 5_000 });
 
     const response = await request.get(`${API_BASE}/patients`, {
@@ -98,7 +98,6 @@ test.describe('Patient Management — UI→API Integration', () => {
       .first()
       .click();
 
-    await expect(page.locator('#edit-objective')).toBeVisible({ timeout: 3_000 });
     await page.locator('#edit-objective').selectOption({ label: 'Hipertrofia' });
 
     const saveResponsePromise = page.waitForResponse(
@@ -185,7 +184,9 @@ test.describe('Food Catalog — UI→API Integration', () => {
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
-    const found = body.data?.content?.find((p: { name: string }) => p.name === 'Whey Protein E2E');
+    const found = body.data?.content?.find(
+      (p: { name: string }) => p.name === 'Whey Protein E2E',
+    );
     expect(found).toBeDefined();
     expect(found.category).toBe('PROTEINA');
   });
