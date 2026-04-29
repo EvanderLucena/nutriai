@@ -18,7 +18,10 @@ public class JacksonConfig {
     @Bean
     public SimpleModule ptBRBigDecimalModule() {
         SimpleModule module = new SimpleModule();
-        module.addDeserializer(BigDecimal.class, new PtBRBigDecimalDeserializer());
+        PtBRBigDecimalDeserializer bigDecimalDeserializer = new PtBRBigDecimalDeserializer();
+        module.addDeserializer(BigDecimal.class, bigDecimalDeserializer);
+        module.addDeserializer(Integer.class, new PtBRIntegerDeserializer(bigDecimalDeserializer));
+        module.addDeserializer(Integer.TYPE, new PtBRIntegerDeserializer(bigDecimalDeserializer));
         return module;
     }
 
@@ -202,6 +205,42 @@ public class JacksonConfig {
             return new IllegalArgumentException(
                 "Valor numérico inválido: '" + raw
                 + "'. Use formato como 4.5 ou 4,5.");
+        }
+    }
+
+    static class PtBRIntegerDeserializer extends JsonDeserializer<Integer> {
+
+        private final PtBRBigDecimalDeserializer decimalDeserializer;
+
+        PtBRIntegerDeserializer(PtBRBigDecimalDeserializer decimalDeserializer) {
+            this.decimalDeserializer = decimalDeserializer;
+        }
+
+        @Override
+        public Integer deserialize(JsonParser p, DeserializationContext ctxt)
+                throws IOException {
+            JsonNode node = p.readValueAsTree();
+            if (node.isInt()) {
+                return node.intValue();
+            }
+            if (node.isNumber()) {
+                BigDecimal value = node.decimalValue();
+                if (value.stripTrailingZeros().scale() > 0) {
+                    throw new IllegalArgumentException(
+                        "Valor numérico inválido. Este campo aceita apenas números inteiros.");
+                }
+                return value.intValueExact();
+            }
+            if (node.isTextual()) {
+                BigDecimal value = decimalDeserializer.parsePtBRDecimal(node.asText().trim());
+                if (value.stripTrailingZeros().scale() > 0) {
+                    throw new IllegalArgumentException(
+                        "Valor numérico inválido. Este campo aceita apenas números inteiros.");
+                }
+                return value.intValueExact();
+            }
+            throw new IllegalArgumentException(
+                "Valor numérico inválido. Este campo aceita apenas números inteiros.");
         }
     }
 }

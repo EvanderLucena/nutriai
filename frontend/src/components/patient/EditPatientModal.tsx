@@ -86,6 +86,12 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
   const handleSave = () => {
     if (!validateAll()) return;
     setSubmitError(null);
+    const parsedHeightCm = form.heightCm.trim() ? parseNumberInput(form.heightCm) : undefined;
+    if (parsedHeightCm !== undefined && !Number.isFinite(parsedHeightCm)) {
+      setSubmitError('Altura deve ser um número válido.');
+      return;
+    }
+
     updateMutation.mutate(
       {
         id: patient.id,
@@ -93,7 +99,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
           name: form.name.trim(),
           ...(form.birthDate ? { birthDate: form.birthDate } : {}),
           sex,
-          ...(form.heightCm ? { heightCm: parseNumberInput(form.heightCm) } : {}),
+          ...(parsedHeightCm !== undefined ? { heightCm: parsedHeightCm } : {}),
           ...(stripPhone(form.whatsapp) ? { whatsapp: stripPhone(form.whatsapp) } : {}),
           objective,
         },

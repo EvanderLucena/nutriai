@@ -1,6 +1,7 @@
 package com.nutriai.api.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -186,5 +187,22 @@ class PtBRBigDecimalDeserializerTest {
         assertEquals(new BigDecimal("4.5"), dto.value());
     }
 
+    @Test
+    @DisplayName("handles integer field deserialization with pt-BR thousands string")
+    void objectMapperIntegerThousandsDeserialization() throws Exception {
+        IntDto dto = mapper.readValue("{\"value\":\"1.840\"}", IntDto.class);
+        assertEquals(1840, dto.value());
+    }
+
+    @Test
+    @DisplayName("rejects decimal string for integer field")
+    void objectMapperIntegerRejectsDecimalString() {
+        JsonMappingException exception = assertThrows(JsonMappingException.class, () -> {
+            mapper.readValue("{\"value\":\"1,5\"}", IntDto.class);
+        });
+        assertTrue(exception.getCause() instanceof IllegalArgumentException);
+    }
+
     record TestDto(BigDecimal value) {}
+    record IntDto(Integer value) {}
 }

@@ -343,23 +343,18 @@ export function PlansView({ patientId }: PlansViewProps) {
   };
 
   const handleSaveTargets = () => {
-    const kcal = parseNumberInput(targetValues.kcal);
-    const prot = parseNumberInput(targetValues.prot);
-    const carb = parseNumberInput(targetValues.carb);
-    const fat = parseNumberInput(targetValues.fat);
-    if (
-      Number.isFinite(kcal) &&
-      Number.isFinite(prot) &&
-      Number.isFinite(carb) &&
-      Number.isFinite(fat)
-    ) {
-      updatePlan.mutate({
-        kcalTarget: kcal,
-        protTarget: prot,
-        carbTarget: carb,
-        fatTarget: fat,
-      });
+    const parsedTargets = {
+      kcalTarget: parseNumberInput(targetValues.kcal),
+      protTarget: parseNumberInput(targetValues.prot),
+      carbTarget: parseNumberInput(targetValues.carb),
+      fatTarget: parseNumberInput(targetValues.fat),
+    };
+    const hasInvalidTarget = Object.values(parsedTargets).some((value) => !Number.isFinite(value));
+    if (hasInvalidTarget) {
+      return;
     }
+
+    updatePlan.mutate(parsedTargets);
     setEditingTargets(false);
   };
 
