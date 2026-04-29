@@ -24,6 +24,7 @@ import {
   useUpdateExtra,
   useDeleteExtra,
 } from '../stores/planStore';
+import { useToastStore } from '../stores/toastStore';
 
 function DailyMacro({
   label,
@@ -351,6 +352,7 @@ export function PlansView({ patientId }: PlansViewProps) {
     };
     const hasInvalidTarget = Object.values(parsedTargets).some((value) => !Number.isFinite(value));
     if (hasInvalidTarget) {
+      useToastStore.getState().showError('Preencha metas numéricas válidas antes de salvar');
       return;
     }
 

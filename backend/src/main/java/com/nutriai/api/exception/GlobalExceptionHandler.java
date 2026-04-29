@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
         if (cause != null && cause.getMessage() != null) {
             String causeMsg = cause.getMessage();
             if (causeMsg.contains("Valor numérico")) {
-                message = causeMsg.split(" at ")[0].split("\\n")[0].trim();
+                message = "Valor numérico inválido. Use formato como 4.5 ou 4,5.";
             }
         }
 
