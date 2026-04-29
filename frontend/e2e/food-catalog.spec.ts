@@ -284,6 +284,7 @@ test.describe('Food Catalog — UI→API Integration', () => {
     await completeOnboardingViaApi(request, accessToken);
 
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
     await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
