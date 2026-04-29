@@ -4,9 +4,8 @@ import {
   createPatientPayload,
   signupViaApi,
   uniqueEmail,
+  API_BASE,
 } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
 
 test.describe('Patient Management — Page Rendering', () => {
   test('E2E-PM-01: Patients page renders without errors', async ({ page }) => {
@@ -45,7 +44,7 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-04: Create patient with enum key objective succeeds', async ({ request }) => {
-    const response = await request.post(`${API}/patients`, {
+    const response = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente E2E', objective: 'EMAGRECIMENTO' }),
     });
@@ -62,7 +61,7 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   test('E2E-PM-05: Create patient with pt-BR label "Hipertrofia" returns 400', async ({
     request,
   }) => {
-    const response = await request.post(`${API}/patients`, {
+    const response = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Label', objective: 'Hipertrofia' }),
     });
@@ -72,7 +71,7 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   test('E2E-PM-06: Create patient with invalid objective "Ganho muscular" returns 400', async ({
     request,
   }) => {
-    const response = await request.post(`${API}/patients`, {
+    const response = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Invalid', objective: 'Ganho muscular' }),
     });
@@ -80,7 +79,7 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-07: Create patient without name returns 400', async ({ request }) => {
-    const response = await request.post(`${API}/patients`, {
+    const response = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: undefined, objective: 'EMAGRECIMENTO' }),
     });
@@ -88,12 +87,12 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-08: List patients returns correct paginated contract', async ({ request }) => {
-    await request.post(`${API}/patients`, {
+    await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente List', objective: 'HIPERTROFIA' }),
     });
 
-    const response = await request.get(`${API}/patients`, {
+    const response = await request.get(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(response.status()).toBe(200);
@@ -106,14 +105,14 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-09: Update patient objective with enum key succeeds', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Update', objective: 'SAUDE_GERAL' }),
     });
     const created = await createResp.json();
     const patientId = created.data.id;
 
-    const updateResp = await request.patch(`${API}/patients/${patientId}`, {
+    const updateResp = await request.patch(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { objective: 'HIPERTROFIA' },
     });
@@ -123,14 +122,14 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-10: Update patient objective with pt-BR label returns 400', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Label Update', objective: 'SAUDE_GERAL' }),
     });
     const created = await createResp.json();
     const patientId = created.data.id;
 
-    const updateResp = await request.patch(`${API}/patients/${patientId}`, {
+    const updateResp = await request.patch(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { objective: 'Saúde geral' },
     });
@@ -138,14 +137,14 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-11: Update patient status with enum key succeeds', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Status', objective: 'SAUDE_GERAL' }),
     });
     const created = await createResp.json();
     const patientId = created.data.id;
 
-    const updateResp = await request.patch(`${API}/patients/${patientId}`, {
+    const updateResp = await request.patch(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { status: 'WARNING' },
     });
@@ -155,14 +154,14 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-12: Update patient status with lowercase returns 400', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Status Lowercase', objective: 'SAUDE_GERAL' }),
     });
     const created = await createResp.json();
     const patientId = created.data.id;
 
-    const updateResp = await request.patch(`${API}/patients/${patientId}`, {
+    const updateResp = await request.patch(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { status: 'warning' },
     });
@@ -170,20 +169,20 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
   });
 
   test('E2E-PM-13: Deactivate and reactivate patient', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Toggle', objective: 'REEDUCACAO_ALIMENTAR' }),
     });
     const created = await createResp.json();
     const patientId = created.data.id;
 
-    const deactivateResp = await request.patch(`${API}/patients/${patientId}/deactivate`, {
+    const deactivateResp = await request.patch(`${API_BASE}/patients/${patientId}/deactivate`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(deactivateResp.status()).toBe(200);
     expect((await deactivateResp.json()).data.active).toBe(false);
 
-    const reactivateResp = await request.patch(`${API}/patients/${patientId}/reactivate`, {
+    const reactivateResp = await request.patch(`${API_BASE}/patients/${patientId}/reactivate`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(reactivateResp.status()).toBe(200);
@@ -192,20 +191,20 @@ test.describe('Patient Management — API Contract & Enum Validation', () => {
 
   test('E2E-PM-14: Cross-nutritionist isolation returns 403/404', async ({ request }) => {
     const otherResult = await signupViaApi(request, uniqueEmail());
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
       data: createPatientPayload({ name: 'Paciente Outro', objective: 'EMAGRECIMENTO' }),
     });
     const patientId = (await createResp.json()).data.id;
 
-    const accessResp = await request.get(`${API}/patients/${patientId}`, {
+    const accessResp = await request.get(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect([403, 404]).toContain(accessResp.status());
   });
 
   test('E2E-PM-15: Unauthenticated access returns 401', async ({ request }) => {
-    const response = await request.get(`${API}/patients`);
+    const response = await request.get(`${API_BASE}/patients`);
     expect(response.status()).toBe(401);
   });
 });
@@ -215,32 +214,18 @@ test.describe('Patient Management — UI→API Integration', () => {
 
   test.beforeEach(async ({ page, request }) => {
     const email = uniqueEmail();
-    const result = await signupViaApi(request, email);
+    const password = 'SenhaSegura123!';
+    const result = await signupViaApi(request, email, password);
     accessToken = result.accessToken;
-
     await completeOnboardingViaApi(request, accessToken);
 
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
-    await page.evaluate((token) => {
-      localStorage.setItem(
-        'nutriai-auth',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            accessToken: token,
-            user: {
-              id: '1',
-              name: 'Dra. UI',
-              email: 'ui@test.com',
-              role: 'NUTRITIONIST',
-              onboardingCompleted: true,
-            },
-          },
-          version: 0,
-        }),
-      );
-    }, accessToken);
+    await page.getByTestId('login-email').fill(email);
+    await page.getByTestId('login-password').fill(password);
+    await page.getByRole('button', { name: /Entrar/i }).click();
+    await expect(page).toHaveURL(/\/home/, { timeout: 10_000 });
+
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
   });
@@ -250,7 +235,8 @@ test.describe('Patient Management — UI→API Integration', () => {
     request,
   }) => {
     await page.getByRole('button', { name: /novo paciente/i }).click();
-    await page.waitForTimeout(500);
+    const modal = page.locator('[role="dialog"], .modal');
+    await expect(modal).toBeVisible({ timeout: 3_000 });
 
     const nameInput = page.locator('input[placeholder*="Ana Beatriz"]');
     await nameInput.fill('Paciente Integração');
@@ -264,9 +250,9 @@ test.describe('Patient Management — UI→API Integration', () => {
 
     const saveBtn = page.getByRole('button', { name: /cadastrar/i });
     await saveBtn.click();
-    await page.waitForTimeout(2000);
+    await expect(modal).not.toBeVisible({ timeout: 5_000 });
 
-    const response = await request.get(`${API}/patients`, {
+    const response = await request.get(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: { search: 'Paciente Integração' },
     });
@@ -280,7 +266,7 @@ test.describe('Patient Management — UI→API Integration', () => {
   });
 
   test('E2E-PM-17: Edit patient modal sends enum key for objective', async ({ page, request }) => {
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Editar UI', objective: 'EMAGRECIMENTO' }),
     });
@@ -294,8 +280,28 @@ test.describe('Patient Management — UI→API Integration', () => {
       .first();
     await expect(row).toBeVisible({ timeout: 5_000 });
     await row.click();
-    await page.waitForTimeout(500);
-
     await expect(page).toHaveURL(/\/patient\//, { timeout: 5_000 });
+
+    await page
+      .getByRole('button', { name: /Editar/i })
+      .first()
+      .click();
+    await expect(page.locator('#edit-objective')).toBeVisible({ timeout: 3_000 });
+
+    await page.locator('#edit-objective').selectOption({ label: 'Hipertrofia' });
+
+    await page
+      .locator('.btn.btn-primary')
+      .filter({ hasText: /Salvar/i })
+      .click();
+
+    await expect(page.locator('#edit-objective')).not.toBeVisible({ timeout: 5_000 });
+
+    const getResp = await request.get(`${API_BASE}/patients/${patientId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(getResp.status()).toBe(200);
+    const updated = await getResp.json();
+    expect(updated.data.objective).toBe('HIPERTROFIA');
   });
 });

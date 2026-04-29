@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, signupViaApi, completeOnboardingViaApi } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
+import { uniqueEmail, signupViaApi, completeOnboardingViaApi, API_BASE } from './helpers';
 
 test.describe('Backend: pt-BR numeric deserialization', () => {
   let accessToken: string;
@@ -13,7 +11,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Paciente Numerico',
@@ -26,7 +24,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-01: Biometry accepts pt-BR comma decimal (72,5 -> 72.5)', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -41,7 +39,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-02: Biometry accepts international dot decimal (72.5)', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -56,7 +54,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-03: Biometry rejects double dots (1..2) with 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -68,7 +66,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-04: Biometry rejects adjacent separators (1,.2) with 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -82,7 +80,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   test('E2E-NUM-05: Biometry rejects ambiguous mixed separators (1,2.3) with 400', async ({
     request,
   }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -94,7 +92,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-06: Biometry rejects pure text (abc) with 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -108,7 +106,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   test('E2E-NUM-07: Biometry accepts pt-BR thousands format (1.840 -> 1840)', async ({
     request,
   }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-28',
@@ -124,7 +122,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-08: Food creates with pt-BR comma decimal for macros', async ({ request }) => {
-    const resp = await request.post(`${API}/foods`, {
+    const resp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Arroz E2E Num',
@@ -146,7 +144,7 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
   });
 
   test('E2E-NUM-09: Food rejects invalid numeric format (1..2) with 400', async ({ request }) => {
-    const resp = await request.post(`${API}/foods`, {
+    const resp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Arroz Invalido',

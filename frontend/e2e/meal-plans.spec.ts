@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createPatientPayload, signupViaApi, uniqueEmail } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
+import { createPatientPayload, signupViaApi, uniqueEmail, API_BASE } from './helpers';
 
 test.describe('Meal Plans — API Contract', () => {
   let accessToken: string;
@@ -12,7 +10,7 @@ test.describe('Meal Plans — API Contract', () => {
     const result = await signupViaApi(request, email);
     accessToken = result.accessToken;
 
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente API Plano', objective: 'HIPERTROFIA' }),
     });
@@ -21,7 +19,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-01: GET plan returns correct contract', async ({ request }) => {
-    const response = await request.get(`${API}/patients/${patientId}/plan`, {
+    const response = await request.get(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(response.status()).toBe(200);
@@ -37,7 +35,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-02: Auto-created plan has default meals', async ({ request }) => {
-    const planResp = await request.get(`${API}/patients/${patientId}/plan`, {
+    const planResp = await request.get(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const plan = await planResp.json();
@@ -45,7 +43,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-03: Add meal slot with valid data succeeds', async ({ request }) => {
-    const response = await request.post(`${API}/patients/${patientId}/plan/meals`, {
+    const response = await request.post(`${API_BASE}/patients/${patientId}/plan/meals`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { label: 'Lanche da tarde extra', time: '15:00' },
     });
@@ -58,7 +56,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-04: Add meal slot without label returns 400', async ({ request }) => {
-    const response = await request.post(`${API}/patients/${patientId}/plan/meals`, {
+    const response = await request.post(`${API_BASE}/patients/${patientId}/plan/meals`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { time: '15:00' },
     });
@@ -66,7 +64,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-05: Add extra with valid data succeeds', async ({ request }) => {
-    const response = await request.post(`${API}/patients/${patientId}/plan/extras`, {
+    const response = await request.post(`${API_BASE}/patients/${patientId}/plan/extras`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { name: 'Chocolate 70%', quantity: '20g' },
     });
@@ -78,7 +76,7 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-06: Update plan targets', async ({ request }) => {
-    const response = await request.patch(`${API}/patients/${patientId}/plan`, {
+    const response = await request.patch(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { kcalTarget: 1800, protTarget: 120, carbTarget: 200, fatTarget: 60 },
     });
@@ -89,27 +87,27 @@ test.describe('Meal Plans — API Contract', () => {
   });
 
   test('E2E-MP-07: Unauthenticated plan access returns 401', async ({ request }) => {
-    const response = await request.get(`${API}/patients/${patientId}/plan`);
+    const response = await request.get(`${API_BASE}/patients/${patientId}/plan`);
     expect(response.status()).toBe(401);
   });
 
   test('E2E-MP-08: Cross-nutritionist plan access returns 403/404', async ({ request }) => {
     const otherResult = await signupViaApi(request, uniqueEmail());
-    const response = await request.get(`${API}/patients/${patientId}/plan`, {
+    const response = await request.get(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
     });
     expect([403, 404]).toContain(response.status());
   });
 
   test('E2E-MP-09: Add option to existing meal slot', async ({ request }) => {
-    const planResp = await request.get(`${API}/patients/${patientId}/plan`, {
+    const planResp = await request.get(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const plan = await planResp.json();
     const mealId = plan.data.meals[0].id;
 
     const response = await request.post(
-      `${API}/patients/${patientId}/plan/meals/${mealId}/options`,
+      `${API_BASE}/patients/${patientId}/plan/meals/${mealId}/options`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: { name: 'Opção 2 · Alternativa' },
