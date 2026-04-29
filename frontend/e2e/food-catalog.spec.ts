@@ -283,6 +283,7 @@ test.describe('Food Catalog — UI→API Integration', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
+    await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
     await page.getByTestId('login-email').fill(email);
