@@ -25,128 +25,146 @@ public class JacksonConfig {
     static class PtBRBigDecimalDeserializer extends JsonDeserializer<BigDecimal> {
 
         @Override
-        public BigDecimal deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        public BigDecimal deserialize(JsonParser p, DeserializationContext ctxt)
+                throws IOException {
             JsonNode node = p.readValueAsTree();
-
             if (node.isNumber()) {
                 return node.decimalValue();
             }
-
             if (node.isTextual()) {
-                String raw = node.asText().trim();
-                return parsePtBRDecimal(raw);
+                return parsePtBRDecimal(node.asText().trim());
             }
-
             throw new IllegalArgumentException(
                 "Valor numérico inválido. Use formato como 4.5 ou 4,5.");
         }
 
         BigDecimal parsePtBRDecimal(String raw) {
+            validateNotEmpty(raw);
+            boolean negative = raw.startsWith("-");
+            String working = negative ? raw.substring(1) : raw;
+            working = working.replaceAll("[^0-9.,]", "");
+            validateCleanInput(working, raw);
+            String normalized = normalize(working, raw);
+            return toBigDecimal(normalized, negative, raw);
+        }
+
+        private void validateNotEmpty(String raw) {
             if (raw.isEmpty()) {
                 throw new IllegalArgumentException(
                     "Valor numérico vazio. Informe um número como 4.5 ou 4,5.");
             }
+        }
 
-            boolean negative = raw.startsWith("-");
-            String working = negative ? raw.substring(1) : raw;
-
-            working = working.replaceAll("[^0-9.,]", "");
-
+        private void validateCleanInput(String working, String raw) {
             if (working.isEmpty()) {
-                throw new IllegalArgumentException(
-                    "Valor numérico inválido. Informe um número como 4.5 ou 4,5.");
+                throw invalidFormat(raw);
             }
-
             if (working.contains("..") || working.contains(",,")) {
                 throw new IllegalArgumentException(
-                    "Valor numérico inválido: '" + raw + "'. Separadores duplicados não são permitidos.");
+                    "Valor numérico inválido: '" + raw
+                    + "'. Separadores duplicados não são permitidos.");
             }
-
-            if (working.contains(",.") || working.contains(".,") ) {
+            if (working.contains(",.") || working.contains(".,")) {
                 throw new IllegalArgumentException(
-                    "Valor numérico inválido: '" + raw + "'. Use vírgula para decimal ou ponto, mas não ambos adjacentes.");
+                    "Valor numérico inválido: '" + raw
+                    + "'. Separadores adjacentes não são permitidos.");
             }
+        }
 
+        private String normalize(String working, String raw) {
             int firstComma = working.indexOf(',');
             int firstDot = working.indexOf('.');
             int lastComma = working.lastIndexOf(',');
             int lastDot = working.lastIndexOf('.');
-            String sign = negative ? "-" : "";
-            String normalized;
 
             if (firstComma == -1 && firstDot == -1) {
-                normalized = working;
-            } else if (firstComma != -1 && firstDot != -1) {
-                long dotCount = working.chars().filter(c -> c == '.').count();
-                long commaCount = working.chars().filter(c -> c == ',').count();
+                return working;
+            }
+            if (firstComma != -1 && firstDot != -1) {
+                return normalizeMixed(working, raw, firstComma, firstDot,
+                        lastComma, lastDot);
+            }
+            if (firstComma != -1) {
+                return normalizeCommaOnly(working, firstComma, lastComma);
+            }
+            return normalizeDotOnly(working, firstDot, lastDot, raw);
+        }
 
-                if (dotCount > 1 && commaCount > 0) {
+        private String normalizeMixed(String w, String raw,
+                int fc, int fd, int lc, int ld) {
+            long dotCount = w.chars().filter(c -> c == '.').count();
+            long commaCount = w.chars().filter(c -> c == ',').count();
+            if (dotCount > 1 && commaCount > 0) {
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw + "'. Formato ambíguo.");
+            }
+            if (dotCount == 1 && commaCount == 1
+                    && Math.abs(fd - fc) <= 2) {
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw
+                    + "'. Separadores muito próximos — formato ambíguo.");
+            }
+            if (lc > ld) {
+                return w.substring(0, lc).replace(".", "")
+                    + "." + w.substring(lc + 1);
+            }
+            return w.substring(0, ld).replace(",", "")
+                + "." + w.substring(ld + 1);
+        }
+
+        private String normalizeCommaOnly(String w,
+                int firstComma, int lastComma) {
+            if (lastComma != firstComma) {
+                return w.substring(0, lastComma).replace(",", "")
+                    + "." + w.substring(lastComma + 1);
+            }
+            return w.substring(0, firstComma)
+                + "." + w.substring(firstComma + 1);
+        }
+
+        private String normalizeDotOnly(String w,
+                int firstDot, int lastDot, String raw) {
+            long dotCount = w.chars().filter(c -> c == '.').count();
+            if (dotCount > 1) {
+                return normalizeThousandDot(w, raw);
+            }
+            String before = w.substring(0, firstDot);
+            String after = w.substring(firstDot + 1);
+            if (after.length() == 3 && !before.isEmpty()
+                    && before.chars().allMatch(Character::isDigit)) {
+                return before + after;
+            }
+            return before + "." + after;
+        }
+
+        private String normalizeThousandDot(String w, String raw) {
+            String[] chunks = w.split("\\.");
+            for (String chunk : chunks) {
+                if (chunk.isEmpty()) {
                     throw new IllegalArgumentException(
-                        "Valor numérico inválido: '" + raw + "'. Formato ambíguo — combine separadores de forma clara (ex: 1.234,5 ou 1,234.5).");
-                }
-
-                if (dotCount == 1 && commaCount == 1) {
-                    int diff = Math.abs(firstDot - firstComma);
-                    if (diff <= 2) {
-                        throw new IllegalArgumentException(
-                            "Valor numérico inválido: '" + raw + "'. Separadores muito próximos — formato ambíguo.");
-                    }
-                }
-
-                if (lastComma > lastDot) {
-                    String beforeComma = working.substring(0, lastComma).replace(".", "");
-                    String afterComma = working.substring(lastComma + 1);
-                    normalized = beforeComma + "." + afterComma;
-                } else {
-                    String beforeDot = working.substring(0, lastDot).replace(",", "");
-                    String afterDot = working.substring(lastDot + 1);
-                    normalized = beforeDot + "." + afterDot;
-                }
-            } else if (firstComma != -1) {
-                if (lastComma != firstComma) {
-                    String before = working.substring(0, lastComma).replace(",", "");
-                    String after = working.substring(lastComma + 1);
-                    normalized = before + "." + after;
-                } else {
-                    String before = working.substring(0, firstComma);
-                    String after = working.substring(firstComma + 1);
-                    normalized = before + "." + after;
-                }
-            } else {
-                long dotCount = working.chars().filter(c -> c == '.').count();
-                if (dotCount > 1) {
-                    String[] chunks = working.split("\\.");
-                    for (String chunk : chunks) {
-                        if (chunk.isEmpty()) {
-                            throw new IllegalArgumentException(
-                                "Valor numérico inválido: '" + raw + "'. Separadores de milhar mal posicionados.");
-                        }
-                    }
-                    boolean allGrouped3 = true;
-                    for (int i = 0; i < chunks.length - 1; i++) {
-                        if (chunks[i].length() != 3) {
-                            allGrouped3 = false;
-                            break;
-                        }
-                    }
-                    String lastChunk = chunks[chunks.length - 1];
-                    if (allGrouped3 && lastChunk.length() == 3) {
-                        normalized = working.replace(".", "");
-                    } else {
-                        throw new IllegalArgumentException(
-                            "Valor numérico inválido: '" + raw + "'. Separadores de milhar mal posicionados.");
-                    }
-                } else {
-                    String before = working.substring(0, firstDot);
-                    String after = working.substring(firstDot + 1);
-                    if (after.length() == 3 && !before.isEmpty() && before.chars().allMatch(Character::isDigit)) {
-                        normalized = before + after;
-                    } else {
-                        normalized = before + "." + after;
-                    }
+                        "Valor numérico inválido: '" + raw
+                        + "'. Separadores de milhar mal posicionados.");
                 }
             }
+            boolean allGrouped3 = true;
+            for (int i = 0; i < chunks.length - 1; i++) {
+                if (chunks[i].length() != 3) {
+                    allGrouped3 = false;
+                    break;
+                }
+            }
+            String lastChunk = chunks[chunks.length - 1];
+            if (allGrouped3 && lastChunk.length() == 3) {
+                return w.replace(".", "");
+            }
+            throw new IllegalArgumentException(
+                "Valor numérico inválido: '" + raw
+                + "'. Separadores de milhar mal posicionados.");
+        }
 
+        private BigDecimal toBigDecimal(String normalized,
+                boolean negative, String raw) {
+            String sign = negative ? "-" : "";
             try {
                 BigDecimal result = new BigDecimal(sign + normalized);
                 result = result.setScale(10, RoundingMode.HALF_UP);
@@ -158,9 +176,14 @@ public class JacksonConfig {
                 }
                 return result;
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException(
-                    "Valor numérico inválido: '" + raw + "'. Use formato como 4.5 ou 4,5.");
+                throw invalidFormat(raw);
             }
+        }
+
+        private IllegalArgumentException invalidFormat(String raw) {
+            return new IllegalArgumentException(
+                "Valor numérico inválido: '" + raw
+                + "'. Use formato como 4.5 ou 4,5.");
         }
     }
 }

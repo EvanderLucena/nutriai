@@ -15,7 +15,7 @@
  */
 
 export function sanitizeNumberInput(raw: string): string {
-  let cleaned = raw.replace(/[^0-9.,\-]/g, '');
+  let cleaned = raw.replace(/[^0-9.,-]/g, '');
   const negative = cleaned.startsWith('-');
   if (negative) cleaned = cleaned.slice(1);
 
@@ -95,7 +95,7 @@ export function isValidNumberInput(raw: string): boolean {
   if (!raw || !raw.trim()) return true;
   const trimmed = raw.trim();
 
-  if (/[^0-9.,\-]/.test(trimmed)) return false;
+  if (/[^0-9.,-]/.test(trimmed)) return false;
 
   const digitOnly = trimmed.replace(/[^0-9]/g, '');
   if (digitOnly.length === 0) return false;
