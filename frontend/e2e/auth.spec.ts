@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, signupViaApi } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
+import { uniqueEmail, signupViaApi, API_BASE } from './helpers';
 
 test.describe('Auth — Signup UI→API Integration', () => {
   test('E2E-AUTH-01: Signup completo UI→API redireciona para onboarding', async ({ page }) => {
@@ -98,8 +96,15 @@ test.describe('Auth — Login UI→API Integration', () => {
 test.describe('Auth — API Contract & Value Rejection', () => {
   test('E2E-AUTH-08: Signup API retorna accessToken e user', async ({ request }) => {
     const email = uniqueEmail();
-    const response = await request.post(`${API}/auth/signup`, {
-      data: { name: 'Dra. Contrato', email, password: 'SenhaSegura123!', crn: '54321', crnRegional: 'SP', terms: true },
+    const response = await request.post(`${API_BASE}/auth/signup`, {
+      data: {
+        name: 'Dra. Contrato',
+        email,
+        password: 'SenhaSegura123!',
+        crn: '54321',
+        crnRegional: 'SP',
+        terms: true,
+      },
     });
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -115,7 +120,9 @@ test.describe('Auth — API Contract & Value Rejection', () => {
     const email = uniqueEmail();
     await signupViaApi(request, email);
 
-    const response = await request.post(`${API}/auth/login`, { data: { email, password: 'SenhaSegura123!' } });
+    const response = await request.post(`${API_BASE}/auth/login`, {
+      data: { email, password: 'SenhaSegura123!' },
+    });
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body).toHaveProperty('accessToken');
@@ -127,18 +134,24 @@ test.describe('Auth — API Contract & Value Rejection', () => {
     const email = uniqueEmail();
     await signupViaApi(request, email);
 
-    const response = await request.post(`${API}/auth/login`, { data: { email, password: 'senhaerrada' } });
+    const response = await request.post(`${API_BASE}/auth/login`, {
+      data: { email, password: 'senhaerrada' },
+    });
     expect(response.status()).toBe(401);
   });
 
   test('E2E-AUTH-11: GET /auth/me sem token retorna 401', async ({ request }) => {
-    const response = await request.get(`${API}/auth/me`);
+    const response = await request.get(`${API_BASE}/auth/me`);
     expect(response.status()).toBe(401);
   });
 
-  test('E2E-AUTH-12: GET /auth/me com token válido retorna usuário sem senha', async ({ request }) => {
+  test('E2E-AUTH-12: GET /auth/me com token válido retorna usuário sem senha', async ({
+    request,
+  }) => {
     const { accessToken } = await signupViaApi(request, uniqueEmail());
-    const response = await request.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const response = await request.get(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     expect(response.status()).toBe(200);
     const body = await response.json();
     expect(body).toHaveProperty('id');
@@ -146,15 +159,24 @@ test.describe('Auth — API Contract & Value Rejection', () => {
   });
 
   test('E2E-AUTH-13: Signup sem campos obrigatórios retorna 400', async ({ request }) => {
-    const response = await request.post(`${API}/auth/signup`, { data: { email: uniqueEmail() } });
+    const response = await request.post(`${API_BASE}/auth/signup`, {
+      data: { email: uniqueEmail() },
+    });
     expect(response.status()).toBe(400);
   });
 
   test('E2E-AUTH-14: Signup com email duplicado retorna 409', async ({ request }) => {
     const email = uniqueEmail();
     await signupViaApi(request, email);
-    const response = await request.post(`${API}/auth/signup`, {
-      data: { name: 'Duplicado', email, password: 'SenhaSegura123!', crn: '11111', crnRegional: 'SP', terms: true },
+    const response = await request.post(`${API_BASE}/auth/signup`, {
+      data: {
+        name: 'Duplicado',
+        email,
+        password: 'SenhaSegura123!',
+        crn: '11111',
+        crnRegional: 'SP',
+        terms: true,
+      },
     });
     expect(response.status()).toBe(409);
   });

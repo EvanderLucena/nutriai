@@ -1,7 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { uniqueEmail, signupViaApi, completeOnboardingViaApi } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
+import { uniqueEmail, signupViaApi, completeOnboardingViaApi, API_BASE } from './helpers';
 
 test.describe('Food Catalog — Page Rendering', () => {
   test('E2E-FC-01: Foods page renders heading without errors', async ({ page }) => {
@@ -33,7 +31,6 @@ test.describe('Food Catalog — Page Rendering', () => {
     const searchInput = page.locator('.page .search input');
     await expect(searchInput).toBeVisible({ timeout: 5_000 });
     await searchInput.fill('zzznotfound123xyz');
-    await page.waitForTimeout(1000);
     await expect(page.getByText(/nenhum alimento encontrado/i)).toBeVisible({ timeout: 5_000 });
   });
 });
@@ -48,7 +45,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-05: Create food with unit GRAMAS succeeds', async ({ request }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Arroz integral E2E',
@@ -74,7 +71,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-06: Create food with unit UNIDADE succeeds', async ({ request }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Ovo cozido E2E',
@@ -96,7 +93,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-07: Create food with invalid unit returns 400', async ({ request }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Test invalid unit',
@@ -115,7 +112,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   test('E2E-FC-08: Create food with pt-BR category label "Proteína" returns 400', async ({
     request,
   }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Test pt-BR category',
@@ -132,7 +129,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-09: Create food without name returns 400', async ({ request }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         category: 'PROTEINA',
@@ -148,7 +145,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-10: Create food without required fields returns 400', async ({ request }) => {
-    const response = await request.post(`${API}/foods`, {
+    const response = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { name: 'Missing fields food', category: 'PROTEINA' },
     });
@@ -156,7 +153,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-11: List foods returns paginated contract', async ({ request }) => {
-    await request.post(`${API}/foods`, {
+    await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Listado E2E',
@@ -171,7 +168,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
       },
     });
 
-    const response = await request.get(`${API}/foods`, {
+    const response = await request.get(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(response.status()).toBe(200);
@@ -184,7 +181,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-12: Update food category succeeds', async ({ request }) => {
-    const createResp = await request.post(`${API}/foods`, {
+    const createResp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Update E2E',
@@ -201,7 +198,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     const created = await createResp.json();
     const foodId = created.data.id;
 
-    const updateResp = await request.patch(`${API}/foods/${foodId}`, {
+    const updateResp = await request.patch(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { category: 'PROTEINA' },
     });
@@ -211,7 +208,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-13: Delete food via API', async ({ request }) => {
-    const createResp = await request.post(`${API}/foods`, {
+    const createResp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Deletar E2E',
@@ -228,24 +225,24 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     const created = await createResp.json();
     const foodId = created.data.id;
 
-    const deleteResp = await request.delete(`${API}/foods/${foodId}`, {
+    const deleteResp = await request.delete(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(deleteResp.status()).toBe(204);
 
-    const getResp = await request.get(`${API}/foods/${foodId}`, {
+    const getResp = await request.get(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(getResp.status()).toBe(404);
   });
 
   test('E2E-FC-14: Unauthenticated access returns 401', async ({ request }) => {
-    const response = await request.get(`${API}/foods`);
+    const response = await request.get(`${API_BASE}/foods`);
     expect(response.status()).toBe(401);
   });
 
   test('E2E-FC-15: Get single food returns correct contract', async ({ request }) => {
-    const createResp = await request.post(`${API}/foods`, {
+    const createResp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Single E2E',
@@ -261,7 +258,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     const created = await createResp.json();
     const foodId = created.data.id;
 
-    const getResp = await request.get(`${API}/foods/${foodId}`, {
+    const getResp = await request.get(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(getResp.status()).toBe(200);
@@ -273,73 +270,5 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     expect(body.data).toHaveProperty('prot');
     expect(body.data).toHaveProperty('carb');
     expect(body.data).toHaveProperty('fat');
-  });
-});
-
-test.describe('Food Catalog — UI→API Integration', () => {
-  let accessToken: string;
-
-  test.beforeEach(async ({ page, request }) => {
-    const email = uniqueEmail();
-    const result = await signupViaApi(request, email);
-    accessToken = result.accessToken;
-
-    await completeOnboardingViaApi(request, accessToken);
-
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.evaluate((token) => {
-      localStorage.setItem(
-        'nutriai-auth',
-        JSON.stringify({
-          state: {
-            isAuthenticated: true,
-            accessToken: token,
-            user: {
-              id: '1',
-              name: 'Dra. Foods',
-              email: 'f@test.com',
-              role: 'NUTRITIONIST',
-              onboardingCompleted: true,
-            },
-          },
-          version: 0,
-        }),
-      );
-    }, accessToken);
-    await page.goto('/foods');
-    await page.waitForLoadState('networkidle');
-  });
-
-  test('E2E-FC-16: Create food via UI sends correct enum keys to API', async ({
-    page,
-    request,
-  }) => {
-    await page.getByRole('button', { name: /novo alimento/i }).click();
-    await page.waitForTimeout(500);
-
-    const nameInput = page.locator('input[placeholder*="Frango"]');
-    await nameInput.fill('Whey Protein E2E');
-
-    const selects = page.locator('select');
-    const categorySelect = selects.first();
-    await categorySelect.selectOption({ label: 'Proteína' });
-
-    const refInput = page.locator('#create-food-ref');
-    await refInput.fill('100');
-
-    const saveBtn = page.getByRole('button', { name: /salvar/i });
-    await saveBtn.click();
-    await page.waitForTimeout(2000);
-
-    const response = await request.get(`${API}/foods`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      params: { search: 'Whey Protein E2E' },
-    });
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    const found = body.data?.content?.find((p: { name: string }) => p.name === 'Whey Protein E2E');
-    expect(found).toBeDefined();
-    expect(found.category).toBe('PROTEINA');
   });
 });

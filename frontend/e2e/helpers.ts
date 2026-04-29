@@ -1,5 +1,7 @@
 import type { APIRequestContext } from '@playwright/test';
 
+export const API_BASE = 'http://localhost:8080/api/v1';
+
 export function uniqueEmail(): string {
   return `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
 }
@@ -20,8 +22,7 @@ export async function signupViaApi(
   email: string,
   password = 'SenhaSegura123!',
 ) {
-  const API = 'http://localhost:8080/api/v1';
-  const resp = await request.post(`${API}/auth/signup`, {
+  const resp = await request.post(`${API_BASE}/auth/signup`, {
     data: {
       name: 'E2E Test User',
       email,
@@ -40,19 +41,12 @@ export async function signupViaApi(
 }
 
 export async function completeOnboardingViaApi(request: APIRequestContext, accessToken: string) {
-  const API = 'http://localhost:8080/api/v1';
-  await request.post(`${API}/auth/onboarding`, {
+  const resp = await request.post(`${API_BASE}/auth/onboarding`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-}
-
-export async function loginViaApi(
-  request: APIRequestContext,
-  email: string,
-  password = 'SenhaSegura123!',
-) {
-  const API = 'http://localhost:8080/api/v1';
-  const resp = await request.post(`${API}/auth/login`, { data: { email, password } });
-  const body = await resp.json();
-  return body.accessToken;
+  if (!resp.ok()) {
+    const body = await resp.json().catch(() => ({}));
+    throw new Error(`Onboarding failed: ${resp.status()} ${JSON.stringify(body)}`);
+  }
+  return resp.status();
 }

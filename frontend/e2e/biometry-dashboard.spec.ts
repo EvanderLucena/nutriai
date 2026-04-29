@@ -4,9 +4,8 @@ import {
   createPatientPayload,
   signupViaApi,
   uniqueEmail,
+  API_BASE,
 } from './helpers';
-
-const API = 'http://localhost:8080/api/v1';
 
 test.describe('Biometry & Dashboard — API Contract', () => {
   let accessToken: string;
@@ -18,7 +17,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Biometria', objective: 'EMAGRECIMENTO' }),
     });
@@ -27,7 +26,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-00: Create patient with pt-BR objective label returns 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients`, {
+    const resp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Label', objective: 'Emagrecimento' }),
     });
@@ -35,7 +34,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-01: Create biometry assessment succeeds', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -65,7 +64,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-02: Create biometry without required fields returns 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: { assessmentDate: '2026-04-24' },
     });
@@ -73,7 +72,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-03: Create biometry with negative weight returns 400', async ({ request }) => {
-    const resp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -85,7 +84,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-04: List biometry assessments returns array', async ({ request }) => {
-    await request.post(`${API}/patients/${patientId}/biometry`, {
+    await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-20',
@@ -93,7 +92,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
         bodyFatPercent: 29.0,
       },
     });
-    await request.post(`${API}/patients/${patientId}/biometry`, {
+    await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -102,7 +101,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
       },
     });
 
-    const resp = await request.get(`${API}/patients/${patientId}/biometry`, {
+    const resp = await request.get(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(resp.status()).toBe(200);
@@ -113,7 +112,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-05: Update biometry assessment succeeds', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -124,7 +123,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const assessmentId = (await createResp.json()).data.id;
 
     const updateResp = await request.patch(
-      `${API}/patients/${patientId}/biometry/${assessmentId}`,
+      `${API_BASE}/patients/${patientId}/biometry/${assessmentId}`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
         data: { weight: 71.8, bodyFatPercent: 27.5 },
@@ -137,7 +136,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-06: Cross-nutritionist biometry access returns 403/404', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -151,7 +150,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const otherResult = await signupViaApi(request, uniqueEmail());
     await completeOnboardingViaApi(request, otherResult.accessToken);
 
-    const resp = await request.patch(`${API}/patients/${patientId}/biometry/${assessmentId}`, {
+    const resp = await request.patch(`${API_BASE}/patients/${patientId}/biometry/${assessmentId}`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
       data: { weight: 71.2, bodyFatPercent: 27.4 },
     });
@@ -159,7 +158,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-BIO-07: Unauthenticated biometry access returns 401', async ({ request }) => {
-    const resp = await request.get(`${API}/patients/${patientId}/biometry`);
+    const resp = await request.get(`${API_BASE}/patients/${patientId}/biometry`);
     expect(resp.status()).toBe(401);
   });
 
@@ -169,7 +168,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const otherResult = await signupViaApi(request, uniqueEmail());
     await completeOnboardingViaApi(request, otherResult.accessToken);
 
-    const otherPatientResp = await request.post(`${API}/patients`, {
+    const otherPatientResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
       data: createPatientPayload({
         name: 'Paciente Cross Tenant GET',
@@ -179,28 +178,34 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     expect(otherPatientResp.status()).toBe(201);
     const otherPatientId = (await otherPatientResp.json()).data.id as string;
 
-    const otherBiometryResp = await request.post(`${API}/patients/${otherPatientId}/biometry`, {
-      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
-      data: {
-        assessmentDate: '2026-04-24',
-        weight: 80.4,
-        bodyFatPercent: 30.1,
+    const otherBiometryResp = await request.post(
+      `${API_BASE}/patients/${otherPatientId}/biometry`,
+      {
+        headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+        data: {
+          assessmentDate: '2026-04-24',
+          weight: 80.4,
+          bodyFatPercent: 30.1,
+        },
       },
-    });
+    );
     expect(otherBiometryResp.status()).toBe(201);
 
-    const deactivateResp = await request.patch(`${API}/patients/${otherPatientId}/deactivate`, {
-      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
-    });
+    const deactivateResp = await request.patch(
+      `${API_BASE}/patients/${otherPatientId}/deactivate`,
+      {
+        headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+      },
+    );
     expect(deactivateResp.status()).toBe(200);
 
-    const ownListResp = await request.get(`${API}/patients/${otherPatientId}/biometry`, {
+    const ownListResp = await request.get(`${API_BASE}/patients/${otherPatientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect([403, 404]).toContain(ownListResp.status());
 
     const ownHistoryResp = await request.get(
-      `${API}/patients/${otherPatientId}/biometry/history/episodes`,
+      `${API_BASE}/patients/${otherPatientId}/biometry/history/episodes`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -208,7 +213,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     expect([403, 404]).toContain(ownHistoryResp.status());
 
     const otherEpisodesResp = await request.get(
-      `${API}/patients/${otherPatientId}/biometry/history/episodes`,
+      `${API_BASE}/patients/${otherPatientId}/biometry/history/episodes`,
       {
         headers: { Authorization: `Bearer ${otherResult.accessToken}` },
       },
@@ -217,7 +222,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const episodeId = (await otherEpisodesResp.json()).data[0].episodeId as string;
 
     const ownSnapshotResp = await request.get(
-      `${API}/patients/${otherPatientId}/biometry/history/episodes/${episodeId}`,
+      `${API_BASE}/patients/${otherPatientId}/biometry/history/episodes/${episodeId}`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -226,7 +231,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-DASH-01: Dashboard returns correct KPI contract', async ({ request }) => {
-    const resp = await request.get(`${API}/dashboard`, {
+    const resp = await request.get(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(resp.status()).toBe(200);
@@ -245,21 +250,21 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   });
 
   test('E2E-DASH-02: Dashboard unauthenticated returns 401', async ({ request }) => {
-    const resp = await request.get(`${API}/dashboard`);
+    const resp = await request.get(`${API_BASE}/dashboard`);
     expect(resp.status()).toBe(401);
   });
 
   test('E2E-DASH-03: Dashboard reflects created patients', async ({ request }) => {
-    await request.post(`${API}/patients`, {
+    await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Dashboard 1', objective: 'HIPERTROFIA' }),
     });
-    await request.post(`${API}/patients`, {
+    await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Dashboard 2', objective: 'SAUDE_GERAL' }),
     });
 
-    const resp = await request.get(`${API}/dashboard`, {
+    const resp = await request.get(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(resp.status()).toBe(200);
@@ -270,7 +275,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
   test('E2E-DASH-04: Dashboard mantém isolamento entre nutricionistas', async ({ request }) => {
     const today = new Date().toISOString().slice(0, 10);
 
-    const ownBiometryResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const ownBiometryResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: today,
@@ -283,24 +288,27 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     const otherResult = await signupViaApi(request, uniqueEmail());
     await completeOnboardingViaApi(request, otherResult.accessToken);
 
-    const otherPatientResp = await request.post(`${API}/patients`, {
+    const otherPatientResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
       data: createPatientPayload({ name: 'Paciente Outro Nutri', objective: 'EMAGRECIMENTO' }),
     });
     expect(otherPatientResp.status()).toBe(201);
     const otherPatientId = (await otherPatientResp.json()).data.id as string;
 
-    const otherBiometryResp = await request.post(`${API}/patients/${otherPatientId}/biometry`, {
-      headers: { Authorization: `Bearer ${otherResult.accessToken}` },
-      data: {
-        assessmentDate: today,
-        weight: 89.4,
-        bodyFatPercent: 33.2,
+    const otherBiometryResp = await request.post(
+      `${API_BASE}/patients/${otherPatientId}/biometry`,
+      {
+        headers: { Authorization: `Bearer ${otherResult.accessToken}` },
+        data: {
+          assessmentDate: today,
+          weight: 89.4,
+          bodyFatPercent: 33.2,
+        },
       },
-    });
+    );
     expect(otherBiometryResp.status()).toBe(201);
 
-    const ownDashboardResp = await request.get(`${API}/dashboard`, {
+    const ownDashboardResp = await request.get(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(ownDashboardResp.status()).toBe(200);
@@ -311,7 +319,7 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     expect(ownPatientIds).toContain(patientId);
     expect(ownPatientIds).not.toContain(otherPatientId);
 
-    const otherDashboardResp = await request.get(`${API}/dashboard`, {
+    const otherDashboardResp = await request.get(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${otherResult.accessToken}` },
     });
     expect(otherDashboardResp.status()).toBe(200);
@@ -334,7 +342,7 @@ test.describe('Biometry — History Episodes', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
-    const createResp = await request.post(`${API}/patients`, {
+    const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: createPatientPayload({ name: 'Paciente Histórico', objective: 'EMAGRECIMENTO' }),
     });
@@ -342,7 +350,7 @@ test.describe('Biometry — History Episodes', () => {
   });
 
   test('E2E-BIO-08: List history episodes returns array', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -352,12 +360,12 @@ test.describe('Biometry — History Episodes', () => {
     });
     expect(createResp.status()).toBe(201);
 
-    const deactivateResp = await request.patch(`${API}/patients/${patientId}/deactivate`, {
+    const deactivateResp = await request.patch(`${API_BASE}/patients/${patientId}/deactivate`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(deactivateResp.status()).toBe(200);
 
-    const resp = await request.get(`${API}/patients/${patientId}/biometry/history/episodes`, {
+    const resp = await request.get(`${API_BASE}/patients/${patientId}/biometry/history/episodes`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(resp.status()).toBe(200);
@@ -379,7 +387,7 @@ test.describe('Biometry — History Episodes', () => {
   test('E2E-BIO-09: Get history snapshot for episode returns correct contract', async ({
     request,
   }) => {
-    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -389,13 +397,13 @@ test.describe('Biometry — History Episodes', () => {
     });
     expect(createResp.status()).toBe(201);
 
-    const deactivateResp = await request.patch(`${API}/patients/${patientId}/deactivate`, {
+    const deactivateResp = await request.patch(`${API_BASE}/patients/${patientId}/deactivate`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(deactivateResp.status()).toBe(200);
 
     const episodesResp = await request.get(
-      `${API}/patients/${patientId}/biometry/history/episodes`,
+      `${API_BASE}/patients/${patientId}/biometry/history/episodes`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
@@ -406,7 +414,7 @@ test.describe('Biometry — History Episodes', () => {
 
     const episodeId = episodes[0].episodeId;
     const snapshotResp = await request.get(
-      `${API}/patients/${patientId}/biometry/history/episodes/${episodeId}`,
+      `${API_BASE}/patients/${patientId}/biometry/history/episodes/${episodeId}`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
     );
     expect(snapshotResp.status()).toBe(200);
@@ -424,7 +432,7 @@ test.describe('Biometry — History Episodes', () => {
   });
 
   test('E2E-BIO-10: Recent evaluations appear in dashboard after biometry', async ({ request }) => {
-    const createResp = await request.post(`${API}/patients/${patientId}/biometry`, {
+    const createResp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         assessmentDate: '2026-04-24',
@@ -434,7 +442,7 @@ test.describe('Biometry — History Episodes', () => {
     });
     expect(createResp.status()).toBe(201);
 
-    const dashResp = await request.get(`${API}/dashboard`, {
+    const dashResp = await request.get(`${API_BASE}/dashboard`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     expect(dashResp.status()).toBe(200);
