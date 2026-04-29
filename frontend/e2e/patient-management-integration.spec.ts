@@ -7,6 +7,9 @@ import {
   API_BASE,
 } from './helpers';
 
+// Esta spec nao utiliza storageState pois precisa fazer login real
+test.use({ storageState: undefined } as { storageState: string | undefined });
+
 test.describe('Patient Management — UI→API Integration', () => {
   let accessToken: string;
   let email: string;

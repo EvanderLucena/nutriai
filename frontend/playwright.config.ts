@@ -21,6 +21,14 @@ export default defineConfig({
       },
     },
     {
+      name: 'ui-integration',
+      testMatch: /patient-management-integration/,
+      dependencies: ['setup'],
+      use: {
+        storageState: undefined,
+      },
+    },
+    {
       name: 'public',
       testMatch: /auth\.spec\.ts/,
     },
