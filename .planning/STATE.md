@@ -233,7 +233,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- None for Phase 6 — all plans complete, review findings resolved
+- [2026-04-29-melhorar-suite-e2e-playwright.md](todos/pending/2026-04-29-melhorar-suite-e2e-playwright.md) — Melhorar suite E2E Playwright (testing)
 
 ### Blockers/Concerns
 
