@@ -28,6 +28,8 @@ export function sanitizeNumberInput(raw: string): string {
   const lastComma = cleaned.lastIndexOf(',');
   const firstDot = cleaned.indexOf('.');
   const lastDot = cleaned.lastIndexOf('.');
+  const commaCount = (cleaned.match(/,/g) || []).length;
+  const dotCount = (cleaned.match(/\./g) || []).length;
 
   if (firstComma === -1 && firstDot === -1) {
     return sign + cleaned;
@@ -35,10 +37,12 @@ export function sanitizeNumberInput(raw: string): string {
 
   if (firstComma !== -1 && firstDot !== -1) {
     if (lastComma > lastDot) {
+      if (cleaned.slice(0, lastComma).includes(',')) return '';
       const afterComma = cleaned.slice(lastComma + 1);
       const beforeComma = cleaned.slice(0, lastComma).replace(/\./g, '');
       return sign + beforeComma + '.' + afterComma;
     } else {
+      if (cleaned.slice(0, lastDot).includes('.')) return '';
       const afterDot = cleaned.slice(lastDot + 1);
       const beforeDot = cleaned.slice(0, lastDot).replace(/,/g, '');
       return sign + beforeDot + '.' + afterDot;
@@ -46,14 +50,11 @@ export function sanitizeNumberInput(raw: string): string {
   }
 
   if (firstComma !== -1) {
-    const count = (cleaned.match(/,/g) || []).length;
-    if (count > 1) return '';
+    if (commaCount > 1) return '';
     const before = cleaned.slice(0, firstComma);
     const after = cleaned.slice(firstComma + 1);
     return sign + before + '.' + after;
   }
-
-  const dotCount = (cleaned.match(/\./g) || []).length;
 
   if (dotCount > 1) {
     const chunks = cleaned.split('.');

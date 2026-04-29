@@ -111,8 +111,16 @@ public class JacksonConfig {
                     + "'. Separadores muito próximos — formato ambíguo.");
             }
             if (lc > ld) {
+                if (w.substring(0, lc).contains(",")) {
+                    throw new IllegalArgumentException(
+                        "Valor numérico inválido: '" + raw + "'. Formato ambíguo.");
+                }
                 return w.substring(0, lc).replace(".", "")
                     + "." + w.substring(lc + 1);
+            }
+            if (w.substring(0, ld).contains(".")) {
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw + "'. Formato ambíguo.");
             }
             return w.substring(0, ld).replace(",", "")
                 + "." + w.substring(ld + 1);
@@ -154,15 +162,17 @@ public class JacksonConfig {
                         + "'. Separadores de milhar mal posicionados.");
                 }
             }
-            boolean allGrouped3 = true;
-            for (int i = 0; i < chunks.length - 1; i++) {
+            boolean firstGrouped = chunks[0].length() >= 1
+                    && chunks[0].length() <= 3;
+            boolean middleGrouped3 = true;
+            for (int i = 1; i < chunks.length - 1; i++) {
                 if (chunks[i].length() != 3) {
-                    allGrouped3 = false;
+                    middleGrouped3 = false;
                     break;
                 }
             }
             String lastChunk = chunks[chunks.length - 1];
-            if (allGrouped3 && lastChunk.length() == 3) {
+            if (firstGrouped && middleGrouped3 && lastChunk.length() == 3) {
                 return w.replace(".", "");
             }
             throw new IllegalArgumentException(

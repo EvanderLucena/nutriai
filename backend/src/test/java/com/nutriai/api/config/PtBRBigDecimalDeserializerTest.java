@@ -66,6 +66,13 @@ class PtBRBigDecimalDeserializerTest {
     }
 
     @Test
+    @DisplayName("parses multiple dot thousands groups: 1.234.567 → 1234567")
+    void multipleDotThousandsGroups() {
+        BigDecimal result = deserializer.parsePtBRDecimal("1.234.567");
+        assertEquals(new BigDecimal("1234567"), result);
+    }
+
+    @Test
     @DisplayName("keeps leading-zero dot decimal as decimal: 0.840 → 0.84")
     void zeroLeadingDotAsDecimal() {
         BigDecimal result = deserializer.parsePtBRDecimal("0.840");
@@ -146,6 +153,14 @@ class PtBRBigDecimalDeserializerTest {
     void multipleCommasWithoutDot() {
         assertThrows(IllegalArgumentException.class, () -> {
             deserializer.parsePtBRDecimal("1,2,3");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects malformed mixed separators with repeated decimal candidate")
+    void malformedMixedRepeatedDecimalCandidate() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1,234.5,6");
         });
     }
 
