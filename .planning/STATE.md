@@ -233,7 +233,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [2026-04-29-melhorar-suite-e2e-playwright.md](todos/pending/2026-04-29-melhorar-suite-e2e-playwright.md) — Melhorar suite E2E Playwright (testing)
+- [2026-04-29-melhorar-suite-e2e-playwright.md](todos/completed/2026-04-29-melhorar-suite-e2e-playwright.md) — Melhorar suite E2E Playwright (testing) — **In progress**
 
 ### Blockers/Concerns
 
