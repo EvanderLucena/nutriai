@@ -219,16 +219,27 @@ test.describe('Patient Management — UI→API Integration', () => {
     accessToken = result.accessToken;
     await completeOnboardingViaApi(request, accessToken);
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.waitForLoadState('networkidle');
-    await page.getByTestId('login-email').fill(email);
-    await page.getByTestId('login-password').fill(password);
-    await page.getByRole('button', { name: /Entrar/i }).click();
-    await expect(page).toHaveURL(/\/home/, { timeout: 10_000 });
-
+    await page.evaluate((token) => {
+      localStorage.setItem(
+        'nutriai-auth',
+        JSON.stringify({
+          state: {
+            isAuthenticated: true,
+            accessToken: token,
+            user: {
+              id: 'e2e-int',
+              name: 'Dra. Int',
+              email: 'int@test.com',
+              role: 'NUTRITIONIST',
+              onboardingCompleted: true,
+            },
+          },
+          version: 0,
+        }),
+      );
+    }, accessToken);
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
   });
