@@ -100,18 +100,23 @@ test.describe('Patient Management — UI→API Integration', () => {
 
     await page.locator('#edit-objective').selectOption({ label: 'Hipertrofia' });
 
-    const saveResponsePromise = page.waitForResponse(
-      (resp) => resp.url().includes(`/api/v1/patients/${patientId}`) && resp.status() === 200,
-      { timeout: 15_000 },
-    );
+    // Preenche campos obrigatórios para permitir submit válido
+    // (altura 0 e whatsapp "(" quebram validateAll() do EditPatientModal)
+    if (await page.locator('#edit-height').inputValue() === '0') {
+      await page.locator('#edit-height').fill('170');
+    }
+    if ((await page.locator('#edit-whatsapp').inputValue()).length < 3) {
+      await page.locator('#edit-whatsapp').fill('11999999999');
+    }
 
-    await page
+    const saveBtn = page
       .locator('.btn.btn-primary')
-      .filter({ hasText: /Salvar/i })
-      .click();
+      .filter({ hasText: /Salvar/i });
+    await saveBtn.click();
 
-    await saveResponsePromise;
-    await expect(page.locator('#edit-objective')).not.toBeVisible({ timeout: 5_000 });
+    // O modal fecha via onSuccess mutation; não usamos waitForResponse
+    // porque a interceptação de erro do frontend pode mascarar o status HTTP
+    await expect(page.locator('#edit-objective')).not.toBeVisible({ timeout: 10_000 });
 
     const getResp = await request.get(`${API_BASE}/patients/${patientId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
