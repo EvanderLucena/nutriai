@@ -42,7 +42,7 @@ public class JacksonConfig {
             validateNotEmpty(raw);
             boolean negative = raw.startsWith("-");
             String working = negative ? raw.substring(1) : raw;
-            working = working.replaceAll("[^0-9.,]", "");
+            validateAllowedCharacters(working, raw);
             validateCleanInput(working, raw);
             String normalized = normalize(working, raw);
             return toBigDecimal(normalized, negative, raw);
@@ -71,6 +71,12 @@ public class JacksonConfig {
             }
         }
 
+        private void validateAllowedCharacters(String working, String raw) {
+            if (!working.matches("[0-9.,]+")) {
+                throw invalidFormat(raw);
+            }
+        }
+
         private String normalize(String working, String raw) {
             int firstComma = working.indexOf(',');
             int firstDot = working.indexOf('.');
@@ -85,7 +91,7 @@ public class JacksonConfig {
                         lastComma, lastDot);
             }
             if (firstComma != -1) {
-                return normalizeCommaOnly(working, firstComma, lastComma);
+                return normalizeCommaOnly(working, firstComma, lastComma, raw);
             }
             return normalizeDotOnly(working, firstDot, lastDot, raw);
         }
@@ -113,10 +119,11 @@ public class JacksonConfig {
         }
 
         private String normalizeCommaOnly(String w,
-                int firstComma, int lastComma) {
+                int firstComma, int lastComma, String raw) {
             if (lastComma != firstComma) {
-                return w.substring(0, lastComma).replace(",", "")
-                    + "." + w.substring(lastComma + 1);
+                throw new IllegalArgumentException(
+                    "Valor numérico inválido: '" + raw
+                    + "'. Múltiplas vírgulas sem ponto geram formato ambíguo.");
             }
             return w.substring(0, firstComma)
                 + "." + w.substring(firstComma + 1);
@@ -131,6 +138,7 @@ public class JacksonConfig {
             String before = w.substring(0, firstDot);
             String after = w.substring(firstDot + 1);
             if (after.length() == 3 && !before.isEmpty()
+                    && !"0".equals(before)
                     && before.chars().allMatch(Character::isDigit)) {
                 return before + after;
             }

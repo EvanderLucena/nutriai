@@ -18,6 +18,7 @@ export function sanitizeNumberInput(raw: string): string {
   let cleaned = raw.replace(/[^0-9.,-]/g, '');
   const negative = cleaned.startsWith('-');
   if (negative) cleaned = cleaned.slice(1);
+  if (cleaned.includes('-')) return '';
 
   if (!cleaned) return '';
 
@@ -46,11 +47,7 @@ export function sanitizeNumberInput(raw: string): string {
 
   if (firstComma !== -1) {
     const count = (cleaned.match(/,/g) || []).length;
-    if (count > 1) {
-      const before = cleaned.slice(0, lastComma).replace(/,/g, '');
-      const after = cleaned.slice(lastComma + 1);
-      return sign + before + '.' + after;
-    }
+    if (count > 1) return '';
     const before = cleaned.slice(0, firstComma);
     const after = cleaned.slice(firstComma + 1);
     return sign + before + '.' + after;
@@ -84,7 +81,7 @@ export function sanitizeNumberInput(raw: string): string {
   const before = cleaned.slice(0, firstDot);
   const after = cleaned.slice(firstDot + 1);
 
-  if (after.length === 3 && before.length > 0 && /^\d+$/.test(before)) {
+  if (after.length === 3 && before.length > 0 && /^\d+$/.test(before) && before !== '0') {
     return sign + before + after;
   }
 
@@ -100,7 +97,8 @@ export function isValidNumberInput(raw: string): boolean {
   const digitOnly = trimmed.replace(/[^0-9]/g, '');
   if (digitOnly.length === 0) return false;
 
-  if (/^-.*-/.test(trimmed)) return false;
+  const minusCount = (trimmed.match(/-/g) || []).length;
+  if (minusCount > 1 || (minusCount === 1 && !trimmed.startsWith('-'))) return false;
 
   if (/\.\./.test(trimmed) || /,,/.test(trimmed)) return false;
 
@@ -110,6 +108,7 @@ export function isValidNumberInput(raw: string): boolean {
   const commaCount = (trimmed.match(/,/g) || []).length;
 
   if (dotCount > 1 && commaCount > 0) return false;
+  if (commaCount > 1 && dotCount === 0) return false;
 
   if (dotCount === 1 && commaCount === 1) {
     const di = trimmed.indexOf('.');

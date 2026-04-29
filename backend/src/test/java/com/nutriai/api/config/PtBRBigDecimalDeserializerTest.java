@@ -66,6 +66,13 @@ class PtBRBigDecimalDeserializerTest {
     }
 
     @Test
+    @DisplayName("keeps leading-zero dot decimal as decimal: 0.840 → 0.84")
+    void zeroLeadingDotAsDecimal() {
+        BigDecimal result = deserializer.parsePtBRDecimal("0.840");
+        assertEquals(new BigDecimal("0.84"), result);
+    }
+
+    @Test
     @DisplayName("parses comma with 3 digits after as decimal: 1,840 → 1.84")
     void commaWithThreeDigitsAsDecimal() {
         BigDecimal result = deserializer.parsePtBRDecimal("1,840");
@@ -131,6 +138,22 @@ class PtBRBigDecimalDeserializerTest {
     void pureText() {
         assertThrows(IllegalArgumentException.class, () -> {
             deserializer.parsePtBRDecimal("abc");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects multiple commas without dot")
+    void multipleCommasWithoutDot() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1,2,3");
+        });
+    }
+
+    @Test
+    @DisplayName("rejects misplaced minus sign")
+    void misplacedMinusSign() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            deserializer.parsePtBRDecimal("1-2");
         });
     }
 

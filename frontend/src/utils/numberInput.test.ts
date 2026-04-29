@@ -23,6 +23,10 @@ describe('sanitizeNumberInput', () => {
     expect(sanitizeNumberInput('1.840')).toBe('1840');
   });
 
+  it('keeps leading-zero dot decimal as decimal (0.840 → 0.840)', () => {
+    expect(sanitizeNumberInput('0.840')).toBe('0.840');
+  });
+
   it('treats comma as decimal with 3 decimal digits (1,840 → 1.840 numeric = 1.84)', () => {
     expect(sanitizeNumberInput('1,840')).toBe('1.840');
   });
@@ -59,8 +63,8 @@ describe('sanitizeNumberInput', () => {
     expect(sanitizeNumberInput('0,5')).toBe('0.5');
   });
 
-  it('handles multiple commas (last is decimal)', () => {
-    expect(sanitizeNumberInput('1,23,4')).toBe('123.4');
+  it('returns empty for multiple commas without dot', () => {
+    expect(sanitizeNumberInput('1,23,4')).toBe('');
   });
 
   it('handles multiple dots (thousands separators)', () => {
@@ -69,6 +73,10 @@ describe('sanitizeNumberInput', () => {
 
   it('returns empty for double dots (1..2)', () => {
     expect(sanitizeNumberInput('1..2')).toBe('');
+  });
+
+  it('returns empty for misplaced minus sign', () => {
+    expect(sanitizeNumberInput('1-2')).toBe('');
   });
 
   it('sanitizes ambiguous mixed separator 1,2.3 (both separators single)', () => {
@@ -95,6 +103,10 @@ describe('parseNumberInput', () => {
 
   it('treats 1.840 as 1840 (dot = thousands)', () => {
     expect(parseNumberInput('1.840')).toBe(1840);
+  });
+
+  it('treats 0.840 as 0.84 (dot = decimal)', () => {
+    expect(parseNumberInput('0.840')).toBe(0.84);
   });
 
   it('treats 1,840 as 1.84 (comma = decimal)', () => {
@@ -128,6 +140,14 @@ describe('parseNumberInput', () => {
   it('returns NaN for pure text abc', () => {
     expect(parseNumberInput('abc')).toBeNaN();
   });
+
+  it('returns NaN for multiple commas without dot', () => {
+    expect(parseNumberInput('1,2,3')).toBeNaN();
+  });
+
+  it('returns NaN for misplaced minus sign', () => {
+    expect(parseNumberInput('1-2')).toBeNaN();
+  });
 });
 
 describe('isValidNumberInput', () => {
@@ -153,6 +173,14 @@ describe('isValidNumberInput', () => {
 
   it('returns false for pure text abc', () => {
     expect(isValidNumberInput('abc')).toBe(false);
+  });
+
+  it('returns false for multiple commas without dot', () => {
+    expect(isValidNumberInput('1,2,3')).toBe(false);
+  });
+
+  it('returns false for misplaced minus sign', () => {
+    expect(isValidNumberInput('1-2')).toBe(false);
   });
 
   it('returns false for adjacent different separators 1,.2', () => {
