@@ -36,11 +36,13 @@ O CI de E2E roda condicionalmente e **não bloqueia merge** — mesmo que falhe,
 - Fix: preencher campos obrigatórios inválidos antes de Salvar
 - Altura 50-250cm mantida (reviewer marcou HIGH se removida)
 
-### Fase 2 — Jornadas reais (PENDENTE)
-5. **Spec de jornada completa**: signup → login → paciente → alimento → plano → biometria → dashboard
-6. **Spec de validação de formulários**: máscaras, erros, aria-invalid, submit bloqueado
-7. **Spec de abas do paciente**: Hoje → Plano → Biometria → Histórico
+### Fase 2 — Jornadas reais (COMPLETA)
+5. ✅ **Spec de jornada completa** — `journey.spec.ts` — signup UI → paciente → alimento → plano → biometria → dashboard → exclusão (PR #69)
+6. ✅ **Spec de validação de formulários** — `form-validation.spec.ts` — signup/login/patient new/edit (PR #66)
+7. ✅ **Spec de abas do paciente** — `patient-tabs.spec.ts` — Hoje/Plano/Biometria/Inteligência/Histórico (PR #68)
 
-### Fase 3 — Qualidade (PENDENTE)
-8. **Remover URL matching condicional** em `auth.spec.ts`
-9. **Tornar E2E obrigatório no merge** — branch protection
+### Fase 3a — URL Matching (COMPLETA, PR #70)
+8. ✅ **Remover URL matching condicional** em `auth.spec.ts` — proteção de rotas agora exige `/login` exato
+
+### Fase 3b — Branch Protection (PENDENTE)
+9. **Tornar E2E obrigatório no merge** — adicionar `e2e` às required status checks de `main`
