@@ -5,7 +5,7 @@ milestone_name: milestone
 status: ready_for_phase_07
 stopped_at: Phase 06 completed and merged to main; Phase 07 not started
 last_updated: "2026-04-28T00:00:00.000Z"
-last_activity: 2026-04-28 -- GSD artifacts aligned after Phase 06 close
+last_activity: 2026-04-30 -- E2E suite quality phases completed (Fase 3a/3b merged, e2e check now required)
 progress:
   total_phases: 10
   completed_phases: 6
@@ -233,7 +233,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- [2026-04-29-melhorar-suite-e2e-playwright.md](todos/completed/2026-04-29-melhorar-suite-e2e-playwright.md) — Melhorar suite E2E Playwright (testing) — **In progress**
+Todas as tarefas pendentes concluídas. Última: [2026-04-29-melhorar-suite-e2e-playwright.md](todos/completed/2026-04-29-melhorar-suite-e2e-playwright.md) — Melhorar suite E2E Playwright (testing) — **Concluído**
 
 ### Blockers/Concerns
 

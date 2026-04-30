@@ -1315,7 +1315,7 @@ function HistoryTab({ patientId }: { patientId: string }) {
                       </div>
                     )}
 
-                    {snapshot.timelineEvents.length > 0 && (
+                    {snapshot.timelineEvents.length > 0 ? (
                       <div>
                         <div className="eyebrow" style={{ marginBottom: 8 }}>
                           EVENTOS
@@ -1350,6 +1350,15 @@ function HistoryTab({ patientId }: { patientId: string }) {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div style={{ padding: '18px 0', textAlign: 'center' }}>
+                        <div style={{ fontSize: 13, color: 'var(--fg-subtle)', marginBottom: 4 }}>
+                          Sem eventos no período
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>
+                          Avaliações, planos e registros aparecem aqui
+                        </div>
                       </div>
                     )}
 

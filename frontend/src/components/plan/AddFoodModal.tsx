@@ -58,7 +58,8 @@ export function AddFoodModal({ onClose, onAdd }: AddFoodModalProps) {
 
   const getMacroPreview = () => {
     if (!selected || !referenceAmount) return null;
-    const ref = parseNumberInput(referenceAmount) || 0;
+    const ref = parseNumberInput(referenceAmount);
+    if (!Number.isFinite(ref) || ref <= 0) return null;
     const foodRef = selected.referenceAmount;
     if (!foodRef) return null;
     const scale = ref / foodRef;
