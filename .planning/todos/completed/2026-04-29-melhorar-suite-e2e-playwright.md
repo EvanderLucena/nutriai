@@ -41,8 +41,20 @@ O CI de E2E roda condicionalmente e **não bloqueia merge** — mesmo que falhe,
 6. ✅ **Spec de validação de formulários** — `form-validation.spec.ts` — signup/login/patient new/edit (PR #66)
 7. ✅ **Spec de abas do paciente** — `patient-tabs.spec.ts` — Hoje/Plano/Biometria/Inteligência/Histórico (PR #68)
 
-### Fase 3a — URL Matching (COMPLETA, PR #70)
-8. ✅ **Remover URL matching condicional** em `auth.spec.ts` — proteção de rotas agora exige `/login` exato
+### Fase 3a — URL Matching (COMPLETA, PR #71)
+8. ✅ **Remover URL matching condicional** em `auth.spec.ts` — asserts honestos sobre redirect real:
+  - Login → `/onboarding` (não `/home`) porque `signupViaApi` cria user com `onboardingCompleted=false`
+  - Proteção sem auth → `/` (não `/login`) porque `AuthGuard` redireciona para landing
 
-### Fase 3b — Branch Protection (PENDENTE)
-9. **Tornar E2E obrigatório no merge** — adicionar `e2e` às required status checks de `main`
+### Fase 3b — Branch Protection (COMPLETA, PR #72)
+9. ✅ **Tornar E2E obrigatório no merge** — workflow `e2e.yml` reescrito com `dorny/paths-filter`:
+  - Job `changes` detecta alterações relevantes (frontend/backend/e2e.yml)
+  - Job `e2e` roda testes reais quando há mudanças
+  - Job `e2e-skip` passa verde imediatamente quando nada mudou
+  - Check `e2e` **sempre** aparece na lista de PRs (antes só aparecia com path trigger)
+
+## Finalizado
+
+Todas as fases completas. Próximos passos manuais do usuário:
+- [ ] Adicionar `e2e` à lista de **required status checks** em Settings → Branches → main
+- [ ] Verificar que PR de docs-only mostra `e2e-skip` verde antes de ativar required
