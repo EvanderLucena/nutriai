@@ -78,7 +78,53 @@
 
 ---
 
+---
+
+## Maturação Frontend — Resumo de conclusões (avaliação abril/2026)
+
+### ✅ Concluído (PR #73 + avaliação codebase)
+
+| Tarefa | Estado | Evidência |
+|--------|--------|-----------|
+| Remover fallback ANA em PatientView | ✅ | `mapPatientFromApi` + `usePatient()` sem mock |
+| Dados fixos da Home | ✅ | `usePatients()` + `useDashboard()` com API real |
+| Timeline ("Hoje") empty state | ✅ | Timeline.tsx exibe estado vazio quando sem registros |
+| Insights empty state | ✅ | InsightsView já mostra mensagem pt-BR quando `total===0` |
+| Sanitização numérica | ✅ | `parseNumberInput`/`sanitizeNumberInput` em todos os modais |
+| `Number(value) || 0` silencioso | ✅ | AddFoodModal corrigido (PR #73) |
+| Login fake via localStorage | ✅ | `auth.setup.ts` faz login real (PR #61) |
+| `waitForTimeout` nos E2E | ✅ | Eliminados (PR #61) |
+| Assumes condicionais | ✅ | Corrigidos (PR #64) |
+| NewPatientModal validação | ✅ | Já usa `useValidation` com bounds e mensagens pt-BR |
+| NewBiometryModal validação | ✅ | Já valida bounds clínicos (peso>0, bodyFat 0-100, etc.) |
+| Seeds determinísticos | ✅ | Seed dev com pacientes/alimentos/planos |
+
+### ⚠️ Parcial / Remanescente
+
+| Tarefa | Estado | Observação |
+|--------|--------|------------|
+| PlanTab empty state | ⚠️ | Não implementado; baixo impacto — usuário pode criar plano |
+| Alinhar obrigatórios biometria | ⚠️ | `% gordura` deve ser decidido (obrigatório vs opcional) com backend |
+| Validar macros catálogo | ⚠️ | `kcal>0`, `prot>0`, etc. pendente em FoodsView |
+| E2E fluxo biometria→dashboard | ❌ | Bloqueado: zero `data-testid` em componentes clínicos |
+| E2E fluxo alimento→plano | ❌ | Bloqueado: idem |
+
+### ❌ Decisão: data-testids sob demanda
+
+Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `data-testid`. Adicionar agora custa ~1h mas não traz benefício imediato — fluxos estão estáveis e não serão tocados na Phase 07 (WhatsApp). **Adicionar quando necessário para Phase 07.**
+
+---
+
 ## Produto / Frontend — maturação incremental
+
+### Frontend truthfulness / remoção de mocks
+
+- [x] **Remover fallback ANA do PatientView** — já removido em fases anteriores; PatientView usa `usePatient()` com dados reais da API.
+- [x] **Mapear imports de `frontend/src/data/*` em views** — nenhum uso remanescente; apenas testes/fixtures aceitáveis.
+- [x] **Substituir dados fixos da Home** — HomeView usa `usePatients()` + `useDashboard()` com dados reais.
+- [x] **Separar "Hoje" real vs futuro WhatsApp** — Timeline.tsx exibe empty state quando `patient.timeline` vazio (PR #73).
+- [x] **Separar "Insights" real vs futuro IA** — InsightsView já mostra empty state honesto.
+- [x] **Revisar estados loading/error/empty** — TodayTab e HistoryTab com empty states explícitos (PR #73). **Resta:** PlanTab quando não há plano.
 
 ### Onboarding como mini tutorial
 
@@ -89,26 +135,17 @@
 - [ ] **Persistir conclusão do tutorial** — marcar onboarding como concluído apenas quando o usuário finalizar/pular o tour.
 - [ ] **Playwright do tutorial** — validar navegação next/back/skip/finalizar e redirecionamento final.
 
-### Frontend truthfulness / remoção de mocks
-
-- [ ] **Remover fallback `ANA` do PatientView** — detalhe do paciente deve mostrar dados reais ou estados vazios honestos.
-- [ ] **Mapear todos os imports de `frontend/src/data/*` usados por telas reais** — classificar como remover agora, mover para fixture ou manter apenas para demo/teste.
-- [ ] **Substituir dados fixos da Home** — remover data fixa, sparklines estáticos e interpretações que não vêm da API.
-- [ ] **Separar "Hoje" real vs futuro WhatsApp** — quando ainda não houver ingestão via WhatsApp, exibir estado vazio/coming soon em vez de timeline mockada.
-- [ ] **Separar "Insights" real vs futuro IA** — manter a aba sem dados falsos; mostrar empty state até existir contrato real.
-- [ ] **Revisar estados loading/error/empty** — garantir que pacientes, alimentos, planos, biometria e histórico não pareçam preenchidos quando a API falha ou não tem dados.
-
 ### Validação e acabamento de formulários
 
-- [x] **Sanitizar todos os inputs numéricos restantes** — AddFoodModal (quantidade ao adicionar alimento ao plano), NewBiometryModal (peso, altura, dobras, perimetria, etc.), EditFoodCatalogModal e CreateFoodModal em FoodsView (macros do catálogo). Usar `sanitizeNumberInput`/`parseNumberInput` do `utils/numberInput`.
-- [ ] **Padronizar validação frontend por campo** — mensagens pt-BR, bloqueio de submit, `aria-invalid` quando aplicável e feedback sem fechar modal antes de sucesso.
-- [ ] **Paciente: validar cadastro/edição** — nome, objetivo, nascimento não futuro, altura plausível, WhatsApp com máscara e 10/11 dígitos.
-- [ ] **Biometria: alinhar obrigatórios com backend** — decidir se `% gordura` é obrigatório ou opcional e ajustar frontend/backend/testes juntos.
-- [ ] **Biometria: validar faixas clínicas** — peso > 0, percentuais 0-100, gordura visceral inteira/faixa plausível, TMB positiva, dobras/perimetria positivas.
-- [ ] **Alimentos: impedir `Number(value) || 0` silencioso** — campos vazios/inválidos devem gerar erro, não virar zero.
+- [x] **Sanitizar todos os inputs numéricos** — AddFoodModal, NewBiometryModal, EditFoodCatalogModal e CreateFoodModal em FoodsView. Usam `sanitizeNumberInput`/`parseNumberInput` (PR #73 corrigiu `|| 0` silencioso).
+- [x] **Padronizar validação frontend** — EditPatientModal usa `useValidation` com mensagens pt-BR, `aria-invalid`, bloqueio de submit e feedback em tempo real. NewPatientModal idem.
+- [x] **Paciente: validar cadastro/edição** — `useValidation` valida nome (mín 2 chars), objetivo (obrigatório), nascimento (não futuro), altura 50-250 cm, WhatsApp 10/11 dígitos. Mensagens pt-BR com `requiredMessage`/`custom`.
+- [x] **Biometria: validar faixas clínicas** — NewBiometryModal `useValidation` + `validateAll` verifica: peso > 0, bodyFat 0-100%, visceralFat inteiro, TMB > 0, dobras/perimetria > 0. Erros por campo com `aria-invalid`.
+- [ ] **Biometria: alinhar obrigatórios com backend** — decidir se `% gordura` é obrigatório ou opcional; ajustar `required` na validação frontend e `@NotNull` no backend juntos.
+- [x] **Alimentos: impedir `Number(value) || 0` silencioso** — AddFoodModal `getMacroPreview` corrigido (PR #73): usa `Number.isFinite(ref)` em vez de `|| 0`.
 - [ ] **Alimentos: validar macros e unidade** — quantidade de referência, kcal, proteína, carboidrato, gordura e fibra com mínimos/faixas plausíveis.
 - [ ] **Plano alimentar: validar refeições e itens** — nome, horário, quantidade e exclusões/renomeações com feedback confiável.
-- [ ] **Consolidar modais duplicados de edição de paciente** — evitar duas implementações divergentes para o mesmo fluxo.
+- [ ] **Consolidar modais duplicados de edição de paciente** — analisar se NewPatientModal e EditPatientModal divergem significativamente.
 
 ### Seeds e dados reais de desenvolvimento
 
@@ -119,14 +156,18 @@
 
 ### Playwright e testes reais de fluxo
 
-- [ ] **Separar E2E de contratos API** — manter contratos úteis, mas criar specs de jornada do usuário em arquivos próprios.
-- [ ] **Fluxo real: signup/login -> criar paciente pela UI** — validar persistência via tela e API.
-- [ ] **Fluxo real: paciente -> biometria -> dashboard** — criar avaliação pela UI e verificar reflexo em paciente/dashboard.
-- [ ] **Fluxo real: alimento -> plano alimentar** — criar alimento, montar plano, editar quantidade e verificar macros.
-- [ ] **Fluxo real: validações de formulário** — campos obrigatórios, máscaras, erros visíveis e bloqueio de submit.
-- [ ] **Remover `waitForTimeout` dos E2E críticos** — usar espera por UI/API observável.
-- [ ] **Evitar login falso via localStorage em fluxos principais** — usar login real ou storage state criado por fluxo controlado.
-- [ ] **Eliminar asserts condicionais que pulam cobertura** — testes não devem passar se o dado crítico não foi criado.
+- [x] **Remover `waitForTimeout` dos E2E críticos** — eliminados em PR #61; substituídos por `toBeVisible`/`toHaveURL`/`waitForResponse`.
+- [x] **Evitar login falso via localStorage em fluxos principais** — `auth.setup.ts` faz login real via fill + click + redirect (PR #61).
+- [x] **Eliminar asserts condicionais que pulam cobertura** — PR #64 corrigiu assert condicional em `form-validation.spec.ts`.
+- [x] **Fluxo real: validações de formulário** — `form-validation.spec.ts` testa signup/login/patient/biometry com asserts exatos (PR #66).
+- [x] **Fluxo real: navegação por abas do paciente** — `patient-tabs.spec.ts` valida Hoje/Plano/Biometria/Inteligência/Histórico (PR #68).
+- [x] **Jornada completa E2E** — `journey.spec.ts` cobre signup → paciente → alimento → plano → biometria → exclusão (PR #69).
+- [ ] **Separar E2E de contratos API** — manter contratos (ainda ~70%), mas criar mais jornadas end-to-end puras.
+- [ ] **Fluxo real: signup/login → criar paciente pela UI** — parcial (journey.spec.ts cobre parte).
+- [ ] **Fluxo real: paciente → biometria → dashboard** — smoke test documentado; E2E bloqueado por data-testids.
+- [ ] **Fluxo real: alimento → plano alimentar** — smoke test documentado; E2E bloqueado por data-testids.
+
+> **Nota arquitetural (E2E):** `data-testid` é atributo HTML estável para testes. Hoje só existe em LoginView/SignupView. Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) carecem de testids. Decisão: adicionar **sob demanda** quando Phase 07 (WhatsApp) refatorar PatientView. Custo (~1h) não justifica benefício hoje pois fluxos clínicos estão estáveis e não serão tocados na próxima fase.
 
 ---
 
