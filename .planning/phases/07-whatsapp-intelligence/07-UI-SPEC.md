@@ -39,6 +39,10 @@ created: 2026-04-30
 | `PatientView` (TodayTab) | `src/views/PatientView.tsx` | Replace hardcoded `timeline: []` with API fetch; add WhatsApp activation card above tab bar |
 | `Timeline` | `src/components/patient/Timeline.tsx` | Accept extraction data from API; no visual redesign |
 
+**Visual focal points this phase:**
+- **PatientView:** Primary focal point = first timeline extraction entry (time + meal + macros) — this is the actionable data nutritionists come to see. Secondary = WhatsApp activation row as persistent status indicator above the tab bar.
+- **HomeView:** The WhatsApp KPIs join the existing KPI scan line — no single focal point change; all 6 KPIs form a distributed scan pattern.
+
 ### Wired Components (API-only changes)
 
 | Component | File | Change |
@@ -77,12 +81,12 @@ created: 2026-04-30
 ```
 
 **Specification:**
-- Height: 42px total (10px top + 22px content + 10px bottom)
-- Font size: 12.5px for status text
+- Padding: `8px 28px` (total row height 38px: 8px top + 22px content + 8px bottom — all multiples of 4)
+- Font size: 13px for status text (matches body size in typography table)
 - Status dot: 8px diameter, green (`var(--sage)`) when activated, gray (`var(--fg-subtle)`) when not
 - Gap between icon and text: 8px
 - Gap between status dot and button: 16px (spacer)
-- Button: `btn btn-ghost`, font-size 11.5px, padding `3px 8px`
+- Button: `btn btn-ghost`, font-size 11px, padding `4px 8px`
 
 **When `Patient.whatsapp` is NULL:**
 - Row shows: "WhatsApp: Número não cadastrado — Cadastre o WhatsApp do paciente para ativar"
@@ -158,25 +162,25 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Not used for new elements this phase |
 | 3xl | 64px | Not used for new elements this phase |
 
-**Exceptions:** none
+**Exceptions:** Existing codebase has non-compliant values (14px timeline gap, 18px/22px row padding, 28px page-level padding). These are inherited from Phase 2 migration and are NOT changed in this phase. All NEW values in this phase comply — executor should NOT adjust pre-existing values.
 
 ---
 
 ## Typography
 
-All values match the existing design system in `globals.css`.
+All values match the existing design system in `globals.css`. **New declarations this phase: 1** (activation row). All other sizes are inherited.
 
-| Role | Size | Weight | Line Height | Font | Usage |
-|------|------|--------|-------------|------|-------|
-| Body | 13px | 400 | 1.5 | `var(--font-ui)` | Timeline item descriptions, activation status text |
-| Label / Eyebrow | 10.5px | 400 | 1.3 | `var(--font-mono)`, uppercase, letter-spacing 0.08em | Card headers, section labels, "VIA WHATSAPP" marker |
-| Data Value | 20px | 500 | 1.2 | `var(--font-mono)`, tabular nums | KPI values, macro numbers in timeline |
-| Heading | 34px | 400 | 1.2 | `var(--font-serif)`, letter-spacing -0.02em | Dashboard "Bom dia" header (unchanged) |
-| Patient Name | 36px | 400 | 1.2 | `var(--font-serif)`, letter-spacing -0.02em | PatientView header (unchanged) |
-| Small Label | 11px | 400 | 1.3 | `var(--font-mono)`, color `var(--fg-subtle)` | "Corrigir extração" button, timeline time labels |
-| Activation Row | 12.5px | 400 | 1.4 | `var(--font-ui)` | "WhatsApp: Ativado" status text |
+| Role | Size | Weight | Line Height | Font | New? | Usage |
+|------|------|--------|-------------|------|------|-------|
+| Body | 13px | 400 | 1.5 | `var(--font-ui)` | Inherited | Timeline item descriptions, activation status text |
+| Label | 11px | 400 | 1.3 | `var(--font-mono)` | Inherited | "Corrigir extração" button, timeline time labels, eyebrow labels (10.5px in existing system — executor may merge to 11px or keep as-is) |
+| Data Value | 20px | 500 | 1.2 | `var(--font-mono)`, tabular nums | Inherited | KPI values, macro numbers in timeline |
+| Heading | 34px | 400 | 1.2 | `var(--font-serif)`, letter-spacing -0.02em | Inherited | Dashboard header, PatientView header (36px in existing system — merged to 34px; executor aligns both) |
+| Activation Row | 13px | 400 | 1.4 | `var(--font-ui)` | **NEW** | "WhatsApp: Ativado" status text |
 
 **Font weights used:** 400 (regular) and 500–600 (semibold for data emphasis). No additional weights required.
+
+**Consolidation note:** Existing eyebrow labels (10.5px) and patient name heading (36px) are close enough to the 11px and 34px scale stops above. Executor should use the consolidated sizes for consistency — merge 10.5px→11px, 36px→34px.
 
 ---
 
@@ -187,7 +191,7 @@ All values match the existing design system in `globals.css`.
 | Role | Value | Usage |
 |------|-------|-------|
 | Dominant (60%) | `var(--bg)` = `#FEFCF6` | Page background throughout PatientView, HomeView |
-| Secondary (30%) | `var(--surface)` = `#FEFCF6` | Cards: timeline card, activation row, KPI cards |
+| Secondary (30%) | `var(--surface)` = `#FFFEFA` (light) / `#121410` (dark) | Cards: timeline card, activation row, KPI cards. Distinct from `--bg` in dark theme via `globals.css` tokens. |
 | Accent (10%) | `var(--lime-dim)` = `#9CBF2B` | WhatsApp-specific elements only (see reserved list below) |
 
 ### Semantic Color Tokens Used
