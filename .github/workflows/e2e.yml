@@ -2,17 +2,28 @@ name: E2E Tests
 
 on:
   pull_request:
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
   push:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'frontend/**'
+              - 'backend/**'
+              - '.github/workflows/e2e.yml'
+
   e2e:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -77,3 +88,10 @@ jobs:
         if: always()
         working-directory: docker
         run: docker compose down -v
+
+  e2e-skip:
+    needs: changes
+    if: needs.changes.outputs.code != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "No relevant code changes — E2E skipped"
