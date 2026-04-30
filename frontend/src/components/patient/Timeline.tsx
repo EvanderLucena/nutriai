@@ -11,6 +11,37 @@ export function Timeline({ items }: TimelineProps) {
   const reported = items.filter((ev) => ev.kind === 'log');
   const [editing, setEditing] = useState<number | null>(null);
 
+  if (reported.length === 0) {
+    return (
+      <div
+        style={{
+          padding: '40px 22px',
+          textAlign: 'center',
+          color: 'var(--fg-muted)',
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            background: 'var(--surface-2)',
+            display: 'grid',
+            placeItems: 'center',
+            margin: '0 auto 14px',
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🍽️</span>
+        </div>
+        <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 6 }}>Nenhum registro hoje</div>
+        <div style={{ fontSize: 12, lineHeight: 1.5, maxWidth: 280, margin: '0 auto' }}>
+          Quando o paciente enviar refeições pelo WhatsApp, elas aparecerão aqui com os macros
+          estimados pela IA.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       {reported.map((ev, i) => (
@@ -45,7 +76,14 @@ export function Timeline({ items }: TimelineProps) {
                 {ev.meal}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                paddingTop: 6,
+              }}
+            >
               <div
                 style={{
                   width: 12,
@@ -57,7 +95,15 @@ export function Timeline({ items }: TimelineProps) {
                 }}
               />
               {i < reported.length - 1 && (
-                <div style={{ width: 1, flex: 1, background: 'var(--border)', marginTop: 4, minHeight: 20 }} />
+                <div
+                  style={{
+                    width: 1,
+                    flex: 1,
+                    background: 'var(--border)',
+                    marginTop: 4,
+                    minHeight: 20,
+                  }}
+                />
               )}
             </div>
             <div>
@@ -80,7 +126,16 @@ export function Timeline({ items }: TimelineProps) {
               >
                 {ev.label}
               </div>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <ul
+                style={{
+                  margin: 0,
+                  padding: 0,
+                  listStyle: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                }}
+              >
                 {ev.items.map((it, j) => (
                   <li key={j} style={{ fontSize: 13, color: 'var(--fg)', display: 'flex', gap: 8 }}>
                     <span style={{ color: 'var(--fg-subtle)' }}>·</span>
@@ -89,7 +144,9 @@ export function Timeline({ items }: TimelineProps) {
                 ))}
               </ul>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}
+            >
               {ev.macros && (
                 <div
                   style={{
@@ -102,7 +159,9 @@ export function Timeline({ items }: TimelineProps) {
                   }}
                 >
                   <span style={{ color: 'var(--fg-muted)' }}>kcal</span>
-                  <span className="mono tnum" style={{ fontWeight: 600 }}>{ev.macros.kcal}</span>
+                  <span className="mono tnum" style={{ fontWeight: 600 }}>
+                    {ev.macros.kcal}
+                  </span>
                   <span style={{ color: 'var(--fg-muted)' }}>prot</span>
                   <span className="mono tnum">{ev.macros.prot}g</span>
                   <span style={{ color: 'var(--fg-muted)' }}>carb</span>
@@ -113,7 +172,11 @@ export function Timeline({ items }: TimelineProps) {
               )}
               <button
                 className="btn btn-ghost"
-                style={{ fontSize: 11, padding: '3px 6px', color: editing === i ? 'var(--fg)' : 'var(--fg-subtle)' }}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 6px',
+                  color: editing === i ? 'var(--fg)' : 'var(--fg-subtle)',
+                }}
                 onClick={() => setEditing(editing === i ? null : i)}
               >
                 <IconEdit size={10} /> {editing === i ? 'Fechar' : 'Corrigir extração'}
