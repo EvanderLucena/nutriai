@@ -25,23 +25,22 @@ O CI de E2E roda condicionalmente e **não bloqueia merge** — mesmo que falhe,
 
 ## Solution
 
-### Fase 1 — Fundação (concluída em PR #61)
-1. ~~**Substituir login fake por login real via UI** no `auth.setup.ts`** — login real com fill + click + redirect
-2. ~~**Extrair `API_BASE`** para `helpers.ts` (remover hardcode)~~ — `API_BASE` centralizado
-3. ~~**Corrigir `completeOnboardingViaApi`** para lançar erro em falha~~ — agora lança com status + body
-4. ~~**Substituir `waitForTimeout`** por waits observáveis (`toBeVisible`, `toHaveURL`)~~ — 6 removidos
+### Fase 1 — Fundação (COMPLETA)
+1. ✅ **Substituir login fake por login real** — `auth.setup.ts` usa fill + click + redirect
+2. ✅ **Extrair `API_BASE`** — centralizado em `helpers.ts`
+3. ✅ **Corrigir `completeOnboardingViaApi`** — lança com status + body em falha
+4. ✅ **Remover 6 `waitForTimeout`** — substituídos por `toBeVisible`/`toHaveURL`
 
-### Fase 2 — Jornadas reais (PENDENTE, depende de investigar seletores na CI com trace)
-5. **Spec de jornada completa**: signup UI → login UI → criar paciente → alimento → plano → biometria → dashboard
-6. **Spec de validação de formulários**: máscaras, erros visíveis, aria-invalid, submit bloqueado
+### Investigado: UI→API Integration (PR #62 v3)
+- PM-17 era validação frontend impedindo submit (altura=0, whatsapp="(")
+- Fix: preencher campos obrigatórios inválidos antes de Salvar
+- Altura 50-250cm mantida (reviewer marcou HIGH se removida)
+
+### Fase 2 — Jornadas reais (PENDENTE)
+5. **Spec de jornada completa**: signup → login → paciente → alimento → plano → biometria → dashboard
+6. **Spec de validação de formulários**: máscaras, erros, aria-invalid, submit bloqueado
 7. **Spec de abas do paciente**: Hoje → Plano → Biometria → Histórico
 
-### Fase 3 — Qualidade da suite (PENDENTE)
-8. **Remover URL matching condicional** (e.g. `/(onboarding|home)/` → assert destino exato) — `auth.spec.ts` ainda tem
-9. **Tornar E2E obrigatório no merge** — CI já alterou, mas E2E não foi requerido neste PR
-10. ~~**Consertar E2E-PM-17**~~ — completado no PR #61 (testa abrir modal, alterar objetivo, salvar, verificar via API)
-
-### Notas de execução
-- Os testes de integração UI→API (E2E-PM-17, E2E-FC-16, E2E-PM-16) foram extraídos para `ui-integration.spec.ts` com projeto `ui-integration` separado (`storageState: undefined`).
-- CI Docker Chromium tem problema com `page.evaluate` cross-origin em `about:blank`. Testes que necessitam `localStorage.clear()` antes de login real foram postergados.
-- O placeholder `ui-integration.spec.ts` existe para follow-up com trace da CI (baixar artifact e inspecionar com `npx playwright show-trace`).
+### Fase 3 — Qualidade (PENDENTE)
+8. **Remover URL matching condicional** em `auth.spec.ts`
+9. **Tornar E2E obrigatório no merge** — branch protection
