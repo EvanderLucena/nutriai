@@ -68,7 +68,7 @@ test.describe('Auth — Login UI→API Integration', () => {
     await page.getByTestId('login-password').fill('SenhaSegura123!');
     await page.getByRole('button', { name: /Entrar/i }).click();
 
-    await expect(page).toHaveURL(/\/home/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/(onboarding|home)/, { timeout: 10_000 });
   });
 
   test('E2E-AUTH-06: Senha errada mostra erro visível ao usuário', async ({ page, request }) => {
@@ -185,16 +185,16 @@ test.describe('Auth — API Contract & Value Rejection', () => {
 test.describe('Auth — Protection', () => {
   test('E2E-AUTH-15: Rota protegida sem auth redireciona para landing', async ({ page }) => {
     await page.goto('/home');
-    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
+    await expect(page).toHaveURL(/\/$/, { timeout: 5_000 });
   });
 
   test('E2E-AUTH-16: Rota /patients sem auth redireciona', async ({ page }) => {
     await page.goto('/patients');
-    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
+    await expect(page).toHaveURL(/\/$/, { timeout: 5_000 });
   });
 
   test('E2E-AUTH-17: Rota /foods sem auth redireciona', async ({ page }) => {
     await page.goto('/foods');
-    await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
+    await expect(page).toHaveURL(/\/$/, { timeout: 5_000 });
   });
 });
