@@ -18,6 +18,16 @@ test.describe('Meal Plans — API Contract', () => {
     patientId = created.data.id;
   });
 
+  test.afterEach(async ({ request }) => {
+    if (patientId) {
+      await request
+        .delete(`${API_BASE}/patients/${patientId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .catch(() => {});
+    }
+  });
+
   test('E2E-MP-01: GET plan returns correct contract', async ({ request }) => {
     const response = await request.get(`${API_BASE}/patients/${patientId}/plan`, {
       headers: { Authorization: `Bearer ${accessToken}` },

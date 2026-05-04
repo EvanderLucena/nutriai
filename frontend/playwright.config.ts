@@ -37,10 +37,22 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
   },
-  webServer: {
-    command: 'npm run dev',
-    port: 5173,
-    reuseExistingServer: true,
-    cwd: '.',
-  },
+  webServer: [
+    {
+      command: 'cd ../backend && ./gradlew bootRun --args="--spring.profiles.active=dev"',
+      url: 'http://localhost:8080/api/v1/health',
+      reuseExistingServer: true,
+      timeout: 120_000,
+      env: {
+        NUTRIAI_JWT_SECRET: 'e2e-test-secret-do-not-use-in-production',
+        NUTRIAI_SEED_ADMIN_PASSWORD: 'e2e-seed-password',
+      },
+    },
+    {
+      command: 'npm run dev',
+      port: 5173,
+      reuseExistingServer: true,
+      cwd: '.',
+    },
+  ],
 });
