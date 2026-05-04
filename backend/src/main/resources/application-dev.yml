@@ -18,6 +18,7 @@ logging:
 
 nutriai:
   jwt:
+    secret: ${NUTRIAI_JWT_SECRET:local-dev-secret-do-not-use-in-production}
     cookie:
       secure: false
       same-site: Lax
