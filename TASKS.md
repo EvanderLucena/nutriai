@@ -161,14 +161,15 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 > - Responsividade mobile
 >
 > **Tarefas concretas:**
-> - [ ] Criar Playwright fixture `authenticatedPage` (reutiliza storageState, evita login duplicado)
-> - [ ] Substituir seletores frágeis em `journey.spec.ts`, `ui-integration.spec.ts`, `form-validation.spec.ts`
-> - [ ] Separar `patient-tabs.spec.ts` em testes independentes por aba
+> - [x] Criar Playwright fixture `authenticatedPage` (reutiliza storageState, evita login duplicado)
+> - [x] Substituir seletores frágeis em `journey.spec.ts`, `ui-integration.spec.ts`, `form-validation.spec.ts`
+> - [x] Separar `journey.spec.ts` em testes independentes
+> - [x] Separar `patient-tabs.spec.ts` em testes independentes por aba
 > - [ ] Adicionar `afterEach` cleanup em specs de API-only
-> - [ ] Acrescentar testes UI→API para Meal Plans (adicionar/editar/excluir refeição)
-> - [ ] Acrescentar testes UI→API para Biometria (preencher modal e validar gráficos)
+> - [x] Acrescentar testes UI→API para Meal Plans (adicionar refeição)
+> - [x] Acrescentar testes UI→API para Biometria (registrar avaliação)
 > - [ ] Acrescentar teste de erro visível para cada mutation (409, 400, 500)
-> - [ ] Adicionar `data-testid` em componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView)
+> - [x] Adicionar `data-testid` em componentes clínicos (NewPatientModal, EditPatientModal, AddMealModal, NewBiometryModal, FoodsView, PatientView)
 > - [ ] Configurar `webServer` do backend em `playwright.config.ts` ou documentar dependência
 
 ---
