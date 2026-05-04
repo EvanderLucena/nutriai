@@ -48,6 +48,37 @@ test.describe('Form Validation — Auth', () => {
     // Ainda em /login
     await expect(page).toHaveURL(/\/login/, { timeout: 5_000 });
   });
+
+  test('E2E-FV-06: Signup com email duplicado mostra erro 409 visivel', async ({
+    page,
+    request,
+  }) => {
+    const email = uniqueEmail();
+    await signupViaApi(request, email, 'SenhaSegura123!');
+
+    await page.goto('/signup');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByTestId('signup-name').fill('Usuario Duplicado');
+    await page.getByTestId('signup-email').fill(email);
+    await page.getByTestId('signup-password').fill('SenhaSegura123!');
+    await page.getByTestId('signup-crn').fill('12345');
+
+    // Clica em Avançar e depois Concluir (2 steps)
+    await page.getByRole('button', { name: /avançar/i }).click();
+    await page.waitForLoadState('networkidle');
+
+    await page.getByTestId('signup-crn-regional').selectOption('SP');
+    await page.getByTestId('signup-consent').check();
+    await page.getByRole('button', { name: /concluir|criar conta/i }).click();
+
+    // Deve mostrar erro de email duplicado
+    const errorAlert = page.locator('[role="alert"], .text-coral, .auth-field-error');
+    await expect(errorAlert).toBeVisible({ timeout: 8_000 });
+
+    // Permanece em /signup
+    await expect(page).toHaveURL(/\/signup/, { timeout: 5_000 });
+  });
 });
 
 // Patient tests usa authenticatedPage fixture para evitar login duplicado
