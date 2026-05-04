@@ -40,9 +40,14 @@ export async function signupViaApi(
   };
 }
 
-export async function completeOnboardingViaApi(request: APIRequestContext, accessToken: string) {
+export async function completeOnboardingViaApi(
+  request: APIRequestContext,
+  accessToken: string,
+  data?: Record<string, unknown>,
+) {
   const resp = await request.post(`${API_BASE}/auth/onboarding`, {
     headers: { Authorization: `Bearer ${accessToken}` },
+    data,
   });
   if (!resp.ok()) {
     const body = await resp.json().catch(() => ({}));

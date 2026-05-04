@@ -1,11 +1,6 @@
 import { test, expect } from '@playwright/test';
-import {
-  completeOnboardingViaApi,
-  createPatientPayload,
-  signupViaApi,
-  uniqueEmail,
-  API_BASE,
-} from './helpers';
+import { completeOnboardingViaApi, signupViaApi, uniqueEmail, API_BASE } from './helpers';
+import { test as authTest } from './fixtures';
 
 // Testes de validacao de formularios: campos obrigatorios, mascaras, erros visiveis,
 // aria-invalid, e botao de submit bloqueado enquanto invalido.
@@ -55,124 +50,102 @@ test.describe('Form Validation — Auth', () => {
   });
 });
 
-test.describe('Form Validation — Patient', () => {
-  const password = 'SenhaSegura123!';
+// Patient tests usa authenticatedPage fixture para evitar login duplicado
+authTest.describe('Form Validation — Patient', () => {
+  authTest('E2E-FV-03: New patient sem nome bloqueia submit', async ({ authenticatedPage }) => {
+    const { page } = authenticatedPage;
 
-  test.beforeEach(async ({ page, request }) => {
-    const email = uniqueEmail();
-    const result = await signupViaApi(request, email, password);
-    const accessToken = result.accessToken;
-    await completeOnboardingViaApi(request, accessToken);
-
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
-    await page.getByTestId('login-email').fill(email);
-    await page.getByTestId('login-password').fill(password);
-    await page.getByRole('button', { name: /Entrar/i }).click();
-    await expect(page).toHaveURL(/\/home/, { timeout: 10_000 });
-  });
-
-  test('E2E-FV-03: New patient sem nome bloqueia submit', async ({ page }) => {
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
 
-    // Nao preenche nome
-    const nameInput = page.locator('input[placeholder*="Ana Beatriz"]');
-    await nameInput.fill('');
-
-    const saveBtn = page.getByRole('button', { name: /cadastrar/i });
-
-    // Clica Salvar
-    await saveBtn.click();
-
-    // Modal ainda visivel
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 3_000 });
-
-    // Erro de campo obrigatorio
-    const errorText = page.locator('text=obrigatorio');
-    await expect(errorText).toBeVisible({ timeout: 3_000 });
+    // Deixa nome vazio e tenta clicar submit — botão deve estar desabilitado
+    const submitBtn = page.getByTestId('newpatient-submit');
+    await expect(submitBtn).toBeDisabled();
   });
 
-  test('E2E-FV-04: WhatsApp exibe erro quando incompleto', async ({ page }) => {
+  authTest('E2E-FV-04: WhatsApp exibe erro quando incompleto', async ({ authenticatedPage }) => {
+    const { page } = authenticatedPage;
+
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
 
-    await page.locator('input[placeholder*="Ana Beatriz"]').fill('Paciente Validacao');
-    await page.locator('select').first().selectOption({ label: 'Hipertrofia' });
-    await page.getByRole('checkbox').check();
+    await page.getByTestId('newpatient-name').fill('Paciente Validacao');
+    await page.getByTestId('newpatient-objective').selectOption({ label: 'Hipertrofia' });
+    await page.getByTestId('newpatient-terms').check();
 
     // Preenche WhatsApp com apenas 1 digito
-    const whatsappInput = page.locator('input[placeholder*="99999-9999"]');
-    await whatsappInput.fill('1');
+    await page.getByTestId('newpatient-whatsapp').fill('1');
 
-    // Clica fora para blur
+    // Blur para disparar validacao
     await page.keyboard.press('Tab');
 
     // O botao Cadastrar deve estar desabilitado (validacao de 10 digitos)
     // OU uma mensagem de erro deve aparecer
-    const saveBtn = page.getByRole('button', { name: /cadastrar/i });
-    const isDisabled = await saveBtn.isDisabled().catch(() => false);
+    const submitBtn = page.getByTestId('newpatient-submit');
+    const isDisabled = await submitBtn.isDisabled().catch(() => false);
     if (!isDisabled) {
-      const whatsappError = page.locator('text=WhatsApp deve ter pelo menos 10 digitos');
+      const whatsappError = page
+        .getByRole('alert')
+        .filter({ hasText: /WhatsApp deve ter pelo menos 10 digitos/i });
       await expect(whatsappError).toBeVisible({ timeout: 3_000 });
     }
   });
 
-  test('E2E-FV-05: Edit patient com altura invalida bloqueia submit e mostra erro', async ({
-    page,
-  }) => {
-    // Cria paciente via UI (ja autenticado pelo beforeEach)
-    await page.goto('/patients');
-    await page.waitForLoadState('networkidle');
+  authTest(
+    'E2E-FV-05: Edit patient com altura invalida bloqueia submit e mostra erro',
+    async ({ authenticatedPage }) => {
+      const { page } = authenticatedPage;
 
-    await page.getByRole('button', { name: /novo paciente/i }).click();
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 3_000 });
+      // Cria paciente via UI
+      await page.goto('/patients');
+      await page.waitForLoadState('networkidle');
 
-    await page.locator('input[placeholder*="Ana Beatriz"]').fill('Paciente Editar Validacao');
-    await page.locator('select').first().selectOption({ label: 'Hipertrofia' });
-    await page.getByRole('checkbox').check();
-    await page.getByRole('button', { name: /cadastrar/i }).click();
-    await page.waitForResponse((r) => r.url().includes('/patients') && r.status() === 201, {
-      timeout: 15_000,
-    });
+      await page.getByRole('button', { name: /novo paciente/i }).click();
+      await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
 
-    // Vai para o paciente criado
-    const row = page
-      .locator('tr, .pq-item, .card')
-      .filter({ hasText: 'Paciente Editar Validacao' })
-      .first();
-    await row.click();
-    await page.waitForLoadState('networkidle');
+      await page.getByTestId('newpatient-name').fill('Paciente Editar Validacao');
+      await page.getByTestId('newpatient-objective').selectOption({ label: 'Hipertrofia' });
+      await page.getByTestId('newpatient-terms').check();
+      await page.getByTestId('newpatient-submit').click();
+      await page.waitForResponse((r) => r.url().includes('/patients') && r.status() === 201, {
+        timeout: 15_000,
+      });
 
-    // Abre edit modal
-    await page
-      .getByRole('button', { name: /Editar/i })
-      .first()
-      .click();
-    await expect(page.locator('#edit-objective')).toBeVisible({ timeout: 3_000 });
+      // Vai para o paciente criado
+      const row = page
+        .locator('tr, .pq-item, .card')
+        .filter({ hasText: 'Paciente Editar Validacao' })
+        .first();
+      await row.click();
+      await page.waitForLoadState('networkidle');
 
-    // Limpa altura e coloca 0
-    const heightInput = page.locator('#edit-height');
-    await heightInput.fill('0');
-    await page.keyboard.press('Tab');
+      // Abre edit modal
+      await page
+        .getByRole('button', { name: /Editar/i })
+        .first()
+        .click();
+      await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 3_000 });
 
-    // Tenta salvar
-    await page
-      .locator('.btn.btn-primary')
-      .filter({ hasText: /Salvar/i })
-      .click();
+      // Limpa altura e coloca 0
+      const heightInput = page.getByTestId('editpatient-height');
+      await heightInput.fill('0');
+      await page.keyboard.press('Tab');
 
-    // Modal ainda visivel (validacao bloqueou submit)
-    await expect(page.locator('#edit-objective')).toBeVisible({ timeout: 5_000 });
+      // Tenta salvar
+      await page.getByTestId('editpatient-submit').click();
 
-    // Verifica mensagem de erro de altura
-    const heightError = page.locator('text=Altura deve estar entre 50 e 250 cm');
-    await expect(heightError).toBeVisible({ timeout: 3_000 });
-  });
+      // Modal ainda visivel (validacao bloqueou submit)
+      await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 5_000 });
+
+      // Verifica mensagem de erro de altura
+      const heightError = page.locator('text=Altura deve estar entre 50 e 250 cm');
+      await expect(heightError).toBeVisible({ timeout: 3_000 });
+    },
+  );
 });

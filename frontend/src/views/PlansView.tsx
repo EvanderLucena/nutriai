@@ -901,6 +901,7 @@ export function PlansView({ patientId }: PlansViewProps) {
                 );
               })}
               <button
+                data-testid="add-meal-btn"
                 onClick={() => planUI.setAddMealModalOpen(true)}
                 style={{
                   padding: '10px 14px',
