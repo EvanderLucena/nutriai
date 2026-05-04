@@ -126,6 +126,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
           onBlur={onBlur('name')}
+          dataTestId="newpatient-name"
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -162,6 +163,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           <div className="flex flex-col gap-1.5">
             <label className="eyebrow">Objetivo</label>
             <select
+              data-testid="newpatient-objective"
               value={form.objective}
               onChange={(e) => set('objective', e.target.value)}
               onBlur={onBlur('objective')}
@@ -199,6 +201,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
         <div className="flex flex-col gap-1.5">
           <label className="eyebrow">WhatsApp</label>
           <input
+            data-testid="newpatient-whatsapp"
             value={form.whatsapp}
             onChange={(e) => set('whatsapp', formatPhone(stripPhone(e.target.value)))}
             type="tel"
@@ -265,6 +268,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           }}
         >
           <input
+            data-testid="newpatient-terms"
             type="checkbox"
             checked={terms}
             onChange={(e) => setTerms(e.target.checked)}
@@ -282,6 +286,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
         </Button>
         <Button
           variant="primary"
+          data-testid="newpatient-submit"
           disabled={!form.name.trim() || !form.objective || !terms}
           onClick={handleSubmit}
         >

@@ -279,6 +279,9 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-biometry-title"
         className="card"
         style={{
           width: 'min(680px, 100%)',
@@ -289,7 +292,9 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
         onClick={(e) => e.stopPropagation()}
       >
         <div className="card-h">
-          <div className="title">Nova avaliação biométrica</div>
+          <div id="new-biometry-title" className="title">
+            Nova avaliação biométrica
+          </div>
           <div className="spacer" />
           <div style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>
             Preencha só o que tiver disponível
@@ -514,6 +519,7 @@ export function NewBiometryModal({ createMutation, onSuccess, onClose }: NewBiom
             Cancelar
           </button>
           <button
+            data-testid="btn-save-biometry"
             className="btn btn-primary"
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}

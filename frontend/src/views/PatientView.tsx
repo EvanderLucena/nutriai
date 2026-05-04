@@ -742,7 +742,11 @@ function BiometryTab({
             <BioCell label="% Água" value={last!.waterPercent ?? 0} unit="%" />
             <BioCell label="Gordura visceral" value={last!.visceralFatLevel ?? 0} sub="nível" />
           </div>
-          <button className="btn btn-primary" onClick={() => setNewEvalOpen(true)}>
+          <button
+            className="btn btn-primary"
+            data-testid="btn-new-biometry"
+            onClick={() => setNewEvalOpen(true)}
+          >
             <IconPlus size={13} /> Nova avaliação
           </button>
         </div>

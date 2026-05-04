@@ -140,6 +140,7 @@ export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
             Cancelar
           </button>
           <button
+            data-testid="btn-add-meal"
             className="btn btn-primary"
             disabled={!form.label.trim() || !form.time}
             onClick={handleSave}

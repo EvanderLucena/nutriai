@@ -222,6 +222,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
                 Altura (cm)
               </label>
               <input
+                data-testid="editpatient-height"
                 id="edit-height"
                 inputMode="decimal"
                 value={form.heightCm}
@@ -243,6 +244,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
                 WhatsApp
               </label>
               <input
+                data-testid="editpatient-whatsapp"
                 id="edit-whatsapp"
                 value={form.whatsapp}
                 onChange={(e) => set('whatsapp', formatPhone(stripPhone(e.target.value)))}
@@ -266,6 +268,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
               Objetivo clínico
             </label>
             <select
+              data-testid="editpatient-objective"
               id="edit-objective"
               value={objective}
               onChange={(e) => setObjective(e.target.value as ObjectiveOption)}
@@ -316,6 +319,7 @@ export function EditPatientModal({ patient, onClose }: EditPatientModalProps) {
             Cancelar
           </button>
           <button
+            data-testid="editpatient-submit"
             className="btn btn-primary"
             onClick={handleSave}
             disabled={!canSubmit}

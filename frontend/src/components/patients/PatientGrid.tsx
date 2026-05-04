@@ -39,8 +39,14 @@ export function PatientGrid({ patients, onOpen, onToggleActive, compact }: Patie
   const list = compact ? patients.slice(0, 8) : patients;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-      {list.map(p => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: compact ? 'repeat(4, 1fr)' : 'repeat(auto-fill, minmax(260px, 1fr))',
+        gap: 14,
+      }}
+    >
+      {list.map((p) => (
         <div
           key={p.id}
           className="card"
@@ -50,23 +56,54 @@ export function PatientGrid({ patients, onOpen, onToggleActive, compact }: Patie
           onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-            <Avatar initials={p.initials} status={p.active === false ? 'inactive' : p.status} size={34} />
+            <Avatar
+              initials={p.initials}
+              status={p.active === false ? 'inactive' : p.status}
+              size={34}
+            />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>{p.objective} · {p.age}A</div>
+              <div
+                style={{
+                  fontSize: 13.5,
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {p.name}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--fg-muted)' }}>
+                {p.objective} · {p.age}A
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div className={`chip ${p.status}`} style={{ padding: '2px 6px' }}>
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: STATUS_COLORS[p.status] || 'var(--fg-subtle)', marginRight: 4 }} />
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: STATUS_COLORS[p.status] || 'var(--fg-subtle)',
+                    marginRight: 4,
+                  }}
+                />
                 {STATUS_LABELS[p.status]}
               </div>
               {onToggleActive && (
                 <div onClick={(e) => e.stopPropagation()}>
                   <button
+                    data-testid="btn-desativar"
                     onClick={() => onToggleActive(p.id)}
                     style={{
-                      color: 'var(--fg-subtle)', border: 'none', background: 'none',
-                      cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center',
+                      color: 'var(--fg-subtle)',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      padding: 4,
+                      display: 'flex',
+                      alignItems: 'center',
                     }}
                     title={p.active === false ? 'Reativar' : 'Desativar'}
                   >
@@ -76,14 +113,29 @@ export function PatientGrid({ patients, onOpen, onToggleActive, compact }: Patie
               )}
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+              marginBottom: 8,
+            }}
+          >
             <div>
-              <div className="eyebrow" style={{ marginBottom: 2 }}>Adesão 7d</div>
+              <div className="eyebrow" style={{ marginBottom: 2 }}>
+                Adesão 7d
+              </div>
               <div
                 className="mono tnum"
                 style={{
-                  fontSize: 22, fontWeight: 500,
-                  color: p.status === 'ontrack' ? 'var(--sage-dim)' : p.status === 'warning' ? 'var(--carb)' : 'var(--coral-dim)',
+                  fontSize: 22,
+                  fontWeight: 500,
+                  color:
+                    p.status === 'ontrack'
+                      ? 'var(--sage-dim)'
+                      : p.status === 'warning'
+                        ? 'var(--carb)'
+                        : 'var(--coral-dim)',
                 }}
               >
                 {p.adherence}%
@@ -93,13 +145,31 @@ export function PatientGrid({ patients, onOpen, onToggleActive, compact }: Patie
               values={fakeSpark(p.adherence)}
               width={90}
               height={30}
-              stroke={p.status === 'ontrack' ? 'var(--sage-dim)' : p.status === 'warning' ? 'var(--amber)' : 'var(--coral)'}
+              stroke={
+                p.status === 'ontrack'
+                  ? 'var(--sage-dim)'
+                  : p.status === 'warning'
+                    ? 'var(--amber)'
+                    : 'var(--coral)'
+              }
               fill="transparent"
               showDots={false}
             />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--fg-muted)', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-            <span className="mono tnum">{p.weight}kg · {p.weightDelta > 0 ? '+' : ''}{p.weightDelta.toFixed(1)}</span>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 11.5,
+              color: 'var(--fg-muted)',
+              paddingTop: 10,
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <span className="mono tnum">
+              {p.weight}kg · {p.weightDelta > 0 ? '+' : ''}
+              {p.weightDelta.toFixed(1)}
+            </span>
           </div>
         </div>
       ))}

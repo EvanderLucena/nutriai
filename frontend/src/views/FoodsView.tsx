@@ -906,6 +906,9 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-food-title"
         className="card"
         style={{
           width: 'min(520px, 100%)',
@@ -916,7 +919,9 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="card-h">
-          <div className="title">Novo alimento</div>
+          <div id="create-food-title" className="title">
+            Novo alimento
+          </div>
           <div className="spacer" />
           <button onClick={onClose} className="btn btn-ghost" style={{ padding: '4px 6px' }}>
             <IconX size={14} />
@@ -930,6 +935,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
               Nome do alimento
             </label>
             <input
+              data-testid="newfood-name"
               id="create-food-name"
               placeholder="ex: Frango desfiado"
               value={form.name}
@@ -951,6 +957,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
                 Categoria
               </label>
               <select
+                data-testid="newfood-category"
                 id="create-food-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as FoodCategoryKey)}
@@ -1001,6 +1008,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
                 Referência ({refLabel})
               </label>
               <input
+                data-testid="newfood-ref"
                 id="create-food-ref"
                 value={form.referenceAmount}
                 onChange={(e) => set('referenceAmount', sanitizeNumberInput(e.target.value))}
@@ -1102,6 +1110,7 @@ function CreateFoodModal({ onClose }: { onClose: () => void }) {
             Cancelar
           </button>
           <button
+            data-testid="newfood-submit"
             className="btn btn-primary"
             onClick={handleCreate}
             disabled={!form.name.trim() || !form.referenceAmount.trim()}
@@ -1214,7 +1223,11 @@ export function FoodsView() {
               </option>
             ))}
           </select>
-          <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}>
+          <button
+            className="btn btn-primary"
+            onClick={() => setCreateModalOpen(true)}
+            data-testid="newfood-btn"
+          >
             <IconPlus size={13} /> Novo alimento
           </button>
         </div>
