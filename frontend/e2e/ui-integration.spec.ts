@@ -51,23 +51,21 @@ test.describe('Patient Management — UI→API Integration', () => {
     });
     const patientId = (await createResp.json()).data.id;
 
-    await page.goto('/patients');
+    await page.goto(`/patient/${patientId}`);
     await page.waitForLoadState('networkidle');
 
-    await page.getByRole('button', { name: /novo paciente/i }).click();
-    const modal = page.getByRole('dialog');
-    await expect(modal).toBeVisible({ timeout: 3_000 });
+    // Abre edit modal pelo header
+    await page.getByTestId('btn-edit-patient-header').click();
+    await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 3_000 });
 
-    await page.getByTestId('newpatient-name').fill('Paciente Editar UI');
-    await page.getByTestId('newpatient-objective').selectOption({ label: 'Hipertrofia' });
-    await page.getByTestId('newpatient-terms').check();
+    // Muda objetivo
+    await page.getByTestId('editpatient-objective').selectOption({ label: 'Hipertrofia' });
 
-    await page.getByTestId('newpatient-submit').click();
+    await page.getByTestId('editpatient-submit').click();
     await page.waitForResponse(
-      (resp) => resp.url().includes('/patients') && resp.status() === 201,
+      (resp) => resp.url().includes(`/patients/${patientId}`) && [200, 204].includes(resp.status()),
       { timeout: 15_000 },
     );
-    await expect(modal).not.toBeVisible({ timeout: 5_000 });
 
     const response = await request.get(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },

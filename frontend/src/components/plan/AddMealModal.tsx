@@ -51,12 +51,17 @@ export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
       onClick={handleClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-meal-title"
         className="card"
         style={{ width: 'min(420px, 100%)', boxShadow: '0 32px 80px rgba(0,0,0,0.25)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="card-h">
-          <div className="title">Nova refeição</div>
+          <div id="add-meal-title" className="title">
+            Nova refeição
+          </div>
           <div className="spacer" />
           <button onClick={handleClose} className="btn btn-ghost" style={{ padding: '4px 6px' }}>
             <IconX size={14} />

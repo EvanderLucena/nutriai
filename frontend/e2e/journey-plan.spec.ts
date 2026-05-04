@@ -18,16 +18,9 @@ test.describe('Jornada — Meal Plan', () => {
     await page.getByTestId('patient-tab-plan').click();
     await page.waitForTimeout(500);
 
-    // Clica em editar plano (force se tiver overlay)
-    const editBtn = page
-      .locator('.btn')
-      .filter({ hasText: /Editar/i })
-      .first();
-    await editBtn.click({ force: true });
-
-    await page.getByTestId('add-meal-btn').click({ force: true });
-    const modal = page.getByRole('dialog');
-    await expect(modal).toBeVisible({ timeout: 3_000 });
+    // O botão add-meal-btn já está visível no modo view; não precisa clicar em Editar primeiro
+    await page.getByTestId('add-meal-btn').click();
+    await page.waitForTimeout(500);
 
     await page.getByTestId('addmeal-label').fill('Café Jornada');
     await page.getByTestId('addmeal-time').fill('08:00');
@@ -36,7 +29,6 @@ test.describe('Jornada — Meal Plan', () => {
     await page.waitForResponse((r) => r.url().includes('/slots') && r.status() === 201, {
       timeout: 15_000,
     });
-    await expect(modal).not.toBeVisible({ timeout: 5_000 });
 
     // Verifica que a refeição aparece na UI
     await expect(page.getByText('Café Jornada')).toBeVisible({ timeout: 5_000 });

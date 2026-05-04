@@ -53,10 +53,7 @@ test.describe('Jornada — Patient', () => {
     await page.goto(`/patient/${patientId}`);
     await page.waitForLoadState('networkidle');
 
-    await page
-      .getByRole('button', { name: /Editar/i })
-      .first()
-      .click();
+    await page.getByTestId('btn-edit-patient-header').click();
     await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 3_000 });
 
     await page.getByTestId('editpatient-objective').selectOption({ label: 'Hipertrofia' });

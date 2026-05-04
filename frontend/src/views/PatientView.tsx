@@ -229,6 +229,7 @@ export function PatientView() {
               <span>·</span>
               <span style={{ color: 'var(--fg)' }}>{patient.objective}</span>
               <button
+                data-testid="btn-edit-patient-header"
                 className="btn btn-ghost"
                 style={{ fontSize: 11.5, padding: '3px 8px', marginLeft: 4 }}
                 onClick={() => setEditOpen(true)}
@@ -642,7 +643,11 @@ function BiometryTab({
           <p style={{ color: 'var(--fg-muted)', fontSize: 14, marginBottom: 16 }}>
             Nenhuma avaliação registrada ainda
           </p>
-          <button className="btn btn-primary" onClick={() => setNewEvalOpen(true)}>
+          <button
+            className="btn btn-primary"
+            data-testid="btn-new-biometry"
+            onClick={() => setNewEvalOpen(true)}
+          >
             <IconPlus size={13} /> Registrar primeira avaliação
           </button>
         </div>
