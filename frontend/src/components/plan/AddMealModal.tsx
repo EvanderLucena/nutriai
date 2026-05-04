@@ -6,34 +6,135 @@ interface AddMealModalProps {
   onAdd: (data: { label: string; time: string }) => void;
 }
 
+interface MealForm {
+  label: string;
+  time: string;
+  errors: Record<string, string>;
+  set: (k: string, v: string) => void;
+  onBlur: (k: string) => () => void;
+  validateAll: () => boolean;
+  reset: () => void;
+}
+
+function useMealForm(): MealForm {
+  const { values, errors, set, onBlur, validateAll, reset } = useValidation(
+    { label: '', time: '' } as Record<string, string>,
+    {
+      label: {
+        required: true,
+        requiredMessage: 'Nome da refeição é obrigatório.',
+        minLength: 2,
+        minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
+      },
+      time: {
+        required: true,
+        requiredMessage: 'Horário é obrigatório.',
+      },
+    },
+  );
+  return { label: values.label, time: values.time, errors, set, onBlur, validateAll, reset };
+}
+
+function MealLabelInput({
+  value,
+  error,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  error?: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label className="eyebrow" htmlFor="meal-label">
+        Nome
+      </label>
+      <input
+        id="meal-label"
+        data-testid="addmeal-label"
+        autoFocus
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? 'meal-label-error' : undefined}
+        placeholder="ex: Lanche pré-treino"
+        style={{
+          padding: '8px 10px',
+          border: `1px solid ${error ? 'var(--coral)' : 'var(--border)'}`,
+          borderRadius: 6,
+          fontSize: 13,
+          background: 'var(--surface)',
+          outline: 'none',
+          color: 'var(--fg)',
+        }}
+      />
+      {error && (
+        <p id="meal-label-error" className="text-xs text-coral" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MealTimeInput({
+  value,
+  error,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  error?: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label className="eyebrow" htmlFor="meal-time">
+        Horário
+      </label>
+      <input
+        id="meal-time"
+        data-testid="addmeal-time"
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
+        aria-invalid={error ? 'true' : undefined}
+        aria-describedby={error ? 'meal-time-error' : undefined}
+        style={{
+          padding: '8px 10px',
+          border: `1px solid ${error ? 'var(--coral)' : 'var(--border)'}`,
+          borderRadius: 6,
+          fontSize: 13,
+          background: 'var(--surface)',
+          outline: 'none',
+          color: 'var(--fg)',
+          fontFamily: 'var(--font-mono)',
+        }}
+      />
+      {error && (
+        <p id="meal-time-error" className="text-xs text-coral" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
-  const {
-    values: form,
-    errors,
-    set,
-    onBlur,
-    validateAll,
-    reset,
-  } = useValidation({ label: '', time: '' } as Record<string, string>, {
-    label: {
-      required: true,
-      requiredMessage: 'Nome da refeição é obrigatório.',
-      minLength: 2,
-      minLengthMessage: 'Nome deve ter pelo menos 2 caracteres.',
-    },
-    time: {
-      required: true,
-      requiredMessage: 'Horário é obrigatório.',
-    },
-  });
+  const form = useMealForm();
 
   const handleSave = () => {
-    if (!validateAll()) return;
+    if (!form.validateAll()) return;
     onAdd({ label: form.label.trim(), time: form.time });
   };
 
   const handleClose = () => {
-    reset();
+    form.reset();
     onClose();
   };
 
@@ -69,66 +170,18 @@ export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label className="eyebrow" htmlFor="meal-label">
-                Nome
-              </label>
-              <input
-                id="meal-label"
-                data-testid="addmeal-label"
-                autoFocus
-                value={form.label}
-                onChange={(e) => set('label', e.target.value)}
-                onBlur={onBlur('label')}
-                aria-invalid={errors.label ? 'true' : undefined}
-                aria-describedby={errors.label ? 'meal-label-error' : undefined}
-                placeholder="ex: Lanche pré-treino"
-                style={{
-                  padding: '8px 10px',
-                  border: `1px solid ${errors.label ? 'var(--coral)' : 'var(--border)'}`,
-                  borderRadius: 6,
-                  fontSize: 13,
-                  background: 'var(--surface)',
-                  outline: 'none',
-                  color: 'var(--fg)',
-                }}
-              />
-              {errors.label && (
-                <p id="meal-label-error" className="text-xs text-coral" role="alert">
-                  {errors.label}
-                </p>
-              )}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-              <label className="eyebrow" htmlFor="meal-time">
-                Horário
-              </label>
-              <input
-                id="meal-time"
-                data-testid="addmeal-time"
-                type="time"
-                value={form.time}
-                onChange={(e) => set('time', e.target.value)}
-                onBlur={onBlur('time')}
-                aria-invalid={errors.time ? 'true' : undefined}
-                aria-describedby={errors.time ? 'meal-time-error' : undefined}
-                style={{
-                  padding: '8px 10px',
-                  border: `1px solid ${errors.time ? 'var(--coral)' : 'var(--border)'}`,
-                  borderRadius: 6,
-                  fontSize: 13,
-                  background: 'var(--surface)',
-                  outline: 'none',
-                  color: 'var(--fg)',
-                  fontFamily: 'var(--font-mono)',
-                }}
-              />
-              {errors.time && (
-                <p id="meal-time-error" className="text-xs text-coral" role="alert">
-                  {errors.time}
-                </p>
-              )}
-            </div>
+            <MealLabelInput
+              value={form.label}
+              error={form.errors.label}
+              onChange={(v) => form.set('label', v)}
+              onBlur={form.onBlur('label')}
+            />
+            <MealTimeInput
+              value={form.time}
+              error={form.errors.time}
+              onChange={(v) => form.set('time', v)}
+              onBlur={form.onBlur('time')}
+            />
           </div>
         </div>
         <div
