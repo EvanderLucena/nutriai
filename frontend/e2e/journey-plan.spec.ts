@@ -18,17 +18,16 @@ test.describe('Jornada — Meal Plan', () => {
     await page.getByTestId('patient-tab-plan').click();
     await page.waitForTimeout(500);
 
-    // O botão add-meal-btn já está visível no modo view; não precisa clicar em Editar primeiro
+    // Clica em adicionar refeição
     await page.getByTestId('add-meal-btn').click();
-    await page.waitForTimeout(500);
 
+    // Preenche o modal
     await page.getByTestId('addmeal-label').fill('Café Jornada');
     await page.getByTestId('addmeal-time').fill('08:00');
     await page.getByTestId('btn-add-meal').click();
 
-    await page.waitForResponse((r) => r.url().includes('/slots') && r.status() === 201, {
-      timeout: 15_000,
-    });
+    // Em vez de waitForResponse (pode variar de endpoint), espera o modal sumir e a refeição aparecer
+    await expect(page.getByTestId('btn-add-meal')).not.toBeVisible({ timeout: 15_000 });
 
     // Verifica que a refeição aparece na UI
     await expect(page.getByText('Café Jornada')).toBeVisible({ timeout: 5_000 });

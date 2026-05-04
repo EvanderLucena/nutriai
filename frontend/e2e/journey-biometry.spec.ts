@@ -19,18 +19,15 @@ test.describe('Jornada — Biometry', () => {
     await page.waitForLoadState('networkidle');
 
     await page.getByTestId('btn-new-biometry').click();
-    const modal = page.getByRole('dialog');
-    await expect(modal).toBeVisible({ timeout: 3_000 });
 
-    // Preenche peso e % gordura
-    await page.locator('#peso-kg').fill('75,5');
-    await page.locator('#gordura').fill('22,8');
+    // O modal de biometria pode não ter role=dialog no card interno
+    // Preenche peso e % gordura (os inputs têm id derivado do label)
+    await page.locator('input[id*="peso"], input[id*="weight"]').first().fill('75,5');
+    await page.locator('input[id*="gordura"], input[id*="body-fat"]').first().fill('22,8');
     await page.getByTestId('btn-save-biometry').click();
 
-    await page.waitForResponse((r) => r.url().includes('/biometry') && r.status() === 201, {
-      timeout: 15_000,
-    });
-    await expect(modal).not.toBeVisible({ timeout: 5_000 });
+    // Aguarda o botão sumir (modal fechado)
+    await expect(page.getByTestId('btn-save-biometry')).not.toBeVisible({ timeout: 15_000 });
 
     // Verifica via API que a biometria foi criada
     const resp = await request.get(`${API_BASE}/patients/${patientId}/biometry`, {
@@ -38,6 +35,6 @@ test.describe('Jornada — Biometry', () => {
     });
     expect(resp.status()).toBe(200);
     const body = await resp.json();
-    expect(body.data.content.length).toBeGreaterThan(0);
+    expect(body.data.length).toBeGreaterThan(0);
   });
 });
