@@ -22,7 +22,7 @@ export default defineConfig({
     },
     {
       name: 'ui-integration',
-      testMatch: /ui-integration/,
+      testMatch: /ui-integration|patient-tabs/,
       dependencies: ['setup'],
       use: {
         storageState: undefined,

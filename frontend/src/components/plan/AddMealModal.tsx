@@ -70,6 +70,7 @@ export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
               </label>
               <input
                 id="meal-label"
+                data-testid="addmeal-label"
                 autoFocus
                 value={form.label}
                 onChange={(e) => set('label', e.target.value)}
@@ -99,6 +100,7 @@ export function AddMealModal({ onClose, onAdd }: AddMealModalProps) {
               </label>
               <input
                 id="meal-time"
+                data-testid="addmeal-time"
                 type="time"
                 value={form.time}
                 onChange={(e) => set('time', e.target.value)}

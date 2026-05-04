@@ -278,6 +278,7 @@ export function PatientView() {
             { k: 'history' as Tab, label: 'Histórico' },
           ].map((t) => (
             <button
+              data-testid={`patient-tab-${t.k}`}
               key={t.k}
               onClick={() => setTab(t.k)}
               style={{

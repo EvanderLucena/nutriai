@@ -4,9 +4,10 @@ import { cn } from '../../lib/utils';
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  dataTestId?: string;
 }
 
-export function Input({ label, error, className, id, ...props }: InputProps) {
+export function Input({ label, error, className, id, dataTestId, ...props }: InputProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
@@ -18,6 +19,7 @@ export function Input({ label, error, className, id, ...props }: InputProps) {
       )}
       <input
         id={inputId}
+        data-testid={dataTestId}
         className={cn(
           'w-full rounded-[var(--radius)] border bg-surface px-3 py-2 text-sm font-ui text-fg',
           'placeholder:text-fg-subtle',
