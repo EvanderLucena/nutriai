@@ -2,7 +2,17 @@
 
 > Teste do AI reviewer — linha innocua pra gerar diff no PR
 
-## Bugs ativos
+## Backend — Problemas ativos
+
+- [x] **Backend falha ao subir: falta `NUTRIAI_JWT_SECRET`**  
+  `java -jar` falha com `PlaceholderResolutionException: Could not resolve placeholder 'NUTRIAI_JWT_SECRET'`.  
+  Corrigido: adicionado fallback em `application.yml` e `application-dev.yml` (`secret: ${NUTRIAI_JWT_SECRET:local-dev-secret-do-not-use-in-production}`).
+- [x] **Banco PostgreSQL não disponível em desenvolvimento**  
+  Não havia PostgreSQL local nem Docker rodando. Corrigido: container `nutriai-postgres` subiu via `docker compose -f docker/docker-compose.yml up -d postgres`. Backend rodando com profile `dev` e conectado no Postgres.  
+  **Comando para subir:** `docker compose -f docker/docker-compose.yml up -d postgres`  
+  **Comando para backend:** `java -jar backend/build/libs/nutriai-api-0.5.0.jar --spring.profiles.active=dev` (com `NUTRIAI_JWT_SECRET` e `NUTRIAI_SEED_ADMIN_PASSWORD` exportados)  
+  **Verificação:** `curl http://localhost:8080/api/v1/health` → `{"status":"UP","db":"connected"}`  
+  **E2E:** 85/85 passando (21.5s) ✅
 
 - [x] `Editar plano` e `Novo registro > Plano alimentar` no topbar do PatientView chamam `setView('plans')` (rota removida). Corrigir para `setTab('plan')`.
 
@@ -112,6 +122,54 @@
 ### ❌ Decisão: data-testids sob demanda
 
 Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `data-testid`. Adicionar agora custa ~1h mas não traz benefício imediato — fluxos estão estáveis e não serão tocados na Phase 07 (WhatsApp). **Adicionar quando necessário para Phase 07.**
+
+---
+
+## E2E / Playwright — Auditoria e melhorias (maio/2026)
+
+> Auditados 11 arquivos de spec (~89 testes). Nota de confiabilidade: **5,5/10**.
+> Maior problema: ~60% dos testes são API-only; UI core (planos, biometria, edição) quase não testada.
+>
+> **Top 5 melhorias de maior impacto:**
+> 1. Criar fixture `authenticatedPage` para eliminar login duplicado nos `beforeEach` (~30-50s economizados por run)
+> 2. Substituir seletores frágeis (`.btn.btn-primary`, `select.first()`, `[class*="card"]`) por `getByRole`/`getByLabel`
+> 3. Adicionar `test.afterEach` com cleanup de API (deletar pacientes/alimentos criados)
+> 4. Separar `journey.spec.ts` em testes independentes com asserts robustos no delete
+> 5. Adicionar health-check do backend no `playwright.config.ts` (ou subir backend no webServer)
+>
+> **Achados críticos:**
+> - `journey.spec.ts` tem `if+skip` em cascata no delete — teste pode passar sem deletar
+> - `meal-plans.spec.ts` e `biometry-dashboard.spec.ts` são 100% API-only — UI pode quebrar sem detectar
+> - `patient-management.spec.ts` renderiza páginas sem assert de autenticação ativa
+> - `ui-integration.spec.ts` usa classes CSS + regex (`/.btn.btn-primary/`) — refatoração de CSS quebra tudo
+> - `form-validation.spec.ts` tem assert condicional (`if (!isDisabled) { expect(...) }`) — pode passar sem validar nada
+> - `patient-tabs.spec.ts` testa 5 abas em um único loop — uma aba quebrada quebra o teste inteiro
+> - Múltiplos `waitForLoadState('networkidle')` — frágil em CI; preferir `await expect(...).toBeVisible()`
+> - `expect([403, 404]).toContain(...)` — assert flexível mascara regressões de segurança
+> - `fullyParallel: false` — execução serial degrada performance sem necessidade real
+> - Login duplicado: `ui-integration.spec.ts`, `patient-tabs.spec.ts`, `form-validation.spec.ts` fazem signup+onboarding+login em cada `beforeEach`
+>
+> **Fluxos críticos não cobertos:**
+> - Edição inline de alimentos no plano (add option, edit food row, remove meal)
+> - Mudança de status do paciente via UI (ontrack → warning → danger)
+> - Onboarding completo via UI
+> - Paginação real na lista de pacientes
+> - Filtro por status na lista de pacientes
+> - Gráficos de biometria (timeline, charts)
+> - Tela de alimentos: edição via UI
+> - Logout e expiração de token
+> - Responsividade mobile
+>
+> **Tarefas concretas:**
+> - [ ] Criar Playwright fixture `authenticatedPage` (reutiliza storageState, evita login duplicado)
+> - [ ] Substituir seletores frágeis em `journey.spec.ts`, `ui-integration.spec.ts`, `form-validation.spec.ts`
+> - [ ] Separar `patient-tabs.spec.ts` em testes independentes por aba
+> - [ ] Adicionar `afterEach` cleanup em specs de API-only
+> - [ ] Acrescentar testes UI→API para Meal Plans (adicionar/editar/excluir refeição)
+> - [ ] Acrescentar testes UI→API para Biometria (preencher modal e validar gráficos)
+> - [ ] Acrescentar teste de erro visível para cada mutation (409, 400, 500)
+> - [ ] Adicionar `data-testid` em componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView)
+> - [ ] Configurar `webServer` do backend em `playwright.config.ts` ou documentar dependência
 
 ---
 
