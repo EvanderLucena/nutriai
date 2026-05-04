@@ -126,7 +126,7 @@ export function NewPatientModal({ open, onClose, onSave }: NewPatientModalProps)
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
           onBlur={onBlur('name')}
-          dataTestId="newpatient-name"
+          data-testid="newpatient-name"
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
