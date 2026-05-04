@@ -5,21 +5,26 @@ test.describe('Food Catalog — Page Rendering', () => {
   test('E2E-FC-01: Foods page renders heading without errors', async ({ page }) => {
     await page.goto('/foods');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('h1, .serif')).toContainText(/alimentos/i);
+    await expect(page.getByRole('heading', { name: /alimentos/i })).toBeVisible({
+      timeout: 5_000,
+    });
   });
 
   test('E2E-FC-02: Search input is visible', async ({ page }) => {
     await page.goto('/foods');
     await page.waitForLoadState('networkidle');
-    const searchInput = page.locator('.page .search input');
-    await expect(searchInput).toBeVisible({ timeout: 5_000 });
+    // Evita conflito com input global do topbar (placeholder "Buscar paciente...")
+    await expect(page.getByPlaceholder(/buscar no catálogo/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('E2E-FC-03: Category filter shows options', async ({ page }) => {
     await page.goto('/foods');
     await page.waitForLoadState('networkidle');
+
+    // O select de filtro nao tem label acessivel ainda; usa o primeiro select da pagina
     const select = page.locator('select').first();
     await expect(select).toBeVisible({ timeout: 5_000 });
+
     const options = select.locator('option');
     const count = await options.count();
     expect(count).toBeGreaterThanOrEqual(2);
@@ -28,20 +33,34 @@ test.describe('Food Catalog — Page Rendering', () => {
   test('E2E-FC-04: Empty state shows message', async ({ page }) => {
     await page.goto('/foods');
     await page.waitForLoadState('networkidle');
-    const searchInput = page.locator('.page .search input');
+
+    const searchInput = page.getByPlaceholder(/buscar no catálogo/i);
     await expect(searchInput).toBeVisible({ timeout: 5_000 });
     await searchInput.fill('zzznotfound123xyz');
+
     await expect(page.getByText(/nenhum alimento encontrado/i)).toBeVisible({ timeout: 5_000 });
   });
 });
 
 test.describe('Food Catalog — API Contract & Enum Validation', () => {
   let accessToken: string;
+  const createdFoodIds: string[] = [];
 
   test.beforeEach(async ({ request }) => {
     const email = uniqueEmail();
     const result = await signupViaApi(request, email);
     accessToken = result.accessToken;
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const id of createdFoodIds) {
+      await request
+        .delete(`${API_BASE}/foods/${id}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .catch(() => {});
+    }
+    createdFoodIds.length = 0;
   });
 
   test('E2E-FC-05: Create food with unit GRAMAS succeeds', async ({ request }) => {
@@ -63,6 +82,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     const body = await response.json();
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('id');
+    createdFoodIds.push(body.data.id);
     expect(body.data.name).toBe('Arroz integral E2E');
     expect(body.data.category).toBe('CARBOIDRATO');
     expect(body.data.unit).toBe('GRAMAS');
@@ -87,6 +107,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     });
     expect(response.status()).toBe(201);
     const body = await response.json();
+    createdFoodIds.push(body.data.id);
     expect(body.data.unit).toBe('UNIDADE');
     expect(body.data.category).toBe('PROTEINA');
     expect(body.data).toHaveProperty('portionLabel');
@@ -153,7 +174,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
   });
 
   test('E2E-FC-11: List foods returns paginated contract', async ({ request }) => {
-    await request.post(`${API_BASE}/foods`, {
+    const createResp = await request.post(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       data: {
         name: 'Listado E2E',
@@ -167,6 +188,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
         fiber: 1,
       },
     });
+    createdFoodIds.push((await createResp.json()).data.id);
 
     const response = await request.get(`${API_BASE}/foods`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -197,6 +219,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     });
     const created = await createResp.json();
     const foodId = created.data.id;
+    createdFoodIds.push(foodId);
 
     const updateResp = await request.patch(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -257,6 +280,7 @@ test.describe('Food Catalog — API Contract & Enum Validation', () => {
     });
     const created = await createResp.json();
     const foodId = created.data.id;
+    createdFoodIds.push(foodId);
 
     const getResp = await request.get(`${API_BASE}/foods/${foodId}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
