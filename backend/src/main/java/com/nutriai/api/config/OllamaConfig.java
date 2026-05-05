@@ -29,7 +29,7 @@ public class OllamaConfig {
     @Value("${nutriai.evolution.api-url:http://evolution-api:8080}")
     private String evolutionApiUrl;
 
-    @Value("${nutriai.evolution.api-key:changeme}")
+    @Value("${nutriai.evolution.api-key:}")
     private String evolutionApiKey;
 
     @Bean

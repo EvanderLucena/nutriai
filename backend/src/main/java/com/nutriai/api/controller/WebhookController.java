@@ -59,12 +59,6 @@ public class WebhookController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping
-    public ResponseEntity<Void> verifyWebhook() {
-        // Simple GET for webhook verification / health checks
-        return ResponseEntity.ok().build();
-    }
-
     private WhatsAppWebhookDTO parsePayload(String rawBody) {
         try {
             return objectMapper.readValue(rawBody, WhatsAppWebhookDTO.class);
