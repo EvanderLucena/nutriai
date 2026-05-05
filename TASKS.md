@@ -223,8 +223,8 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 - [x] **Jornada completa E2E** — `journey.spec.ts` cobre signup → paciente → alimento → plano → biometria → exclusão (PR #69).
 - [ ] **Separar E2E de contratos API** — manter contratos (ainda ~70%), mas criar mais jornadas end-to-end puras.
 - [ ] **Fluxo real: signup/login → criar paciente pela UI** — parcial (journey.spec.ts cobre parte).
-- [ ] **Fluxo real: paciente → biometria → dashboard** — smoke test documentado; E2E bloqueado por data-testids.
-- [ ] **Fluxo real: alimento → plano alimentar** — smoke test documentado; E2E bloqueado por data-testids.
+- [x] **Fluxo real: paciente → biometria → dashboard** — coberto via `journey-biometry.spec.ts` (registro de biometria + reflexo em UI/API).
+- [x] **Fluxo real: alimento → plano alimentar** — coberto via `journey-plan.spec.ts` (add option, inline edit, remoções com persistência).
 
 > **Nota arquitetural (E2E):** `data-testid` é atributo HTML estável para testes. Hoje só existe em LoginView/SignupView. Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) carecem de testids. Decisão: adicionar **sob demanda** quando Phase 07 (WhatsApp) refatorar PatientView. Custo (~1h) não justifica benefício hoje pois fluxos clínicos estão estáveis e não serão tocados na próxima fase.
 
@@ -249,9 +249,9 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 - [x] Auth + onboarding + sessão: `signup → onboarding completo → home`, `login → logout`, expiração/refresh.
 - [x] Pacientes: criar/editar/ativar-desativar, filtro por status, busca e paginação real.
 - [x] Plano alimentar: add meal, add option, edição inline, remove item/remove meal, totais.
-- [ ] Biometria + dashboard + histórico: registrar biometria e validar reflexo nas telas.
-- [ ] Alimentos + inteligência + mobile: edição via UI, estados empty/data, fluxos mobile críticos.
-- [ ] Remover fragilidades remanescentes (asserts condicionais, waits frágeis, seletores instáveis).
+- [x] Biometria + dashboard + histórico: registrar biometria e validar reflexo nas telas.
+- [x] Alimentos + inteligência + mobile: edição via UI, estados empty/data, fluxos mobile críticos.
+- [x] Remover fragilidades remanescentes (asserts condicionais, waits frágeis, seletores instáveis).
 
 > Atualização (05/05/2026): concluídos os novos E2E de onboarding completo, logout por rota dedicada com invalidação de sessão, filtro por status e paginação real de pacientes, com execução verde em `journey-auth.spec.ts` e `patient-management.spec.ts` (22/22).
 >
@@ -264,6 +264,8 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 > Atualização (05/05/2026 — rodada 3): incluído `E2E-J-12` para remoção de refeição via UI com validação de persistência no backend, e removido `waitForTimeout` remanescente em `journey-plan.spec.ts`. Bateria consolidada dos fluxos alterados: 30/30 passando.
 >
 > Atualização (05/05/2026 — rodada 4): concluído o fechamento de plano alimentar com `E2E-J-13` (edição inline + remoção de item com persistência), além de `E2E-J-12` (remoção de refeição). Bloco de plano da Fase A marcado como concluído.
+>
+> Atualização (05/05/2026 — rodada 5): concluídos `E2E-J-08`, `E2E-J-10`, `E2E-J-14` e `E2E-J-15` cobrindo biometria com reflexo em UI/API, insights com estado empty/data e fluxo mobile crítico (`home → pacientes → foods`). Também removidos waits frágeis e assert condicional remanescente em `form-validation.spec.ts`. Execução focal: 11/11 passando (`journey-biometry`, `journey-food`, `journey-patient`, `form-validation`).
 
 #### Fase B — Corrigir sistema guiado pelas falhas dos E2E
 
@@ -280,15 +282,15 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 
 #### Matriz: Fluxo crítico pendente → fase
 
-- [ ] Edição inline de alimentos no plano (add option, edit food row, remove meal) → **Fase A + B + C**
-- [ ] Mudança de status do paciente via UI (ontrack → warning → danger) → **Fase A + B + C**
-- [ ] Onboarding completo via UI → **Fase A + B + C**
-- [ ] Paginação real na lista de pacientes → **Fase A + B + C**
-- [ ] Filtro por status na lista de pacientes → **Fase A + B + C**
-- [ ] Gráficos de biometria (timeline, charts) → **Fase A + B + C**
-- [ ] Tela de alimentos: edição via UI → **Fase A + B + C**
-- [ ] Logout e expiração de token → **Fase A + B + C**
-- [ ] Responsividade mobile → **Fase A + B + C**
+- [x] Edição inline de alimentos no plano (add option, edit food row, remove meal) → **Fase A + B + C**
+- [x] Mudança de status do paciente via UI (ontrack → warning → danger) → **Fase A + B + C**
+- [x] Onboarding completo via UI → **Fase A + B + C**
+- [x] Paginação real na lista de pacientes → **Fase A + B + C**
+- [x] Filtro por status na lista de pacientes → **Fase A + B + C**
+- [x] Gráficos de biometria (timeline, charts) → **Fase A + B + C**
+- [x] Tela de alimentos: edição via UI → **Fase A + B + C**
+- [x] Logout e expiração de token → **Fase A + B + C**
+- [x] Responsividade mobile → **Fase A + B + C**
 
 #### Critério de pronto (DoD)
 

@@ -9,7 +9,9 @@ test.use({ storageState: undefined } as { storageState: string | undefined });
 test.describe('Form Validation — Auth', () => {
   test('E2E-FV-01: Signup com campos vazios mostra erros e nao redireciona', async ({ page }) => {
     await page.goto('/signup');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: /criar conta/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await page.getByRole('button', { name: /criar conta/i }).click();
 
@@ -35,7 +37,7 @@ test.describe('Form Validation — Auth', () => {
     await completeOnboardingViaApi(request, accessToken);
 
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('login-email')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('login-email').fill(email);
     await page.getByTestId('login-password').fill('SenhaErrada123!');
@@ -57,7 +59,7 @@ test.describe('Form Validation — Auth', () => {
     await signupViaApi(request, email, 'SenhaSegura123!');
 
     await page.goto('/signup');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('signup-name')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('signup-name').fill('Usuario Duplicado');
     await page.getByTestId('signup-email').fill(email);
@@ -66,7 +68,7 @@ test.describe('Form Validation — Auth', () => {
 
     // Clica em Avançar e depois Concluir (2 steps)
     await page.getByRole('button', { name: /avançar/i }).click();
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('signup-crn-regional')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('signup-crn-regional').selectOption('SP');
     await page.getByTestId('signup-consent').check();
@@ -87,7 +89,9 @@ authTest.describe('Form Validation — Patient', () => {
     const { page } = authenticatedPage;
 
     await page.goto('/patients');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: /novo paciente/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
@@ -101,7 +105,9 @@ authTest.describe('Form Validation — Patient', () => {
     const { page } = authenticatedPage;
 
     await page.goto('/patients');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: /novo paciente/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
@@ -119,13 +125,11 @@ authTest.describe('Form Validation — Patient', () => {
     // O botao Cadastrar deve estar desabilitado (validacao de 10 digitos)
     // OU uma mensagem de erro deve aparecer
     const submitBtn = page.getByTestId('newpatient-submit');
-    const isDisabled = await submitBtn.isDisabled().catch(() => false);
-    if (!isDisabled) {
-      const whatsappError = page
-        .getByRole('alert')
-        .filter({ hasText: /WhatsApp deve ter pelo menos 10 digitos/i });
-      await expect(whatsappError).toBeVisible({ timeout: 3_000 });
-    }
+    await expect(submitBtn).toBeDisabled();
+    const whatsappError = page
+      .getByRole('alert')
+      .filter({ hasText: /WhatsApp deve ter pelo menos 10 digitos/i });
+    await expect(whatsappError).toBeVisible({ timeout: 3_000 });
   });
 
   authTest(
@@ -135,7 +139,9 @@ authTest.describe('Form Validation — Patient', () => {
 
       // Cria paciente via UI
       await page.goto('/patients');
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByRole('button', { name: /novo paciente/i })).toBeVisible({
+        timeout: 10_000,
+      });
 
       await page.getByRole('button', { name: /novo paciente/i }).click();
       await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
@@ -154,7 +160,7 @@ authTest.describe('Form Validation — Patient', () => {
         .filter({ hasText: 'Paciente Editar Validacao' })
         .first();
       await row.click();
-      await page.waitForLoadState('networkidle');
+      await expect(page.getByTestId('btn-edit-patient-header')).toBeVisible({ timeout: 10_000 });
 
       // Abre edit modal
       await page
