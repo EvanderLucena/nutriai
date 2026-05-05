@@ -25,6 +25,16 @@ test.describe('Biometry & Dashboard — API Contract', () => {
     patientId = (await createResp.json()).data.id;
   });
 
+  test.afterEach(async ({ request }) => {
+    if (patientId) {
+      await request
+        .delete(`${API_BASE}/patients/${patientId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .catch(() => {});
+    }
+  });
+
   test('E2E-BIO-00: Create patient with pt-BR objective label returns 400', async ({ request }) => {
     const resp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },

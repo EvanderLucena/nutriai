@@ -23,6 +23,16 @@ test.describe('Backend: pt-BR numeric deserialization', () => {
     patientId = (await createResp.json()).data.id;
   });
 
+  test.afterEach(async ({ request }) => {
+    if (patientId) {
+      await request
+        .delete(`${API_BASE}/patients/${patientId}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+        .catch(() => {});
+    }
+  });
+
   test('E2E-NUM-01: Biometry accepts pt-BR comma decimal (72,5 -> 72.5)', async ({ request }) => {
     const resp = await request.post(`${API_BASE}/patients/${patientId}/biometry`, {
       headers: { Authorization: `Bearer ${accessToken}` },
