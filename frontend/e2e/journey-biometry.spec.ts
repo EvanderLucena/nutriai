@@ -13,10 +13,10 @@ test.describe('Jornada — Biometry', () => {
     const patientId = (await createResp.json()).data.id;
 
     await page.goto(`/patient/${patientId}`);
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('patient-tab-biometry')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('patient-tab-biometry').click();
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('btn-new-biometry')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('btn-new-biometry').click();
 
@@ -36,9 +36,11 @@ test.describe('Jornada — Biometry', () => {
     expect(resp.status()).toBe(200);
     const body = await resp.json();
     expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data[0].weight).toBe(75.5);
+    expect(body.data[0].bodyFatPercent).toBe(22.8);
   });
 
-  test('E2E-J-10: Biometria registrada reflete em Histórico do paciente', async ({
+  test('E2E-J-10: Biometria registrada reflete no cabeçalho e tabela de histórico biométrico', async ({
     authenticatedPage,
     request,
   }) => {
@@ -59,9 +61,9 @@ test.describe('Jornada — Biometry', () => {
     await expect(page.getByTestId('btn-save-biometry')).not.toBeVisible({ timeout: 15_000 });
     await page.getByRole('button', { name: /Pular/i }).click();
 
-    await page.getByTestId('patient-tab-history').click();
-    await expect(page.getByText(/Nenhum episódio fechado encontrado/i)).toBeVisible({
-      timeout: 10_000,
-    });
+    await expect(page.getByText('68.4 kg').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('24.1%').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Histórico de avaliações/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/68.4 kg/).first()).toBeVisible({ timeout: 10_000 });
   });
 });

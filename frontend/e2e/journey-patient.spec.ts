@@ -9,7 +9,9 @@ test.describe('Jornada — Patient', () => {
     const { page, accessToken } = authenticatedPage;
 
     await page.goto('/patients');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('button', { name: /novo paciente/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     await page.getByRole('button', { name: /novo paciente/i }).click();
     const modal = page.getByRole('dialog');
@@ -51,7 +53,7 @@ test.describe('Jornada — Patient', () => {
     const patientId = (await createResp.json()).data.id;
 
     await page.goto(`/patient/${patientId}`);
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('btn-edit-patient-header')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('btn-edit-patient-header').click();
     await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 3_000 });
@@ -75,7 +77,9 @@ test.describe('Jornada — Patient', () => {
     const patientId = (await createResp.json()).data.id;
 
     await page.goto('/patients');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: /Pacientes/i })).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Verifica que o paciente aparece na grid/lista
     await expect(page.getByText('Paciente Deletar Jornada').first()).toBeVisible({

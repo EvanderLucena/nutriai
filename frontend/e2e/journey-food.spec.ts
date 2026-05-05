@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { API_BASE } from './helpers';
+import { API_BASE, createPatientPayload } from './helpers';
 
 test.describe('Jornada — Food Catalog', () => {
   test('E2E-J-05: Criar alimento via UI + verificar enum mapeamento', async ({
@@ -9,7 +9,7 @@ test.describe('Jornada — Food Catalog', () => {
     const { page, accessToken } = authenticatedPage;
 
     await page.goto('/foods');
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('newfood-btn')).toBeVisible({ timeout: 10_000 });
 
     await page.getByTestId('newfood-btn').click();
     const modal = page.getByRole('dialog');
@@ -102,6 +102,51 @@ test.describe('Jornada — Food Catalog', () => {
     await expect(page.getByTestId('newfood-btn')).toBeVisible({ timeout: 10_000 });
     await page.getByTestId('newfood-btn').click();
     await expect(page.locator('#create-food-title')).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test('E2E-J-14: Insights mostra estado vazio sem pacientes e estado com dados após criação', async ({
+    authenticatedPage,
+    request,
+  }) => {
+    const { page, accessToken } = authenticatedPage;
+
+    await page.goto('/insights');
+    await expect(page.getByText(/Sem dados para insights/i)).toBeVisible({ timeout: 10_000 });
+
+    const createResp = await request.post(`${API_BASE}/patients`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: createPatientPayload({ name: 'Paciente Insights Jornada', objective: 'SAUDE_GERAL' }),
+    });
+    expect(createResp.status()).toBe(201);
+
+    await page.goto('/insights');
+    await expect(page.getByText(/Panorama da sua carteira/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Pacientes na carteira/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/^1$/).first()).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('E2E-J-15: Fluxo mobile crítico de navegação (home → pacientes → foods)', async ({
+    authenticatedPage,
+  }) => {
+    const { page } = authenticatedPage;
+
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await page.goto('/home');
+    await expect(page.getByText(/Pacientes ativos/i)).toBeVisible({ timeout: 10_000 });
+
+    await page.goto('/patients');
+    await expect(page.getByRole('heading', { name: /Pacientes/i })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByRole('button', { name: /Novo paciente/i })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await page.goto('/foods');
+    await expect(page.getByRole('heading', { name: /Alimentos/i })).toBeVisible({
       timeout: 10_000,
     });
   });
