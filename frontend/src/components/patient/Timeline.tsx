@@ -5,9 +5,10 @@ import { ExtractionEditor } from './ExtractionEditor';
 
 interface TimelineProps {
   items: TimelineEvent[];
+  patientId?: string;
 }
 
-export function Timeline({ items }: TimelineProps) {
+export function Timeline({ items, patientId }: TimelineProps) {
   const reported = items.filter((ev) => ev.kind === 'log');
   const [editing, setEditing] = useState<number | null>(null);
 
@@ -184,7 +185,14 @@ export function Timeline({ items }: TimelineProps) {
             </div>
           </div>
 
-          {editing === i && <ExtractionEditor ev={ev} onClose={() => setEditing(null)} />}
+          {editing === i && (
+            <ExtractionEditor
+              ev={ev}
+              extractionId={ev.extractionId ?? ''}
+              patientId={patientId ?? ''}
+              onClose={() => setEditing(null)}
+            />
+          )}
         </div>
       ))}
     </div>

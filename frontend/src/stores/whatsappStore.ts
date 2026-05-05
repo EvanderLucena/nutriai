@@ -43,6 +43,7 @@ export function mapExtractionsToTimelineEvents(extractions: Extraction[]): Timel
       items,
       macros,
       hasMessage: true,
+      extractionId: ex.id,
     };
   });
 }

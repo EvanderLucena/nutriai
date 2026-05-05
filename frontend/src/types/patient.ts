@@ -164,6 +164,7 @@ export interface TimelineEvent {
   aiNote?: string;
   hasMessage?: boolean;
   offPlan?: boolean;
+  extractionId?: string;
 }
 
 export interface DetailedPatient extends Patient {

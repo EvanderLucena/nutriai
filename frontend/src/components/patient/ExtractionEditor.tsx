@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TimelineEvent } from '../../types/patient';
 import { IconPlus, IconX, IconCheck } from '../icons';
+import { usePatchExtraction } from '../../stores/whatsappStore';
 
 interface ExtractionRow {
   name: string;
@@ -12,19 +13,22 @@ interface ExtractionRow {
 
 interface ExtractionEditorProps {
   ev: TimelineEvent;
+  extractionId: string;
+  patientId: string;
   onClose: () => void;
 }
 
-export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
+export function ExtractionEditor({ ev, extractionId, patientId, onClose }: ExtractionEditorProps) {
   const [items, setItems] = useState<ExtractionRow[]>(
     ev.items.map((name, i) => ({
       name,
-      kcal: i === 0 ? ev.macros?.kcal ?? 0 : 0,
-      prot: i === 0 ? ev.macros?.prot ?? 0 : 0,
-      carb: i === 0 ? ev.macros?.carb ?? 0 : 0,
-      fat: i === 0 ? ev.macros?.fat ?? 0 : 0,
+      kcal: i === 0 ? (ev.macros?.kcal ?? 0) : 0,
+      prot: i === 0 ? (ev.macros?.prot ?? 0) : 0,
+      carb: i === 0 ? (ev.macros?.carb ?? 0) : 0,
+      fat: i === 0 ? (ev.macros?.fat ?? 0) : 0,
     })),
   );
+  const patchExtraction = usePatchExtraction(patientId);
 
   const totals = items.reduce(
     (a, x) => ({
@@ -42,6 +46,30 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
   const addItem = () => setItems([...items, { name: '', kcal: 0, prot: 0, carb: 0, fat: 0 }]);
 
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
+
+  const handleSave = () => {
+    if (!extractionId || !patientId) return;
+
+    const payload = {
+      items: items.map((item) => ({
+        name: String(item.name),
+        kcal: Number(item.kcal) || 0,
+        prot: Number(item.prot) || 0,
+        carb: Number(item.carb) || 0,
+        fat: Number(item.fat) || 0,
+        grams: null as number | null,
+      })),
+    };
+
+    patchExtraction.mutate(
+      { extractionId, payload },
+      {
+        onSuccess: () => {
+          onClose();
+        },
+      },
+    );
+  };
 
   const inputStyle: React.CSSProperties = {
     padding: '6px 8px',
@@ -64,8 +92,18 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div className="eyebrow">CORREÇÃO DE EXTRAÇÃO · {ev.time} · {ev.meal}</div>
+      <div
+        style={{
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <div className="eyebrow">
+          CORREÇÃO DE EXTRAÇÃO · {ev.time} · {ev.meal}
+        </div>
         <div style={{ fontSize: 11.5, color: 'var(--fg-muted)', flex: 1 }}>
           Ajuste os alimentos e macros se a IA errou na leitura.
         </div>
@@ -99,7 +137,11 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
             alignItems: 'center',
           }}
         >
-          <input value={it.name} onChange={(e) => update(i, 'name', e.target.value)} style={inputStyle} />
+          <input
+            value={it.name}
+            onChange={(e) => update(i, 'name', e.target.value)}
+            style={inputStyle}
+          />
           {(['kcal', 'prot', 'carb', 'fat'] as const).map((k) => (
             <input
               key={k}
@@ -109,7 +151,11 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
               style={inputStyle}
             />
           ))}
-          <button onClick={() => removeItem(i)} style={{ color: 'var(--fg-subtle)', padding: 4 }} title="Remover">
+          <button
+            onClick={() => removeItem(i)}
+            style={{ color: 'var(--fg-subtle)', padding: 4 }}
+            title="Remover"
+          >
             <IconX size={12} />
           </button>
         </div>
@@ -117,7 +163,8 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
 
       <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border)' }}>
         <button onClick={addItem} style={{ fontSize: 12, color: 'var(--fg-muted)' }}>
-          <IconPlus size={11} style={{ verticalAlign: '-2px', marginRight: 4 }} /> Adicionar alimento
+          <IconPlus size={11} style={{ verticalAlign: '-2px', marginRight: 4 }} /> Adicionar
+          alimento
         </button>
       </div>
 
@@ -146,8 +193,12 @@ export function ExtractionEditor({ ev, onClose }: ExtractionEditorProps) {
         <button className="btn btn-ghost" onClick={onClose}>
           Cancelar
         </button>
-        <button className="btn btn-primary" onClick={onClose}>
-          <IconCheck size={12} /> Salvar correção
+        <button
+          className="btn btn-primary"
+          onClick={handleSave}
+          disabled={patchExtraction.isPending}
+        >
+          <IconCheck size={12} /> {patchExtraction.isPending ? 'Salvando...' : 'Salvar correção'}
         </button>
       </div>
     </div>
