@@ -123,11 +123,19 @@ public class ConversationService {
             // First interaction → greeting prompt (D-17)
             systemPrompt = buildGreetingPrompt(patient.getName(), nutritionist.getName());
             responseType = "GREETING";
-        } else if ("audio".equals(message.getMessageType()) || "image".equals(message.getMessageType())) {
-            // Audio/photo → acknowledgment prompt (D-05)
-            String tipo = "audio".equals(message.getMessageType()) ? "áudio" : "foto";
-            systemPrompt = buildAcknowledgmentPrompt(tipo);
+        } else if ("audio".equals(message.getMessageType())) {
+            // Audio → acknowledgment prompt (D-05)
+            systemPrompt = buildAcknowledgmentPrompt("áudio");
             responseType = "ACKNOWLEDGMENT";
+        } else if ("image".equals(message.getMessageType()) && (message.getMessageContent() == null || message.getMessageContent().isBlank())) {
+            // Image without caption → acknowledgment prompt (D-05)
+            systemPrompt = buildAcknowledgmentPrompt("foto");
+            responseType = "ACKNOWLEDGMENT";
+        } else if ("image".equals(message.getMessageType())) {
+            // Image with caption → classify and extract from caption (D-05)
+            // Send acknowledgment for the image + classify the caption text
+            systemPrompt = buildClassifyingPromptWithImageAck(patient, nutritionist, message);
+            responseType = "CONVERSATION";
         } else {
             // Text message → classify and respond
             systemPrompt = buildClassifyingPrompt(patient, nutritionist, message);
@@ -361,6 +369,46 @@ public class ConversationService {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * Build a classifying prompt for image messages with caption (D-05).
+     * Acknowledges the image while classifying the caption text.
+     */
+    String buildClassifyingPromptWithImageAck(Patient patient, Nutritionist nutritionist, WhatsAppMessage message) {
+        String patientContext = buildPatientContext(patient);
+        String planContext = buildPlanContext(patient, nutritionist);
+
+        return """
+            Você é um assistente de nutrição humana, empático e não julgador. Seu papel é auxiliar o paciente de forma amigável, praticando redução de danos.
+
+            REGRAS IMPORTANTES:
+            - NUNCA reprove o paciente por comer algo fora do plano
+            - Foque em porções, preparações mais leves, e alternativas saudáveis
+            - Seja acolhedor e encorajador
+            - Responda em português brasileiro
+
+            O paciente enviou uma FOTO com legenda. Primeiro, reconheça que recebeu a foto:
+            "Recebi sua foto! Vou registrar o que você me contou."
+
+            CONTEXTO DO PACIENTE:
+            %s
+
+            CONTEXTO COMPLETO DO PLANO ALIMENTAR:
+            %s
+
+            Agora, extraia os alimentos mencionados na legenda com macros estimados. Responda em formato JSON no campo de extração. Também envie uma resposta empátiva ao paciente.
+
+            Formato de resposta JSON (DENTRO de ```json```):
+            ```json
+            {
+              "mealLabel": "almoço",
+              "items": [
+                {"name": "arroz integral", "grams": 150, "kcal": 170, "prot": 3.2, "carb": 35, "fat": 1.5}
+              ]
+            }
+            ```
+            """.formatted(patientContext, planContext);
     }
 
     private void markProcessed(WhatsAppMessage message) {
