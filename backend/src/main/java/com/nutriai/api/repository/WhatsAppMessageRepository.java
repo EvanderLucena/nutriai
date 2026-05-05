@@ -25,4 +25,14 @@ public interface WhatsAppMessageRepository extends JpaRepository<WhatsAppMessage
      * Find by Evolution API message ID for dedup (D-05).
      */
     Optional<WhatsAppMessage> findByMessageId(String messageId);
+
+    /**
+     * Check if a patient has any previously processed messages (for first-message detection, D-17).
+     */
+    boolean existsByPatientIdAndProcessedTrue(UUID patientId);
+
+    /**
+     * Count messages for a patient (for first-message detection, D-17).
+     */
+    long countByPatientId(UUID patientId);
 }

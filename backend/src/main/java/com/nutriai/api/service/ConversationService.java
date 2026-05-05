@@ -1,0 +1,371 @@
+package com.nutriai.api.service;
+
+import com.nutriai.api.dto.llm.ExtractionResult;
+import com.nutriai.api.dto.llm.LlmIntent;
+import com.nutriai.api.dto.llm.LlmRequest;
+import com.nutriai.api.dto.llm.LlmResponse;
+import com.nutriai.api.model.*;
+import com.nutriai.api.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Orchestrates the entire WhatsApp message processing pipeline per D-01.
+ * Single LLM call per message handles both classification and response.
+ */
+@Service
+public class ConversationService {
+
+    private static final Logger log = LoggerFactory.getLogger(ConversationService.class);
+
+    private final LlmService llmService;
+    private final ExtractionService extractionService;
+    private final EvolutionApiService evolutionApiService;
+    private final WhatsAppMessageRepository whatsAppMessageRepository;
+    private final WhatsAppResponseRepository whatsAppResponseRepository;
+    private final PatientRepository patientRepository;
+    private final EpisodeRepository episodeRepository;
+    private final MealPlanRepository mealPlanRepository;
+    private final MealSlotRepository mealSlotRepository;
+    private final MealOptionRepository mealOptionRepository;
+    private final MealFoodRepository mealFoodRepository;
+    private final PlanExtraRepository planExtraRepository;
+    private final NutritionistRepository nutritionistRepository;
+
+    public ConversationService(
+            LlmService llmService,
+            ExtractionService extractionService,
+            EvolutionApiService evolutionApiService,
+            WhatsAppMessageRepository whatsAppMessageRepository,
+            WhatsAppResponseRepository whatsAppResponseRepository,
+            PatientRepository patientRepository,
+            EpisodeRepository episodeRepository,
+            MealPlanRepository mealPlanRepository,
+            MealSlotRepository mealSlotRepository,
+            MealOptionRepository mealOptionRepository,
+            MealFoodRepository mealFoodRepository,
+            PlanExtraRepository planExtraRepository,
+            NutritionistRepository nutritionistRepository) {
+        this.llmService = llmService;
+        this.extractionService = extractionService;
+        this.evolutionApiService = evolutionApiService;
+        this.whatsAppMessageRepository = whatsAppMessageRepository;
+        this.whatsAppResponseRepository = whatsAppResponseRepository;
+        this.patientRepository = patientRepository;
+        this.episodeRepository = episodeRepository;
+        this.mealPlanRepository = mealPlanRepository;
+        this.mealSlotRepository = mealSlotRepository;
+        this.mealOptionRepository = mealOptionRepository;
+        this.mealFoodRepository = mealFoodRepository;
+        this.planExtraRepository = planExtraRepository;
+        this.nutritionistRepository = nutritionistRepository;
+    }
+
+    /**
+     * Process a WhatsApp message end-to-end:
+     * 1. Load message
+     * 2. Classify intent via LLM
+     * 3. Extract meal data (if applicable)
+     * 4. Save response
+     * 5. Send via Evolution API
+     * 6. Mark processed
+     */
+    @Transactional
+    public void processMessage(UUID messageId) {
+        // 1. Load WhatsAppMessage by ID
+        Optional<WhatsAppMessage> messageOpt = whatsAppMessageRepository.findById(messageId);
+        if (messageOpt.isEmpty()) {
+            log.warn("Message {} not found, skipping", messageId);
+            return;
+        }
+
+        WhatsAppMessage message = messageOpt.get();
+
+        // 2. If patientId is null → unknown sender → no response (D-16)
+        if (message.getPatientId() == null) {
+            log.info("Unknown sender for message {}, skipping (D-16)", messageId);
+            markProcessed(message);
+            return;
+        }
+
+        // 3. Load Patient and Nutritionist
+        Optional<Patient> patientOpt = patientRepository.findById(message.getPatientId());
+        if (patientOpt.isEmpty()) {
+            log.warn("Patient {} not found for message {}, skipping", message.getPatientId(), messageId);
+            markProcessed(message);
+            return;
+        }
+        Patient patient = patientOpt.get();
+
+        Optional<Nutritionist> nutritionistOpt = nutritionistRepository.findById(message.getNutritionistId());
+        if (nutritionistOpt.isEmpty()) {
+            log.warn("Nutritionist {} not found for message {}, skipping", message.getNutritionistId(), messageId);
+            markProcessed(message);
+            return;
+        }
+        Nutritionist nutritionist = nutritionistOpt.get();
+
+        // 4. Check if this is the first message from this patient
+        boolean isFirstMessage = isFirstMessageFromPatient(message.getPatientId());
+
+        // 5. Build the appropriate system prompt and call LLM
+        String systemPrompt;
+        String responseType;
+
+        if (isFirstMessage) {
+            // First interaction → greeting prompt (D-17)
+            systemPrompt = buildGreetingPrompt(patient.getName(), nutritionist.getName());
+            responseType = "GREETING";
+        } else if ("audio".equals(message.getMessageType()) || "image".equals(message.getMessageType())) {
+            // Audio/photo → acknowledgment prompt (D-05)
+            String tipo = "audio".equals(message.getMessageType()) ? "áudio" : "foto";
+            systemPrompt = buildAcknowledgmentPrompt(tipo);
+            responseType = "ACKNOWLEDGMENT";
+        } else {
+            // Text message → classify and respond
+            systemPrompt = buildClassifyingPrompt(patient, nutritionist, message);
+            responseType = "CONVERSATION";
+        }
+
+        String userMessage = message.getMessageContent() != null ? message.getMessageContent() : "";
+        LlmRequest llmRequest = new LlmRequest(systemPrompt, userMessage);
+        LlmResponse llmResponse = llmService.chat(llmRequest);
+
+        if (!llmResponse.success()) {
+            log.error("LLM call failed for message {}: {}", messageId, llmResponse.errorMessage());
+            // Don't mark as processed — message stays for retry
+            return;
+        }
+
+        // 6. If intent is MEAL_REPORT and extraction has items → save extraction
+        if (llmResponse.intent() == LlmIntent.MEAL_REPORT && llmResponse.extraction() != null) {
+            ExtractionResult extraction = llmResponse.extraction();
+            Optional<Episode> activeEpisode = episodeRepository
+                    .findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(
+                            patient.getId(), nutritionist.getId());
+
+            if (activeEpisode.isPresent()) {
+                extractionService.extractAndSave(
+                        messageId, patient.getId(), nutritionist.getId(),
+                        activeEpisode.get().getId(), extraction);
+            } else {
+                log.warn("No active episode for patient {}, extraction skipped but response sent",
+                        patient.getId());
+            }
+            responseType = "MEAL_EXTRACTION";
+        }
+
+        // 7. Save WhatsAppResponse
+        String responseContent = llmResponse.content();
+        WhatsAppResponse waResponse = WhatsAppResponse.builder()
+                .messageId(messageId)
+                .nutritionistId(nutritionist.getId())
+                .patientId(patient.getId())
+                .responseType(responseType)
+                .responseContent(responseContent)
+                .build();
+        whatsAppResponseRepository.save(waResponse);
+
+        // 8. Send response via EvolutionApiService
+        boolean sent = evolutionApiService.sendMessage(
+                message.getInstanceId(),
+                message.getSenderPhoneNormalized(),
+                responseContent
+        );
+
+        if (sent) {
+            waResponse.setSentAt(LocalDateTime.now());
+            whatsAppResponseRepository.save(waResponse);
+        }
+
+        // 9. Mark WhatsAppMessage as processed
+        markProcessed(message);
+        log.info("Message {} processed: intent={}, responseType={}, sent={}",
+                messageId, llmResponse.intent(), responseType, sent);
+    }
+
+    /**
+     * Check if this is the first message from this patient.
+     * First message = no previously processed WhatsAppMessage with this patientId.
+     */
+    private boolean isFirstMessageFromPatient(UUID patientId) {
+        // If no processed messages exist for this patient, this is the first interaction
+        return !whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId);
+    }
+
+    /**
+     * Build the greeting prompt for first-time interactions (D-17).
+     */
+    String buildGreetingPrompt(String patientName, String nutritionistName) {
+        return """
+            Você é um assistente de nutrição humana. O paciente %s está enviando a primeira mensagem.
+            Nutricionista: %s
+
+            Gere uma saudação amigável e contextual como:
+            "Oi %s! Sou o assistente virtual da nutri %s. Tô aqui pra te ajudar com as refeições, tirar dúvidas sobre o plano, e acompanhar como você tá se sentindo."
+
+            Seja natural e acolhedor. Responda apenas com a mensagem de saudação.
+            """.formatted(patientName, nutritionistName, patientName, nutritionistName);
+    }
+
+    /**
+     * Build acknowledgment prompt for audio/photo messages (D-05).
+     */
+    String buildAcknowledgmentPrompt(String tipo) {
+        return """
+            Você é um assistente de nutrição humana, empático e não julgador.
+
+            Responda com um acknowledgment amigável. Exemplo:
+            "Recebi sua %s! Vou registrar o que você me contou."
+
+            Seja breve e acolhedor. Responda apenas com a mensagem de acknowledgment.
+            """.formatted(tipo);
+    }
+
+    /**
+     * Build a classifying prompt that handles both meal extraction and plan questions (D-01, D-03).
+     */
+    String buildClassifyingPrompt(Patient patient, Nutritionist nutritionist, WhatsAppMessage message) {
+        String patientContext = buildPatientContext(patient);
+        String planContext = buildPlanContext(patient, nutritionist);
+
+        return """
+            Você é um assistente de nutrição humana, empático e não julgador. Seu papel é auxiliar o paciente de forma amigável, praticando redução de danos.
+
+            REGRAS IMPORTANTES:
+            - NUNCA reprove o paciente por comer algo fora do plano
+            - Foque em porções, preparações mais leves, e alternativas saudáveis
+            - Seja acolhedor e encorajador
+            - Responda em português brasileiro
+
+            CONTEXTO DO PACIENTE:
+            %s
+
+            CONTEXTO COMPLETO DO PLANO ALIMENTAR:
+            %s
+
+            Se o paciente está relatando uma refeição (o que comeu), extraia os alimentos mencionados com macros estimados.
+            Responda em formato JSON no campo de extração. Também envie uma resposta empátiva ao paciente.
+
+            Formato de resposta JSON (DENTRO de ```json```):
+            ```json
+            {
+              "mealLabel": "almoço",
+              "items": [
+                {"name": "arroz integral", "grams": 150, "kcal": 170, "prot": 3.2, "carb": 35, "fat": 1.5},
+                {"name": "frango grelhado", "grams": 120, "kcal": 198, "prot": 25, "carb": 0, "fat": 10.5}
+              ]
+            }
+            ```
+
+            Se o paciente está perguntando sobre o plano alimentar, responda à dúvida de forma clara e amigável usando o contexto do plano.
+
+            Se for uma saudação ou mensagem genérica, responda de forma amigável e breve.
+            """.formatted(patientContext, planContext);
+    }
+
+    /**
+     * Build patient context for meal extraction prompts (D-03 - minimal context).
+     */
+    private String buildPatientContext(Patient patient) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Objetivo: ").append(patient.getObjective().getPortugueseLabel()).append("\n");
+
+        // Add extras if available
+        try {
+            Optional<Episode> activeEpisode = episodeRepository
+                    .findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(
+                            patient.getId(), patient.getNutritionistId());
+            if (activeEpisode.isPresent()) {
+                Optional<MealPlan> planOpt = mealPlanRepository
+                        .findByEpisodeIdAndNutritionistId(activeEpisode.get().getId(), patient.getNutritionistId());
+                if (planOpt.isPresent()) {
+                    List<PlanExtra> extras = planExtraRepository.findByPlanIdOrderBySortOrder(planOpt.get().getId());
+                    if (!extras.isEmpty()) {
+                        sb.append("Extras permitidos: ");
+                        extras.forEach(e -> sb.append(e.getName()).append(", "));
+                        sb.setLength(sb.length() - 2); // remove trailing comma
+                        sb.append("\n");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not load extras for patient {}: {}", patient.getId(), e.getMessage());
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Build full plan context for plan question prompts (D-03 - full context).
+     */
+    private String buildPlanContext(Patient patient, Nutritionist nutritionist) {
+        StringBuilder sb = new StringBuilder();
+
+        try {
+            Optional<Episode> activeEpisode = episodeRepository
+                    .findFirstByPatientIdAndNutritionistIdAndEndDateIsNullOrderByStartDateDesc(
+                            patient.getId(), nutritionist.getId());
+            if (activeEpisode.isEmpty()) {
+                return "Nenhum plano alimentar ativo encontrado.";
+            }
+
+            Optional<MealPlan> planOpt = mealPlanRepository
+                    .findByEpisodeIdAndNutritionistId(activeEpisode.get().getId(), nutritionist.getId());
+            if (planOpt.isEmpty()) {
+                return "Nenhum plano alimentar encontrado.";
+            }
+
+            MealPlan plan = planOpt.get();
+            sb.append("Plano: ").append(plan.getTitle() != null ? plan.getTitle() : "Plano alimentar").append("\n");
+            sb.append(String.format("Metas: %s kcal, %s g prot, %s g carb, %s g fat%n",
+                    plan.getKcalTarget(), plan.getProtTarget(), plan.getCarbTarget(), plan.getFatTarget()));
+
+            List<MealSlot> slots = mealSlotRepository.findByPlanIdAndNutritionistIdOrderBySortOrder(
+                    plan.getId(), nutritionist.getId());
+            for (MealSlot slot : slots) {
+                sb.append(String.format("%n- %s (%s):%n", slot.getLabel(), slot.getTime()));
+                List<MealOption> options = mealOptionRepository.findByMealSlotIdOrderBySortOrder(slot.getId());
+                for (MealOption option : options) {
+                    sb.append(String.format("  %s:%n", option.getName()));
+                    List<MealFood> foods = mealFoodRepository.findByOptionIdOrderBySortOrder(option.getId());
+                    for (MealFood food : foods) {
+                        sb.append(String.format("    • %s (%s%s)%n",
+                                food.getFoodName(),
+                                food.getReferenceAmount(),
+                                food.getUnit() != null ? food.getUnit() : "g"));
+                    }
+                    if (foods.isEmpty()) {
+                        sb.append("    (vazio)\n");
+                    }
+                }
+            }
+
+            List<PlanExtra> extras = planExtraRepository.findByPlanIdOrderBySortOrder(plan.getId());
+            if (!extras.isEmpty()) {
+                sb.append("\nExtras permitidos:\n");
+                extras.forEach(e -> sb.append(String.format("  • %s (%s)%n", e.getName(),
+                        e.getQuantity() != null ? e.getQuantity() : "")));
+            }
+
+        } catch (Exception e) {
+            log.warn("Could not build plan context for patient {}: {}", patient.getId(), e.getMessage());
+            sb.append("Erro ao carregar plano alimentar.");
+        }
+
+        return sb.toString();
+    }
+
+    private void markProcessed(WhatsAppMessage message) {
+        message.setProcessed(true);
+        message.setProcessedAt(LocalDateTime.now());
+        whatsAppMessageRepository.save(message);
+    }
+}

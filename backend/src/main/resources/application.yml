@@ -32,3 +32,16 @@ nutriai:
       http-only: true
       secure: false     # true in production
       same-site: Lax    # Lax for dev (cross-port), Strict for production
+
+  llm:
+    base-url: ${NUTRIAI_LLM_BASE_URL:https://api.ollama.com/v1}
+    model: ${NUTRIAI_LLM_MODEL:glm4}
+    api-key: ${NUTRIAI_LLM_API_KEY:}
+    timeout-seconds: ${NUTRIAI_LLM_TIMEOUT:30}
+
+  evolution:
+    api-url: ${EVOLUTION_API_URL:http://evolution-api:8080}
+    api-key: ${EVOLUTION_API_KEY:changeme}
+
+  webhook:
+    secret: ${NUTRIAI_WEBHOOK_SECRET:}
