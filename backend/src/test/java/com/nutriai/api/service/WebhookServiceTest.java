@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -48,7 +49,7 @@ class WebhookServiceTest {
     void processIncoming_validTextMessage_savesAndEnqueues() {
         WhatsAppWebhookDTO dto = createTextWebhook("55119999887766", "msg-123", "Oi, comi arroz e frango");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findByWhatsapp("119999887766")).thenReturn(Optional.of(patient));
+        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-123")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -66,7 +67,7 @@ class WebhookServiceTest {
     void processIncoming_unknownPhone_savesWithNullPatientAndMarkedProcessed() {
         WhatsAppWebhookDTO dto = createTextWebhook("55118888776655", "msg-456", "Oi");
         when(phoneNormalizationService.normalize("55118888776655")).thenReturn(Optional.of("118888776655"));
-        when(patientRepository.findByWhatsapp("118888776655")).thenReturn(Optional.empty());
+        when(patientRepository.findAllByWhatsapp("118888776655")).thenReturn(List.of());
         when(whatsAppMessageRepository.findByMessageId("msg-456")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -97,7 +98,7 @@ class WebhookServiceTest {
     void processIncoming_audioMessage_savesWithNullContentAndMediaUrl() {
         WhatsAppWebhookDTO dto = createAudioWebhook("55119999887766", "msg-audio", "https://media.url/audio.ogg");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findByWhatsapp("119999887766")).thenReturn(Optional.of(patient));
+        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-audio")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -115,7 +116,7 @@ class WebhookServiceTest {
     void processIncoming_imageMessageWithCaption_savesContentAndMediaUrl() {
         WhatsAppWebhookDTO dto = createImageWebhook("55119999887766", "msg-img", "https://media.url/img.jpg", "Almoço: arroz e feijão");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findByWhatsapp("119999887766")).thenReturn(Optional.of(patient));
+        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-img")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -127,6 +128,30 @@ class WebhookServiceTest {
 
         assertTrue(result.isPresent());
         verify(messageQueueService).enqueue(any(UUID.class));
+    }
+
+    @Test
+    void processIncoming_ambiguousPhoneAcrossNutritionists_marksProcessedWithoutEnqueue() {
+        WhatsAppWebhookDTO dto = createTextWebhook("55119999887766", "msg-amb", "Oi");
+        Patient otherPatient = new Patient();
+        otherPatient.setId(UUID.randomUUID());
+        otherPatient.setNutritionistId(UUID.randomUUID());
+
+        when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
+        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient, otherPatient));
+        when(whatsAppMessageRepository.findByMessageId("msg-amb")).thenReturn(Optional.empty());
+        when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
+            WhatsAppMessage m = i.getArgument(0);
+            if (m.getId() == null) {
+                m.setId(UUID.randomUUID());
+            }
+            return m;
+        });
+
+        Optional<?> result = webhookService.processIncoming(dto);
+
+        assertTrue(result.isPresent());
+        verify(messageQueueService, never()).enqueue(any());
     }
 
     // Helpers

@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -74,7 +75,15 @@ public class WebhookService {
         }
         String normalizedPhone = normalizedOpt.get();
 
-        Optional<Patient> patientOpt = patientRepository.findByWhatsapp(normalizedPhone);
+        List<Patient> matchedPatients = patientRepository.findAllByWhatsapp(normalizedPhone);
+        Optional<Patient> patientOpt;
+        if (matchedPatients.size() > 1) {
+            log.warn("Ambiguous patient resolution for messageId={} and phone ending {}", evolutionMessageId,
+                    maskedSuffix(normalizedPhone));
+            patientOpt = Optional.empty();
+        } else {
+            patientOpt = matchedPatients.stream().findFirst();
+        }
 
         // Determine message type and content
         String messageType = determineMessageType(payload);
@@ -153,5 +162,12 @@ public class WebhookService {
             return payload.getData().getMessage().getAudioMessage().getUrl();
         }
         return null;
+    }
+
+    private String maskedSuffix(String normalizedPhone) {
+        if (normalizedPhone == null || normalizedPhone.length() < 4) {
+            return "***";
+        }
+        return "***" + normalizedPhone.substring(normalizedPhone.length() - 4);
     }
 }

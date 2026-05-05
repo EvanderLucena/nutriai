@@ -126,12 +126,16 @@ public class OllamaCloudLlmService implements LlmService {
     @Override
     public boolean isAvailable() {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(baseUrl + "/models"))
-                    .header("Authorization", "Bearer " + apiKey)
                     .timeout(Duration.ofSeconds(5))
-                    .GET()
-                    .build();
+                    .GET();
+
+            if (apiKey != null && !apiKey.isBlank()) {
+                requestBuilder.header("Authorization", "Bearer " + apiKey);
+            }
+
+            HttpRequest request = requestBuilder.build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             return response.statusCode() == 200;

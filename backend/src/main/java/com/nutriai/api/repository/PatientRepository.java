@@ -64,4 +64,10 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
      * Phone is stored in normalized DDD+number format.
      */
     Optional<Patient> findByWhatsapp(String whatsapp);
+
+    /**
+     * Resolve all patients for a WhatsApp phone number so callers can
+     * reject ambiguous cross-tenant matches instead of picking one arbitrarily.
+     */
+    List<Patient> findAllByWhatsapp(String whatsapp);
 }

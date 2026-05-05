@@ -20,6 +20,12 @@ class PhoneNormalizationServiceTest {
     }
 
     @Test
+    void normalize_overlongInternationalFormat_returnsEmpty() {
+        Optional<String> result = service.normalize("+55119999887766");
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
     void normalize_withSpacesStrips_cleanNumber() {
         Optional<String> result = service.normalize("11 9 9988-7766");
         assertEquals(Optional.of("11999887766"), result);
