@@ -349,9 +349,8 @@ function TodayTab({
     isError: extractionsError,
   } = useExtractions(patientId);
 
-  const timelineEvents = extractions
-    ? mapExtractionsToTimelineEvents(extractions)
-    : patient.timeline;
+  const extractionEvents = extractions ? mapExtractionsToTimelineEvents(extractions) : [];
+  const timelineEvents = [...extractionEvents, ...patient.timeline];
 
   const kcalTarget = plan?.kcalTarget ?? patient.macrosToday.kcal.target;
   const protTarget = plan?.protTarget ?? patient.macrosToday.prot.target;
@@ -594,16 +593,14 @@ function TodayTab({
               </div>
             )}
             {extractionsError && !extractionsLoading && (
-              <div style={{ padding: '20px 0', textAlign: 'center' }}>
-                <p style={{ color: 'var(--coral)', fontSize: 14 }}>Erro ao carregar extrações.</p>
-                <p style={{ color: 'var(--fg-muted)', fontSize: 12 }}>
-                  Tente novamente mais tarde.
+              <div style={{ padding: '12px 0', textAlign: 'center' }}>
+                <p style={{ color: 'var(--coral)', fontSize: 13 }}>
+                  Erro ao carregar extrações do WhatsApp.
                 </p>
+                <p style={{ color: 'var(--fg-muted)', fontSize: 11 }}>Mostrando dados locais.</p>
               </div>
             )}
-            {!extractionsLoading && !extractionsError && (
-              <Timeline items={timelineEvents} patientId={patientId} />
-            )}
+            {!extractionsLoading && <Timeline items={timelineEvents} patientId={patientId} />}
           </div>
         </div>
       </div>
