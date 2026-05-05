@@ -16,16 +16,30 @@ export function MacroRings({ macros, size = 64, className }: MacroRingsProps) {
   ];
 
   return (
-    <div className={className} style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+    <div
+      className={className}
+      style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}
+    >
       {items.map((it) => {
-        const pct = it.data.actual / it.data.target;
+        const pct = it.data.target > 0 ? it.data.actual / it.data.target : 0;
         return (
-          <div key={it.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <Ring size={size} stroke={5} value={pct} color={it.color} label={`${Math.round(pct * 100)}%`} />
+          <div
+            key={it.key}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
+          >
+            <Ring
+              size={size}
+              stroke={5}
+              value={pct}
+              color={it.color}
+              label={`${Math.round(pct * 100)}%`}
+            />
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'var(--fg-muted)' }}>{it.label}</div>
               <div className="mono tnum" style={{ fontSize: 11.5 }}>
-                {it.data.actual}{it.unit || ''} / {it.data.target}{it.unit || ''}
+                {it.data.actual}
+                {it.unit || ''} / {it.data.target}
+                {it.unit || ''}
               </div>
             </div>
           </div>

@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider, createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router';
+import {
+  RouterProvider,
+  createBrowserRouter,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from 'react-router';
 import { useEffect } from 'react';
 import { useAuthStore } from './stores/authStore';
 import { usePublicTheme } from './hooks/usePublicTheme';
@@ -61,6 +68,17 @@ function InitializeAuth() {
   return null;
 }
 
+function LogoutView() {
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    void logout().finally(() => navigate('/', { replace: true }));
+  }, [logout, navigate]);
+
+  return null;
+}
+
 const router = createBrowserRouter([
   {
     element: (
@@ -70,12 +88,45 @@ const router = createBrowserRouter([
       </>
     ),
     children: [
-      { path: '/', element: <RedirectIfAuthenticated><LandingView /></RedirectIfAuthenticated> },
-      { path: '/login', element: <RedirectIfAuthenticated><LoginView /></RedirectIfAuthenticated> },
-      { path: '/signup', element: <RedirectIfAuthenticated><SignupView /></RedirectIfAuthenticated> },
-      { path: '/onboarding', element: <AuthGuard><OnboardingView /></AuthGuard> },
       {
-        element: <AuthGuard><AppShell /></AuthGuard>,
+        path: '/',
+        element: (
+          <RedirectIfAuthenticated>
+            <LandingView />
+          </RedirectIfAuthenticated>
+        ),
+      },
+      {
+        path: '/login',
+        element: (
+          <RedirectIfAuthenticated>
+            <LoginView />
+          </RedirectIfAuthenticated>
+        ),
+      },
+      {
+        path: '/signup',
+        element: (
+          <RedirectIfAuthenticated>
+            <SignupView />
+          </RedirectIfAuthenticated>
+        ),
+      },
+      { path: '/logout', element: <LogoutView /> },
+      {
+        path: '/onboarding',
+        element: (
+          <AuthGuard>
+            <OnboardingView />
+          </AuthGuard>
+        ),
+      },
+      {
+        element: (
+          <AuthGuard>
+            <AppShell />
+          </AuthGuard>
+        ),
         children: [
           { path: '/home', element: <HomeView /> },
           { path: '/patients', element: <PatientsView /> },
