@@ -269,16 +269,24 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 
 #### Fase B — Corrigir sistema guiado pelas falhas dos E2E
 
-- [ ] Rodar suíte E2E completa e consolidar bugs reais por severidade.
-- [ ] Corrigir primeiro P0/P1 (quebra de fluxo, perda de dados, inconsistência crítica).
-- [ ] Reexecutar suíte a cada pacote de correção até estabilizar sem regressão.
-- [ ] Registrar no `TASKS.md` cada bug fechado com evidência do teste que passou.
+- [x] Rodar suíte E2E completa e consolidar bugs reais por severidade.
+- [x] Corrigir primeiro P0/P1 (quebra de fluxo, perda de dados, inconsistência crítica).
+- [x] Reexecutar suíte a cada pacote de correção até estabilizar sem regressão.
+- [x] Registrar no `TASKS.md` cada bug fechado com evidência do teste que passou.
+
+> Atualização (05/05/2026 — Fase B rodada 1): suíte E2E completa executada com sucesso (`npm run test:e2e`) com **110/110 passando** em ~31.6s. Não houve bugs P0/P1 abertos nesta rodada; sistema considerado estável para avançar para validação exploratória da Fase C (MCP browser).
 
 #### Fase C — Bateria QA manual no MCP (browser)
 
-- [ ] Executar fluxos críticos no MCP Playwright (desktop e mobile) como validação exploratória final.
-- [ ] Confirmar comportamento visual/UX que testes automatizados não capturam bem.
-- [ ] Registrar achados finais (bugs, melhorias e pendências out-of-scope).
+- [x] Executar fluxos críticos no MCP Playwright (desktop e mobile) como validação exploratória final.
+- [x] Confirmar comportamento visual/UX que testes automatizados não capturam bem.
+- [x] Registrar achados finais (bugs, melhorias e pendências out-of-scope).
+
+> Atualização (05/05/2026 — Fase C rodada 1): validação manual executada via MCP browser cobrindo onboarding/auth (tentativa real), PatientView (abas + biometria + revisão de status), Foods (modal de criação) e navegação mobile (`390x844`) entre home/pacientes/alimentos.
+>
+> **Achado aberto (MCP/manual):** signup retorna `403` quando app é aberto em `http://127.0.0.1:4173` com resposta `Invalid CORS request` no `POST /api/v1/auth/signup`. Em `http://localhost:5173` o fluxo segue normal. Classificação: **P1 ambiente/config** (origens localhost vs 127.0.0.1).
+>
+> **Resultado geral Fase C:** fluxos críticos em `localhost` funcionais e consistentes com os E2E; pendência principal é alinhamento de CORS/origem para evitar falso negativo em ambiente manual.
 
 #### Matriz: Fluxo crítico pendente → fase
 
@@ -294,9 +302,9 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 
 #### Critério de pronto (DoD)
 
-- [ ] Cobertura E2E criada para todos os fluxos críticos acima (UI real).
-- [ ] Correções de produto aplicadas para falhas relevantes encontradas pela suíte.
-- [ ] Validação manual MCP concluída com registro dos achados finais.
+- [x] Cobertura E2E criada para todos os fluxos críticos acima (UI real).
+- [x] Correções de produto aplicadas para falhas relevantes encontradas pela suíte.
+- [x] Validação manual MCP concluída com registro dos achados finais.
 
 ---
 
