@@ -163,7 +163,7 @@ class ConversationServiceTest {
         );
 
         when(whatsAppMessageRepository.findById(messageId)).thenReturn(Optional.of(textMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
         when(llmService.chat(any(LlmRequest.class))).thenReturn(llmResponse);
@@ -208,7 +208,7 @@ class ConversationServiceTest {
         );
 
         when(whatsAppMessageRepository.findById(textMessage.getId())).thenReturn(Optional.of(textMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
         when(llmService.chat(any(LlmRequest.class))).thenReturn(llmResponse);
@@ -235,7 +235,7 @@ class ConversationServiceTest {
     void processMessage_firstInteraction_sendsGreeting() {
         // First message from patient: existsByPatientIdAndProcessedTrue returns false
         when(whatsAppMessageRepository.findById(messageId)).thenReturn(Optional.of(textMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(false);
 
@@ -269,7 +269,7 @@ class ConversationServiceTest {
     @Test
     void processMessage_audioMessage_sendsAcknowledgment() {
         when(whatsAppMessageRepository.findById(audioMessage.getId())).thenReturn(Optional.of(audioMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
 
@@ -302,7 +302,7 @@ class ConversationServiceTest {
     @Test
     void processMessage_imageMessageWithCaption_extractsFromCaption() {
         when(whatsAppMessageRepository.findById(imageMessage.getId())).thenReturn(Optional.of(imageMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
 
@@ -373,7 +373,7 @@ class ConversationServiceTest {
     @Test
     void processMessage_llmFailure_sendsNoResponseAndLogs() {
         when(whatsAppMessageRepository.findById(messageId)).thenReturn(Optional.of(textMessage));
-        when(patientRepository.findById(patientId)).thenReturn(Optional.of(patient));
+        when(patientRepository.findByIdAndNutritionistId(patientId, nutritionistId)).thenReturn(Optional.of(patient));
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
 

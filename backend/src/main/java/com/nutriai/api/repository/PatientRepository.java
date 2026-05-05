@@ -60,14 +60,13 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             Pageable pageable
     );
     /**
-     * Resolve WhatsApp phone number to patient (D-14, D-16).
-     * Phone is stored in normalized DDD+number format.
+     * Resolve a patient WhatsApp number only within a known tenant scope.
      */
-    Optional<Patient> findByWhatsapp(String whatsapp);
+    Optional<Patient> findByWhatsappAndNutritionistId(String whatsapp, UUID nutritionistId);
 
     /**
-     * Resolve all patients for a WhatsApp phone number so callers can
-     * reject ambiguous cross-tenant matches instead of picking one arbitrarily.
+     * Discover which tenant(s) own a WhatsApp number without materializing patient rows.
      */
-    List<Patient> findAllByWhatsapp(String whatsapp);
+    @Query("SELECT DISTINCT p.nutritionistId FROM Patient p WHERE p.whatsapp = :whatsapp")
+    List<UUID> findDistinctNutritionistIdsByWhatsapp(@Param("whatsapp") String whatsapp);
 }

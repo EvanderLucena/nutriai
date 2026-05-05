@@ -75,14 +75,17 @@ public class WebhookService {
         }
         String normalizedPhone = normalizedOpt.get();
 
-        List<Patient> matchedPatients = patientRepository.findAllByWhatsapp(normalizedPhone);
+        List<UUID> matchedNutritionistIds = patientRepository.findDistinctNutritionistIdsByWhatsapp(normalizedPhone);
         Optional<Patient> patientOpt;
-        if (matchedPatients.size() > 1) {
+        if (matchedNutritionistIds.size() > 1) {
             log.warn("Ambiguous patient resolution for messageId={} and phone ending {}", evolutionMessageId,
                     maskedSuffix(normalizedPhone));
             patientOpt = Optional.empty();
+        } else if (matchedNutritionistIds.size() == 1) {
+            patientOpt = patientRepository.findByWhatsappAndNutritionistId(
+                    normalizedPhone, matchedNutritionistIds.get(0));
         } else {
-            patientOpt = matchedPatients.stream().findFirst();
+            patientOpt = Optional.empty();
         }
 
         // Determine message type and content

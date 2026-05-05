@@ -18,6 +18,7 @@ public class MessageQueueService {
 
     private static final Logger log = LoggerFactory.getLogger(MessageQueueService.class);
     private static final String QUEUE_KEY = "whatsapp:process";
+    private static final String DEAD_LETTER_QUEUE_KEY = "whatsapp:process:dead-letter";
     private static final int QUEUE_DEPTH_WARN_THRESHOLD = 100;
 
     private final StringRedisTemplate redisTemplate;
@@ -49,6 +50,7 @@ public class MessageQueueService {
             return Optional.of(UUID.fromString(value));
         } catch (IllegalArgumentException e) {
             log.error("Invalid UUID in queue: {}", value);
+            redisTemplate.opsForList().leftPush(DEAD_LETTER_QUEUE_KEY, value);
             return Optional.empty();
         }
     }

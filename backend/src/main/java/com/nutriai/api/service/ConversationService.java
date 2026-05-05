@@ -96,7 +96,8 @@ public class ConversationService {
         }
 
         // 3. Load Patient and Nutritionist
-        Optional<Patient> patientOpt = patientRepository.findById(message.getPatientId());
+        Optional<Patient> patientOpt = patientRepository.findByIdAndNutritionistId(
+                message.getPatientId(), message.getNutritionistId());
         if (patientOpt.isEmpty()) {
             log.warn("Patient {} not found for message {}, skipping", message.getPatientId(), messageId);
             markProcessed(message);

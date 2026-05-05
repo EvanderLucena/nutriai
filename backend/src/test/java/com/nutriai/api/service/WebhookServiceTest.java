@@ -49,7 +49,8 @@ class WebhookServiceTest {
     void processIncoming_validTextMessage_savesAndEnqueues() {
         WhatsAppWebhookDTO dto = createTextWebhook("55119999887766", "msg-123", "Oi, comi arroz e frango");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
+        when(patientRepository.findDistinctNutritionistIdsByWhatsapp("119999887766")).thenReturn(List.of(nutritionistId));
+        when(patientRepository.findByWhatsappAndNutritionistId("119999887766", nutritionistId)).thenReturn(Optional.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-123")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -67,7 +68,7 @@ class WebhookServiceTest {
     void processIncoming_unknownPhone_savesWithNullPatientAndMarkedProcessed() {
         WhatsAppWebhookDTO dto = createTextWebhook("55118888776655", "msg-456", "Oi");
         when(phoneNormalizationService.normalize("55118888776655")).thenReturn(Optional.of("118888776655"));
-        when(patientRepository.findAllByWhatsapp("118888776655")).thenReturn(List.of());
+        when(patientRepository.findDistinctNutritionistIdsByWhatsapp("118888776655")).thenReturn(List.of());
         when(whatsAppMessageRepository.findByMessageId("msg-456")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -98,7 +99,8 @@ class WebhookServiceTest {
     void processIncoming_audioMessage_savesWithNullContentAndMediaUrl() {
         WhatsAppWebhookDTO dto = createAudioWebhook("55119999887766", "msg-audio", "https://media.url/audio.ogg");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
+        when(patientRepository.findDistinctNutritionistIdsByWhatsapp("119999887766")).thenReturn(List.of(nutritionistId));
+        when(patientRepository.findByWhatsappAndNutritionistId("119999887766", nutritionistId)).thenReturn(Optional.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-audio")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -116,7 +118,8 @@ class WebhookServiceTest {
     void processIncoming_imageMessageWithCaption_savesContentAndMediaUrl() {
         WhatsAppWebhookDTO dto = createImageWebhook("55119999887766", "msg-img", "https://media.url/img.jpg", "Almoço: arroz e feijão");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient));
+        when(patientRepository.findDistinctNutritionistIdsByWhatsapp("119999887766")).thenReturn(List.of(nutritionistId));
+        when(patientRepository.findByWhatsappAndNutritionistId("119999887766", nutritionistId)).thenReturn(Optional.of(patient));
         when(whatsAppMessageRepository.findByMessageId("msg-img")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
@@ -138,7 +141,8 @@ class WebhookServiceTest {
         otherPatient.setNutritionistId(UUID.randomUUID());
 
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
-        when(patientRepository.findAllByWhatsapp("119999887766")).thenReturn(List.of(patient, otherPatient));
+        when(patientRepository.findDistinctNutritionistIdsByWhatsapp("119999887766"))
+                .thenReturn(List.of(nutritionistId, otherPatient.getNutritionistId()));
         when(whatsAppMessageRepository.findByMessageId("msg-amb")).thenReturn(Optional.empty());
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> {
             WhatsAppMessage m = i.getArgument(0);
