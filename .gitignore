@@ -44,6 +44,9 @@ stderr.log
 *.tmp
 *.bak
 
+# Playwright MCP cache
+.playwright-mcp/
+
 # Test/debug artifacts
 cors_*.txt
 headers*.txt

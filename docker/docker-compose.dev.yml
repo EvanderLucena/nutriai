@@ -12,3 +12,7 @@ services:
       - ../frontend/public:/app/public
     environment:
       - VITE_API_URL=http://localhost:8080
+
+  evolution-api:
+    volumes:
+      - nutriai-evolution-data:/evolution-instance
