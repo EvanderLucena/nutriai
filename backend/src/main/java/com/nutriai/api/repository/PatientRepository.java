@@ -59,4 +59,9 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             @Param("active") Boolean active,
             Pageable pageable
     );
+    /**
+     * Resolve WhatsApp phone number to patient (D-14, D-16).
+     * Phone is stored in normalized DDD+number format.
+     */
+    Optional<Patient> findByWhatsapp(String whatsapp);
 }
