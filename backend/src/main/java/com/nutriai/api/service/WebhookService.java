@@ -69,7 +69,7 @@ public class WebhookService {
         // Normalize phone and resolve patient
         Optional<String> normalizedOpt = phoneNormalizationService.normalize(rawPhone);
         if (normalizedOpt.isEmpty()) {
-            log.warn("Could not normalize phone: {}", rawPhone);
+            log.warn("Could not normalize sender phone for messageId={}", evolutionMessageId);
             return Optional.empty();
         }
         String normalizedPhone = normalizedOpt.get();
