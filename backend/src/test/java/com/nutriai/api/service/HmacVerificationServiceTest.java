@@ -25,9 +25,9 @@ class HmacVerificationServiceTest {
     }
 
     @Test
-    void verify_noSecretConfigured_returnsTrue() {
+    void verify_noSecretConfigured_returnsFalse() {
         HmacVerificationService service = new HmacVerificationService("");
-        assertTrue(service.verify("any body", "any sig"));
+        assertFalse(service.verify("any body", "any sig"));
     }
 
     @Test

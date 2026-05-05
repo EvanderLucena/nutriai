@@ -7,15 +7,12 @@ import com.nutriai.api.service.WebhookService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.io.BufferedReader;
-import java.io.StringReader;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,60 +23,56 @@ class WebhookControllerTest {
 
     @Mock WebhookService webhookService;
     @Mock HmacVerificationService hmacVerificationService;
-
-    @InjectMocks
-    WebhookController controller;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void receiveWebhook_validSignature_returns200() throws Exception {
-        WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
-        dto.setEvent("MESSAGES_UPSERT");
-
+    void receiveWebhook_validSignature_returns200() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getReader()).thenReturn(new BufferedReader(new StringReader("{}")));
-        when(hmacVerificationService.verify("{}", "valid-sig")).thenReturn(true);
-        when(webhookService.processIncoming(dto)).thenReturn(Optional.of(mock()));
+        when(hmacVerificationService.verify(rawBody, "valid-sig")).thenReturn(true);
+        when(webhookService.processIncoming(any(WhatsAppWebhookDTO.class))).thenReturn(Optional.of(mock()));
 
-        ResponseEntity<Void> response = controller.receiveWebhook(dto, "valid-sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "valid-sig", request);
 
         assertEquals(200, response.getStatusCode().value());
     }
 
     @Test
-    void receiveWebhook_invalidSignature_returns403() throws Exception {
-        WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
+    void receiveWebhook_invalidSignature_returns403() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getReader()).thenReturn(new BufferedReader(new StringReader("{}")));
-        when(hmacVerificationService.verify("{}", "bad-sig")).thenReturn(false);
+        when(hmacVerificationService.verify(rawBody, "bad-sig")).thenReturn(false);
 
-        ResponseEntity<Void> response = controller.receiveWebhook(dto, "bad-sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "bad-sig", request);
 
         assertEquals(403, response.getStatusCode().value());
     }
 
     @Test
-    void receiveWebhook_dedupMessage_returns200AndSkips() throws Exception {
-        WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
+    void receiveWebhook_dedupMessage_returns200AndSkips() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getReader()).thenReturn(new BufferedReader(new StringReader("{}")));
-        when(hmacVerificationService.verify("{}", "sig")).thenReturn(true);
-        when(webhookService.processIncoming(dto)).thenReturn(Optional.empty());
+        when(hmacVerificationService.verify(rawBody, "sig")).thenReturn(true);
+        when(webhookService.processIncoming(any(WhatsAppWebhookDTO.class))).thenReturn(Optional.empty());
 
-        ResponseEntity<Void> response = controller.receiveWebhook(dto, "sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", request);
 
         assertEquals(200, response.getStatusCode().value());
     }
 
     @Test
-    void receiveWebhook_missingSignature_devMode_returns200() throws Exception {
-        WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
+    void receiveWebhook_invalidPayload_returns400() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{invalid-json";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getReader()).thenReturn(new BufferedReader(new StringReader("{}")));
-        when(hmacVerificationService.verify("{}", null)).thenReturn(true);
-        when(webhookService.processIncoming(dto)).thenReturn(Optional.of(mock()));
+        when(hmacVerificationService.verify(rawBody, "sig")).thenReturn(true);
 
-        ResponseEntity<Void> response = controller.receiveWebhook(dto, null, request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", request);
 
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(400, response.getStatusCode().value());
+        verify(webhookService, never()).processIncoming(any());
     }
 }

@@ -130,7 +130,10 @@ public class ExtractionService {
             UUID nutritionistId,
             UUID episodeId) {
 
-        String mealLabel = extractionResult.mealLabel() != null ? extractionResult.mealLabel() : "Refeição";
+        String mealLabel = extractionResult.mealLabel();
+        if (mealLabel == null || mealLabel.isBlank()) {
+            mealLabel = "Refeição";
+        }
         String capitalizedLabel = mealLabel.substring(0, 1).toUpperCase() + mealLabel.substring(1);
 
         String title = capitalizedLabel + " extraído via WhatsApp";

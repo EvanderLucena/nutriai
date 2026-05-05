@@ -1,16 +1,16 @@
 package com.nutriai.api.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nutriai.api.dto.whatsapp.WhatsAppWebhookDTO;
 import com.nutriai.api.service.HmacVerificationService;
 import com.nutriai.api.service.WebhookService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.BufferedReader;
-import java.io.IOException;
 
 /**
  * Public webhook endpoint for Evolution API WhatsApp callbacks.
@@ -24,26 +24,32 @@ public class WebhookController {
 
     private final WebhookService webhookService;
     private final HmacVerificationService hmacVerificationService;
+    private final ObjectMapper objectMapper;
 
     public WebhookController(WebhookService webhookService,
-                             HmacVerificationService hmacVerificationService) {
+                             HmacVerificationService hmacVerificationService,
+                             ObjectMapper objectMapper) {
         this.webhookService = webhookService;
         this.hmacVerificationService = hmacVerificationService;
+        this.objectMapper = objectMapper;
     }
 
     @PostMapping
     public ResponseEntity<Void> receiveWebhook(
-            @RequestBody WhatsAppWebhookDTO payload,
+            @RequestBody String rawBody,
             @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature,
             HttpServletRequest request) {
-
-        // Read raw body for HMAC verification
-        String rawBody = readBody(request);
 
         // Verify HMAC signature
         if (!hmacVerificationService.verify(rawBody, signature)) {
             log.warn("Invalid HMAC signature for webhook from {}", request.getRemoteAddr());
             return ResponseEntity.status(403).build();
+        }
+
+        WhatsAppWebhookDTO payload = parsePayload(rawBody);
+        if (payload == null) {
+            log.warn("Invalid webhook payload from {}", request.getRemoteAddr());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
         // Process the webhook
@@ -59,18 +65,12 @@ public class WebhookController {
         return ResponseEntity.ok().build();
     }
 
-    private String readBody(HttpServletRequest request) {
+    private WhatsAppWebhookDTO parsePayload(String rawBody) {
         try {
-            StringBuilder sb = new StringBuilder();
-            BufferedReader reader = request.getReader();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-            return sb.toString();
-        } catch (IOException e) {
-            log.error("Failed to read request body", e);
-            return "";
+            return objectMapper.readValue(rawBody, WhatsAppWebhookDTO.class);
+        } catch (JsonProcessingException e) {
+            log.debug("Failed to deserialize WhatsApp webhook payload", e);
+            return null;
         }
     }
 }

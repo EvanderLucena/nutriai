@@ -8,7 +8,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Base64;
-import java.util.Optional;
 
 /**
  * HMAC-SHA256 verification for incoming WhatsApp webhooks.
@@ -25,12 +24,12 @@ public class HmacVerificationService {
 
     /**
      * Verify HMAC-SHA256 signature of request body.
-     * If no secret is configured (dev/test), returns true permissively.
+     * Rejects requests when the secret is not configured so unauthenticated
+     * webhooks are never accepted by accident.
      */
     public boolean verify(String body, String signatureHeader) {
         if (secret == null || secret.isBlank()) {
-            // Dev/test mode: no secret configured, accept all
-            return true;
+            return false;
         }
 
         if (signatureHeader == null || signatureHeader.isBlank()) {
