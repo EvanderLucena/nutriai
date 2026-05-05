@@ -16,6 +16,7 @@ import {
   NewBiometryModal,
   MultiLineChart,
   StatusReviewModal,
+  WhatsAppActivationRow,
 } from '../components/patient';
 import { MacroRings, WeekBars, LineChart } from '../components/viz';
 import {
@@ -24,6 +25,7 @@ import {
   usePatientHistoryEpisodes,
   useHistoricalEpisode,
 } from '../stores/clinicalStore';
+import { useExtractions, mapExtractionsToTimelineEvents } from '../stores/whatsappStore';
 import { PlansView } from './PlansView';
 import type { PatientStatus } from '../types/patient';
 import type { MealPlan } from '../types/plan';
@@ -273,6 +275,12 @@ export function PatientView() {
           </div>
         </div>
 
+        <WhatsAppActivationRow
+          patient={patient}
+          patientId={patientId}
+          onEditPatient={() => setEditOpen(true)}
+        />
+
         <div
           className="patient-tab-row"
           style={{
@@ -310,7 +318,9 @@ export function PatientView() {
           ))}
         </div>
       </div>
-      {tab === 'today' && <TodayTab patient={patient} plan={plan ?? null} onSetTab={setTab} />}
+      {tab === 'today' && (
+        <TodayTab patient={patient} patientId={patientId} plan={plan ?? null} onSetTab={setTab} />
+      )}
       {tab === 'plan' && <PlansView patientId={patientId} />}
       {tab === 'biometry' && <BiometryTab patientId={patientId} patientStatus={patient.status} />}
       {tab === 'insights' && <InsightsTab />}
@@ -323,14 +333,24 @@ export function PatientView() {
 
 function TodayTab({
   patient,
+  patientId,
   plan,
   onSetTab,
 }: {
   patient: DetailedPatient;
+  patientId: string;
   plan: MealPlan | null;
   onSetTab: (t: Tab) => void;
 }) {
   const reportedMacrosToday: MacroTarget = patient.macrosToday;
+  const {
+    data: extractions,
+    isLoading: extractionsLoading,
+    isError: extractionsError,
+  } = useExtractions(patientId);
+
+  const extractionEvents = extractions ? mapExtractionsToTimelineEvents(extractions) : [];
+  const timelineEvents = [...extractionEvents, ...patient.timeline];
 
   const kcalTarget = plan?.kcalTarget ?? patient.macrosToday.kcal.target;
   const protTarget = plan?.protTarget ?? patient.macrosToday.prot.target;
@@ -338,7 +358,7 @@ function TodayTab({
   const fatTarget = plan?.fatTarget ?? patient.macrosToday.fat.target;
 
   const mealCount = plan?.meals?.length ?? 6;
-  const timelineCount = patient.timeline.length;
+  const timelineCount = timelineEvents.filter((ev) => ev.kind === 'log').length;
   const hasTimelineData = timelineCount > 0;
 
   return (
@@ -471,7 +491,10 @@ function TodayTab({
               <div className="title">Consumo reportado</div>
               <div className="spacer" />
               <div className="chip ai">
-                <span className="d" />4 registros
+                <span className="d" />
+                {hasTimelineData
+                  ? `${timelineCount} ${timelineCount === 1 ? 'registro' : 'registros'}`
+                  : '0 registros'}
               </div>
             </div>
             <div className="card-b">
@@ -557,7 +580,27 @@ function TodayTab({
             </div>
           </div>
           <div className="card-b tight">
-            <Timeline items={patient.timeline} />
+            {extractionsLoading && (
+              <div
+                style={{
+                  padding: '20px 0',
+                  textAlign: 'center',
+                  color: 'var(--fg-subtle)',
+                  fontSize: 14,
+                }}
+              >
+                Carregando extrações...
+              </div>
+            )}
+            {extractionsError && !extractionsLoading && (
+              <div style={{ padding: '12px 0', textAlign: 'center' }}>
+                <p style={{ color: 'var(--coral)', fontSize: 13 }}>
+                  Erro ao carregar extrações do WhatsApp.
+                </p>
+                <p style={{ color: 'var(--fg-muted)', fontSize: 11 }}>Mostrando dados locais.</p>
+              </div>
+            )}
+            {!extractionsLoading && <Timeline items={timelineEvents} patientId={patientId} />}
           </div>
         </div>
       </div>

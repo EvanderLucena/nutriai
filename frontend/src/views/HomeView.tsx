@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router';
 import { usePatients } from '../stores/patientStore';
 import { useAuthStore } from '../stores/authStore';
 import { useDashboard } from '../stores/clinicalStore';
+import { useWhatsAppStatus } from '../stores/whatsappStore';
 import { mapPatientFromApi } from '../types/patient';
 import { KPI } from '../components/KPI';
+import { IconWhatsapp, IconMeal } from '../components/icons';
 import type { Patient } from '../types/patient';
 
 function PatientCard({ p, onNavigate }: { p: Patient; onNavigate: (id: string) => void }) {
@@ -144,6 +146,7 @@ export function HomeView() {
     isLoading: isDashboardLoading,
     isError: isDashboardError,
   } = useDashboard();
+  const { data: whatsappStatus, isLoading: isWhatsappLoading } = useWhatsAppStatus();
   const activePats = React.useMemo(() => (data?.content ?? []).map(mapPatientFromApi), [data]);
   const patientSlice = activePats.slice(0, PAGE_SIZE);
 
@@ -266,8 +269,8 @@ export function HomeView() {
         className="home-kpi-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 14,
+          gridTemplateColumns: 'repeat(6, 1fr)',
+          gap: 12,
           marginBottom: 18,
         }}
       >
@@ -287,6 +290,18 @@ export function HomeView() {
           value={String(danger)}
           sub="contato recomendado"
           danger
+        />
+        <KPI
+          label="Refeições extraídas hoje"
+          value={isWhatsappLoading ? '...' : String(whatsappStatus?.extractionsToday ?? 0)}
+          sub="via WhatsApp"
+          icon={<IconWhatsapp size={18} />}
+        />
+        <KPI
+          label="Pacientes ativos no WhatsApp"
+          value={isWhatsappLoading ? '...' : String(whatsappStatus?.activePatientsCount ?? 0)}
+          sub="ativaram WhatsApp"
+          icon={<IconMeal size={18} />}
         />
       </div>
 
