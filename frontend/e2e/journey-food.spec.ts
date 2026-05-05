@@ -38,4 +38,71 @@ test.describe('Jornada — Food Catalog', () => {
     expect(food).toBeDefined();
     expect(food.category).toBe('CARBOIDRATO');
   });
+
+  test('E2E-J-06: Editar alimento via UI persiste alterações', async ({
+    authenticatedPage,
+    request,
+  }) => {
+    const { page, accessToken } = authenticatedPage;
+
+    const createResp = await request.post(`${API_BASE}/foods`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      data: {
+        name: 'Frango Editar UI',
+        category: 'PROTEINA',
+        unit: 'GRAMAS',
+        referenceAmount: 100,
+        kcal: 165,
+        prot: 31,
+        carb: 0,
+        fat: 3.6,
+      },
+    });
+    expect(createResp.status()).toBe(201);
+    const foodId = (await createResp.json()).data.id as string;
+
+    await page.goto('/foods');
+    await page.getByPlaceholder(/Buscar no catálogo/i).fill('Frango Editar UI');
+    await page
+      .getByRole('button', { name: /^Editar$/i })
+      .first()
+      .click();
+
+    await expect(page.getByText(/Editar alimento/i)).toBeVisible({ timeout: 10_000 });
+    await page.locator('#edit-catalog-name').fill('Frango Editar UI Atualizado');
+    await page.locator('#edit-catalog-ref').fill('150');
+    const saveResp = page.waitForResponse(
+      (resp) =>
+        resp.url().includes(`/api/v1/foods/${foodId}`) &&
+        resp.request().method() === 'PATCH' &&
+        resp.status() === 200,
+      { timeout: 15_000 },
+    );
+    await page.getByRole('button', { name: /^Salvar$/i }).click();
+    await saveResp;
+
+    const getResp = await request.get(`${API_BASE}/foods/${foodId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    expect(getResp.status()).toBe(200);
+    const body = await getResp.json();
+    expect(body.data.name).toBe('Frango Editar UI Atualizado');
+    expect(body.data.referenceAmount).toBe(150);
+  });
+
+  test('E2E-J-11: Foods renderiza em viewport mobile', async ({ authenticatedPage }) => {
+    const { page } = authenticatedPage;
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/foods');
+
+    await expect(page.getByRole('heading', { name: /Alimentos/i })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByTestId('newfood-btn')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('newfood-btn').click();
+    await expect(page.locator('#create-food-title')).toBeVisible({
+      timeout: 10_000,
+    });
+  });
 });

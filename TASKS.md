@@ -228,6 +228,74 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 
 > **Nota arquitetural (E2E):** `data-testid` é atributo HTML estável para testes. Hoje só existe em LoginView/SignupView. Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) carecem de testids. Decisão: adicionar **sob demanda** quando Phase 07 (WhatsApp) refatorar PatientView. Custo (~1h) não justifica benefício hoje pois fluxos clínicos estão estáveis e não serão tocados na próxima fase.
 
+### MCP Playwright Audit — Achados (maio/2026) — rodada de correção
+
+- [x] **`/logout` com 404** — corrigido com rota dedicada que executa logout real e redireciona para `/`.
+- [x] **Onboarding não persistia paciente adicionado** — corrigido; pacientes adicionados no step 1 agora são criados via API antes de concluir/pular onboarding.
+- [x] **PatientView mostrava dados fantasmas para paciente novo** — corrigido; `% gordura`, observações e estados vazios agora refletem ausência de dados reais.
+- [x] **`NaN%` em macros no PatientView** — corrigido em `MacroRings` quando target é `0`.
+- [x] **Nested `<button>` em PlansView (hidratação/acessibilidade)** — corrigido; item da refeição não usa mais botão dentro de botão.
+- [x] **Copy misto pt-BR/EN na Landing ("A IA always...")** — corrigido para pt-BR.
+- [x] **`Exportar PDF` no PlansView fora do escopo atual** — removido da UI do fluxo de plano.
+- [x] **Sidebar mobile interceptando clique quando colapsada** — mitigado com `pointer-events: none` no estado colapsado e sync de estado no resize.
+- [ ] **`Exportar PDF` em Inteligência** — continua fora de escopo por ora (mantido pendente conforme backlog).
+
+### Plano de execução separado — E2E crítico (Playwright + MCP)
+
+> Objetivo: separar claramente **cobertura**, **correção de produto** e **validação exploratória**.
+
+#### Fase A — Criar cobertura E2E no projeto (`frontend/e2e`)
+
+- [x] Auth + onboarding + sessão: `signup → onboarding completo → home`, `login → logout`, expiração/refresh.
+- [x] Pacientes: criar/editar/ativar-desativar, filtro por status, busca e paginação real.
+- [x] Plano alimentar: add meal, add option, edição inline, remove item/remove meal, totais.
+- [ ] Biometria + dashboard + histórico: registrar biometria e validar reflexo nas telas.
+- [ ] Alimentos + inteligência + mobile: edição via UI, estados empty/data, fluxos mobile críticos.
+- [ ] Remover fragilidades remanescentes (asserts condicionais, waits frágeis, seletores instáveis).
+
+> Atualização (05/05/2026): concluídos os novos E2E de onboarding completo, logout por rota dedicada com invalidação de sessão, filtro por status e paginação real de pacientes, com execução verde em `journey-auth.spec.ts` e `patient-management.spec.ts` (22/22).
+>
+> Atualização (05/05/2026 — rodada 2): adicionados e validados (8/8) os cenários `journey-plan`, `journey-biometry` e `journey-food` cobrindo:
+> - plano alimentar via UI com `nova opção` + `adicionar alimento` e persistência no backend;
+> - biometria via UI com verificação de fluxo até histórico;
+> - alimentos via UI com edição persistida e smoke de responsividade mobile.
+> Pendências da Fase A mantidas abertas apenas para os pontos ainda não cobertos explicitamente (ex.: remoção de refeição/item e bateria mais ampla de inteligência/mobile).
+>
+> Atualização (05/05/2026 — rodada 3): incluído `E2E-J-12` para remoção de refeição via UI com validação de persistência no backend, e removido `waitForTimeout` remanescente em `journey-plan.spec.ts`. Bateria consolidada dos fluxos alterados: 30/30 passando.
+>
+> Atualização (05/05/2026 — rodada 4): concluído o fechamento de plano alimentar com `E2E-J-13` (edição inline + remoção de item com persistência), além de `E2E-J-12` (remoção de refeição). Bloco de plano da Fase A marcado como concluído.
+
+#### Fase B — Corrigir sistema guiado pelas falhas dos E2E
+
+- [ ] Rodar suíte E2E completa e consolidar bugs reais por severidade.
+- [ ] Corrigir primeiro P0/P1 (quebra de fluxo, perda de dados, inconsistência crítica).
+- [ ] Reexecutar suíte a cada pacote de correção até estabilizar sem regressão.
+- [ ] Registrar no `TASKS.md` cada bug fechado com evidência do teste que passou.
+
+#### Fase C — Bateria QA manual no MCP (browser)
+
+- [ ] Executar fluxos críticos no MCP Playwright (desktop e mobile) como validação exploratória final.
+- [ ] Confirmar comportamento visual/UX que testes automatizados não capturam bem.
+- [ ] Registrar achados finais (bugs, melhorias e pendências out-of-scope).
+
+#### Matriz: Fluxo crítico pendente → fase
+
+- [ ] Edição inline de alimentos no plano (add option, edit food row, remove meal) → **Fase A + B + C**
+- [ ] Mudança de status do paciente via UI (ontrack → warning → danger) → **Fase A + B + C**
+- [ ] Onboarding completo via UI → **Fase A + B + C**
+- [ ] Paginação real na lista de pacientes → **Fase A + B + C**
+- [ ] Filtro por status na lista de pacientes → **Fase A + B + C**
+- [ ] Gráficos de biometria (timeline, charts) → **Fase A + B + C**
+- [ ] Tela de alimentos: edição via UI → **Fase A + B + C**
+- [ ] Logout e expiração de token → **Fase A + B + C**
+- [ ] Responsividade mobile → **Fase A + B + C**
+
+#### Critério de pronto (DoD)
+
+- [ ] Cobertura E2E criada para todos os fluxos críticos acima (UI real).
+- [ ] Correções de produto aplicadas para falhas relevantes encontradas pela suíte.
+- [ ] Validação manual MCP concluída com registro dos achados finais.
+
 ---
 
 ## Telas P2 — A fazer

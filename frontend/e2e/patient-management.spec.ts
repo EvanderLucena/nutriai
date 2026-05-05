@@ -37,6 +37,84 @@ test.describe('Patient Management — Page Rendering', () => {
 
     await expect(page.getByRole('button', { name: /filtrar/i })).toBeVisible({ timeout: 5_000 });
   });
+
+  test('E2E-PM-18: Filtro por status mostra apenas pacientes do status escolhido', async ({
+    page,
+  }) => {
+    const uniqueName = `Paciente Status UI ${Date.now()}`;
+
+    await page.goto('/patients');
+    await page.getByRole('button', { name: /novo paciente/i }).click();
+    await page.getByTestId('newpatient-name').fill(uniqueName);
+    await page.getByTestId('newpatient-objective').selectOption({ label: 'Saúde geral' });
+    await page.getByTestId('newpatient-terms').check();
+
+    const createResponse = page.waitForResponse(
+      (resp) => resp.url().includes('/api/v1/patients') && resp.request().method() === 'POST',
+      { timeout: 15_000 },
+    );
+    await page.getByTestId('newpatient-submit').click();
+    const createdResponse = await createResponse;
+    expect(createdResponse.status()).toBe(201);
+    const createdBody = await createdResponse.json();
+    const patientId = createdBody.data.id as string;
+
+    await page.goto(`/patient/${patientId}`);
+    await page.getByTestId('patient-tab-biometry').click();
+    await page.getByTestId('btn-new-biometry').click();
+    await page.getByLabel(/Peso \(kg\)/i).fill('70,2');
+    await page.locator('input[id*="gordura"], input[id*="body-fat"]').first().fill('21,4');
+    await page.getByTestId('btn-save-biometry').click();
+
+    await expect(page.getByText(/Revisar status/i)).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /Atenção/i }).click();
+    await page.getByRole('button', { name: /Confirmar/i }).click();
+    await expect(page.getByText(/Revisar status/i)).not.toBeVisible({ timeout: 10_000 });
+
+    await page.goto('/patients');
+    await page.getByRole('button', { name: /filtrar/i }).click();
+    await page.getByRole('button', { name: /Atenção/i }).click();
+    await expect(page.getByRole('table').getByText(uniqueName)).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('E2E-PM-19: Paginação avança para próxima página na lista de pacientes', async ({
+    page,
+  }) => {
+    await page.goto('/patients');
+    await page.waitForLoadState('networkidle');
+    const activeToggle = page.getByRole('button', { name: /ver ativos/i });
+    if (await activeToggle.isVisible().catch(() => false)) {
+      await activeToggle.click();
+    }
+    await page.getByRole('button', { name: /filtrar/i }).click();
+    await page
+      .getByRole('button', { name: /^Todos$/i })
+      .first()
+      .click();
+
+    for (let i = 0; i < 12; i++) {
+      await page.getByRole('button', { name: /novo paciente/i }).click();
+      await page.getByTestId('newpatient-name').fill(`Paciente Paginação ${Date.now()}-${i}`);
+      await page.getByTestId('newpatient-objective').selectOption({ label: 'Saúde geral' });
+      await page.getByTestId('newpatient-terms').check();
+
+      const createResponse = page.waitForResponse(
+        (resp) => resp.url().includes('/api/v1/patients') && resp.request().method() === 'POST',
+        { timeout: 15_000 },
+      );
+      await page.getByTestId('newpatient-submit').click();
+      expect((await createResponse).status()).toBe(201);
+    }
+
+    const nextPageBtn = page.getByRole('button', { name: '2' });
+    await expect(nextPageBtn).toBeVisible({ timeout: 10_000 });
+    await nextPageBtn.click();
+
+    await expect(page.locator('button', { hasText: '2' })).toHaveCSS(
+      'background-color',
+      'rgb(11, 12, 10)',
+    );
+  });
 });
 
 test.describe('Patient Management — API Contract & Enum Validation', () => {
