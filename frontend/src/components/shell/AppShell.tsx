@@ -1,11 +1,26 @@
+import { useEffect } from 'react';
 import { Rail } from './Rail';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Outlet } from 'react-router';
 import { useRouteSync } from '../../hooks/useRouteSync';
+import { useNavigationStore } from '../../stores/navigationStore';
 
 export function AppShell() {
   useRouteSync();
+  const setSidebarOpen = useNavigationStore((s) => s.setSidebarOpen);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1200px)');
+    const syncSidebar = (event: MediaQueryList | MediaQueryListEvent) => {
+      setSidebarOpen(!event.matches);
+    };
+
+    syncSidebar(mediaQuery);
+    mediaQuery.addEventListener('change', syncSidebar);
+    return () => mediaQuery.removeEventListener('change', syncSidebar);
+  }, [setSidebarOpen]);
+
   return (
     <div className="app">
       <Rail />

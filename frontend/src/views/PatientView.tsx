@@ -106,6 +106,10 @@ export function PatientView() {
   const fallbackPreviousBiometryWeight = null;
   const latestBiometryWeight =
     biometryAssessments?.[biometryAssessments.length - 1]?.weight ?? fallbackLatestBiometryWeight;
+  const latestBiometryBodyFat =
+    biometryAssessments?.[biometryAssessments.length - 1]?.bodyFatPercent ?? null;
+  const latestBiometryDate =
+    biometryAssessments?.[biometryAssessments.length - 1]?.assessmentDate ?? null;
   const previousBiometryWeight =
     biometryAssessments && biometryAssessments.length > 1
       ? (biometryAssessments[biometryAssessments.length - 2]?.weight ?? null)
@@ -257,7 +261,15 @@ export function PatientView() {
               className="patient-header-dividers"
               style={{ width: 1, height: 44, background: 'var(--border)' }}
             />
-            <HeaderStat label="% gordura" value="22.8%" sub="11 abr" />
+            <HeaderStat
+              label="% gordura"
+              value={latestBiometryBodyFat != null ? `${latestBiometryBodyFat}%` : '—'}
+              sub={
+                latestBiometryDate
+                  ? new Date(latestBiometryDate).toLocaleDateString('pt-BR')
+                  : 'Sem avaliação'
+              }
+            />
           </div>
         </div>
 
@@ -326,6 +338,8 @@ function TodayTab({
   const fatTarget = plan?.fatTarget ?? patient.macrosToday.fat.target;
 
   const mealCount = plan?.meals?.length ?? 6;
+  const timelineCount = patient.timeline.length;
+  const hasTimelineData = timelineCount > 0;
 
   return (
     <div>
@@ -434,7 +448,9 @@ function TodayTab({
                 >
                   OBSERVAÇÕES
                 </span>
-                Evitar lactose · preferir proteína magra à noite · carne vermelha máx 2×/semana
+                {hasTimelineData
+                  ? 'Observações baseadas nos registros do paciente.'
+                  : 'Sem observações registradas até o momento.'}
               </div>
             </div>
           </div>
@@ -467,7 +483,9 @@ function TodayTab({
                   marginBottom: 14,
                 }}
               >
-                <div className="eyebrow">EXTRAÍDO ATÉ AGORA · 14:28</div>
+                <div className="eyebrow">
+                  {hasTimelineData ? 'EXTRAÍDO ATÉ AGORA' : 'AGUARDANDO REGISTROS'}
+                </div>
                 <div
                   className="mono"
                   style={{ fontSize: 10.5, color: 'var(--fg-subtle)', letterSpacing: '0.06em' }}
@@ -497,8 +515,9 @@ function TodayTab({
                 >
                   NOTA
                 </span>
-                Macros estimados pela IA a partir do texto do paciente. Edite qualquer registro se
-                houver erro de extração.
+                {hasTimelineData
+                  ? 'Macros estimados pela IA a partir do texto do paciente. Edite qualquer registro se houver erro de extração.'
+                  : 'Assim que o paciente enviar mensagens no WhatsApp, os dados aparecem aqui.'}
               </div>
             </div>
           </div>

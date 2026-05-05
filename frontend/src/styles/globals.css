@@ -274,6 +274,7 @@ body {
 .sidebar.collapsed {
   width: 0;
   border-right-width: 0;
+  pointer-events: none;
 }
 
 .sidebar-header {
