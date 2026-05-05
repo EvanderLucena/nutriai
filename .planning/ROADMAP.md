@@ -190,7 +190,7 @@ Plans:
 **Plans:** 1/3 plans executed
 Plans:
 - [x] 07-01-PLAN.md — Infrastructure, data model, webhook endpoint, and async queue
-- [ ] 07-02-PLAN.md — LLM integration, meal extraction, response generation, and Evolution API
+- [x] 07-02-PLAN.md — LLM integration, meal extraction, response generation, and Evolution API
 - [ ] 07-03-PLAN.md — Frontend wiring, API endpoints, timeline, activation UI, and E2E tests
 **UI hint**: yes
 

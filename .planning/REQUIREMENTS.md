@@ -34,8 +34,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### WhatsApp AI
 
 - [ ] **WA-01**: Evolution API integration — send and receive WhatsApp messages per patient
-- [ ] **WA-02**: AI responds to patient based on their meal plan (context-aware)
-- [ ] **WA-03**: AI extracts meal data from text, audio, and photo → registered in timeline
+- [x] **WA-02**: AI responds to patient based on their meal plan (context-aware)
+- [x] **WA-03**: AI extracts meal data from text, audio, and photo → registered in timeline
 - [ ] **WA-04**: Unique WhatsApp activation link per patient
 - [ ] **WA-05**: Shared number architecture (1 number, multiple nutritionists)
 
@@ -125,8 +125,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAN-04 | Phase 5 | Complete |
 | PLAN-05 | Phase 5 | Complete |
 | WA-01 | Phase 7 | Pending |
-| WA-02 | Phase 7 | Pending |
-| WA-03 | Phase 7 | Pending |
+| WA-02 | Phase 7 | Complete |
+| WA-03 | Phase 7 | Complete |
 | WA-04 | Phase 7 | Pending |
 | WA-05 | Phase 7 | Pending |
 | BIO-01 | Phase 6 | Pending |
