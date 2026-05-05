@@ -16,11 +16,13 @@ function EditableCell({
   color,
   isNum,
   onChange,
+  testId,
 }: {
   value: string | number;
   color: string;
   isNum: boolean;
   onChange: (val: string) => void;
+  testId?: string;
 }) {
   const [local, setLocal] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
@@ -33,6 +35,7 @@ function EditableCell({
 
   return (
     <input
+      data-testid={testId}
       ref={ref}
       value={local}
       onChange={(e) => setLocal(e.target.value)}
@@ -94,7 +97,15 @@ function MacroReadonly({
   );
 }
 
-function RefInput({ value, onBlur }: { value: number; onBlur: (newRef: number) => void }) {
+function RefInput({
+  value,
+  onBlur,
+  testId,
+}: {
+  value: number;
+  onBlur: (newRef: number) => void;
+  testId?: string;
+}) {
   const [localRef, setLocalRef] = useState(String(value));
   const ref = useRef<HTMLInputElement>(null);
 
@@ -106,6 +117,7 @@ function RefInput({ value, onBlur }: { value: number; onBlur: (newRef: number) =
 
   return (
     <input
+      data-testid={testId}
       ref={ref}
       inputMode="numeric"
       pattern="[0-9.,]*"
@@ -162,6 +174,7 @@ function PlanFoodRowGrid({ children, isLast }: { children: React.ReactNode; isLa
 function RemoveButton({ onRemove }: { onRemove: () => void }) {
   return (
     <button
+      data-testid="plan-food-remove-btn"
       onClick={onRemove}
       title="Remover"
       style={{
@@ -251,12 +264,13 @@ export function PlanFoodRow({
   return (
     <PlanFoodRowGrid isLast={isLast}>
       <FoodNameCell name={item.foodName} />
-      <RefInput value={item.referenceAmount} onBlur={handleRefBlur} />
+      <RefInput value={item.referenceAmount} onBlur={handleRefBlur} testId="plan-food-ref-input" />
       <UnitSymbol unitSymbol={unitSymbol} />
       <EditableCell
         value={item.prep ?? ''}
         color="var(--fg-muted)"
         isNum={false}
+        testId="plan-food-prep-input"
         onChange={onPrepChange}
       />
       <MacroCells item={item} opacity={macroFlash ? 0.5 : 1} />
