@@ -59,4 +59,14 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
             @Param("active") Boolean active,
             Pageable pageable
     );
+    /**
+     * Resolve a patient WhatsApp number only within a known tenant scope.
+     */
+    Optional<Patient> findByWhatsappAndNutritionistId(String whatsapp, UUID nutritionistId);
+
+    /**
+     * Discover which tenant(s) own a WhatsApp number without materializing patient rows.
+     */
+    @Query("SELECT DISTINCT p.nutritionistId FROM Patient p WHERE p.whatsapp = :whatsapp")
+    List<UUID> findDistinctNutritionistIdsByWhatsapp(@Param("whatsapp") String whatsapp);
 }

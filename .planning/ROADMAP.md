@@ -187,10 +187,10 @@ Plans:
   - **Backend (JUnit 5)**: WebhookController, ConversationService, ExtractionService — webhook handling, message routing, meal extraction, cross-tenant isolation
   - **Frontend (Vitest)**: conversation/timeline store — message display, extraction status; PatientView timeline — showing captured data
   - **E2E (Playwright)**: generate activation link, send message (mock webhook), verify timeline update
-**Plans:** 3 plans in 3 waves
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 07-01-PLAN.md — Infrastructure, data model, webhook endpoint, and async queue
-- [ ] 07-02-PLAN.md — LLM integration, meal extraction, response generation, and Evolution API
+- [x] 07-01-PLAN.md — Infrastructure, data model, webhook endpoint, and async queue
+- [x] 07-02-PLAN.md — LLM integration, meal extraction, response generation, and Evolution API
 - [ ] 07-03-PLAN.md — Frontend wiring, API endpoints, timeline, activation UI, and E2E tests
 **UI hint**: yes
 
@@ -258,7 +258,7 @@ Phase 10 depends on both Phase 08 and Phase 09 (deploy complete SaaS with billin
 | 04. Patient Management | 2/2 | Complete ✓ | 2026-04-22 |
 | 05. Meal Plans & Food Catalog | 3/3 | Complete ✓ | 2026-04-22 |
 | 06. Dashboard & Biometry | 5/5 | Complete ✓ | 2026-04-27 |
-| 07. WhatsApp Intelligence | 0/? | Not started | - |
+| 07. WhatsApp Intelligence | 1/3 | In Progress|  |
 | 08. Billing & Subscriptions | 0/? | Not started | - |
 | 09. LGPD Compliance | 0/? | Not started | - |
 | 10. CI/CD & Deployment | 0/? | Not started | - |

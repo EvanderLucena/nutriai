@@ -1,0 +1,38 @@
+package com.nutriai.api.repository;
+
+import com.nutriai.api.model.WhatsAppMessage;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Repository
+public interface WhatsAppMessageRepository extends JpaRepository<WhatsAppMessage, UUID> {
+
+    /**
+     * Find unprocessed messages by normalized sender phone (for phone lookup / D-16).
+     */
+    List<WhatsAppMessage> findBySenderPhoneNormalizedAndProcessedFalse(String phone);
+
+    /**
+     * Find messages for a patient scoped by nutritionist (tenant isolation, D-14).
+     */
+    List<WhatsAppMessage> findByPatientIdAndNutritionistIdOrderByCreatedAtDesc(UUID patientId, UUID nutritionistId);
+
+    /**
+     * Find by Evolution API message ID for dedup (D-05).
+     */
+    Optional<WhatsAppMessage> findByMessageId(String messageId);
+
+    /**
+     * Check if a patient has any previously processed messages (for first-message detection, D-17).
+     */
+    boolean existsByPatientIdAndProcessedTrue(UUID patientId);
+
+    /**
+     * Count messages for a patient (for first-message detection, D-17).
+     */
+    long countByPatientId(UUID patientId);
+}
