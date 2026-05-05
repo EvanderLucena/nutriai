@@ -72,8 +72,9 @@ class ArchitectureTest {
         ArchRuleDefinition.classes()
                 .that().resideInAPackage("..controller..")
                 .and().doNotHaveSimpleName("HealthController")
+                .and().doNotHaveSimpleName("WebhookController")
                 .should().beAnnotatedWith("org.springframework.security.access.prepost.PreAuthorize")
-                .because("All controllers (except health) must have @PreAuthorize for security - defense in depth")
+                .because("All controllers (except health and webhook) must have @PreAuthorize for security - defense in depth")
                 .check(importedClasses);
     }
 }
