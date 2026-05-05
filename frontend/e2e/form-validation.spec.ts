@@ -79,22 +79,19 @@ authTest.describe('Form Validation — Patient', () => {
     await page.getByTestId('newpatient-objective').selectOption({ label: 'Hipertrofia' });
     await page.getByTestId('newpatient-terms').check();
 
-    // Preenche WhatsApp com apenas 1 digito
+    // Preenche WhatsApp com apenas 1 digito e dispara blur
     await page.getByTestId('newpatient-whatsapp').fill('1');
+    await page.getByTestId('newpatient-whatsapp').blur();
 
-    // Blur para disparar validacao
-    await page.keyboard.press('Tab');
-
-    // O botao Cadastrar deve estar desabilitado (validacao de 10 digitos)
-    // OU uma mensagem de erro deve aparecer
+    // O botao Cadastrar NAO deve estar desabilitado (WhatsApp é opcional)
     const submitBtn = page.getByTestId('newpatient-submit');
-    const isDisabled = await submitBtn.isDisabled().catch(() => false);
-    if (!isDisabled) {
-      const whatsappError = page
-        .getByRole('alert')
-        .filter({ hasText: /WhatsApp deve ter pelo menos 10 digitos/i });
-      await expect(whatsappError).toBeVisible({ timeout: 3_000 });
-    }
+    await expect(submitBtn).toBeEnabled();
+
+    // Mensagem de erro deve aparecer no campo após blur
+    const whatsappError = page
+      .getByRole('alert')
+      .filter({ hasText: /WhatsApp deve ter pelo menos 10 digitos/i });
+    await expect(whatsappError).toBeVisible({ timeout: 3_000 });
   });
 
   authTest(

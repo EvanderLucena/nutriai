@@ -61,7 +61,7 @@ test.describe('Jornada — Patient', () => {
     expect(objectiveValue).toBe('HIPERTROFIA');
   });
 
-  test('E2E-J-04: Paciente criado via API aparece na lista', async ({
+  test('E2E-J-05: Editar paciente com altura inválida mostra erro e não fecha modal', async ({
     authenticatedPage,
     request,
   }) => {
@@ -70,24 +70,49 @@ test.describe('Jornada — Patient', () => {
     // Prepara paciente via API
     const createResp = await request.post(`${API_BASE}/patients`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: createPatientPayload({ name: 'Paciente Deletar Jornada' }),
+      data: createPatientPayload({ name: 'Paciente Erro Altura' }),
     });
     const patientId = (await createResp.json()).data.id;
+
+    await page.goto(`/patient/${patientId}`);
+    await page.waitForLoadState('networkidle');
+
+    // Abre edit modal
+    await page.getByTestId('btn-edit-patient-header').click();
+    await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 3_000 });
+
+    // Limpa altura e coloca 0
+    await page.getByTestId('editpatient-height').fill('0');
+    await page.getByTestId('editpatient-height').blur();
+
+    // Tenta salvar
+    await page.getByTestId('editpatient-submit').click();
+
+    // Modal deve permanecer aberto (validação bloqueou)
+    await expect(page.getByTestId('editpatient-objective')).toBeVisible({ timeout: 5_000 });
+
+    // Mensagem de erro deve estar visível
+    const heightError = page.locator('text=Altura deve estar entre 50 e 250 cm');
+    await expect(heightError).toBeVisible({ timeout: 3_000 });
+  });
+
+  test('E2E-J-06: Criar paciente sem nome mantém botão desabilitado', async ({
+    authenticatedPage,
+  }) => {
+    const { page } = authenticatedPage;
 
     await page.goto('/patients');
     await page.waitForLoadState('networkidle');
 
-    // Verifica que o paciente aparece na grid/lista
-    await expect(page.getByText('Paciente Deletar Jornada').first()).toBeVisible({
-      timeout: 5_000,
-    });
+    await page.getByRole('button', { name: /novo paciente/i }).click();
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3_000 });
 
-    // Verifica via API que o paciente continua existindo (não foi deletado)
-    const resp = await request.get(`${API_BASE}/patients/${patientId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    expect(resp.status()).toBe(200);
-    const body = await resp.json();
-    expect(body.data.id).toBe(patientId);
+    // Deixa nome vazio, seleciona objetivo e marca termos
+    await page.getByTestId('newpatient-objective').selectOption({ label: 'Hipertrofia' });
+    await page.getByTestId('newpatient-terms').check();
+
+    // Botão deve estar desabilitado (nome é obrigatório)
+    const submitBtn = page.getByTestId('newpatient-submit');
+    await expect(submitBtn).toBeDisabled();
   });
 });

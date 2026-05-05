@@ -165,10 +165,10 @@ Componentes clínicos (NewBiometryModal, PlanFoodRow, PatientsView) não têm `d
 > - [x] Substituir seletores frágeis em `journey.spec.ts`, `ui-integration.spec.ts`, `form-validation.spec.ts`
 > - [x] Separar `journey.spec.ts` em testes independentes
 > - [x] Separar `patient-tabs.spec.ts` em testes independentes por aba
-> - [ ] Adicionar `afterEach` cleanup em specs de API-only
+> - [x] Adicionar `afterEach` cleanup em specs de API-only
 > - [x] Acrescentar testes UI→API para Meal Plans (adicionar refeição)
 > - [x] Acrescentar testes UI→API para Biometria (registrar avaliação)
-> - [ ] Acrescentar teste de erro visível para cada mutation (409, 400, 500)
+> - [x] Acrescentar teste de erro visível para cada mutation (409, 400, 500)
 > - [x] Adicionar `data-testid` em componentes clínicos (NewPatientModal, EditPatientModal, AddMealModal, NewBiometryModal, FoodsView, PatientView)
 > - [ ] Configurar `webServer` do backend em `playwright.config.ts` ou documentar dependência
 

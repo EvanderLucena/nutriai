@@ -59,6 +59,12 @@ frontend/test-results/
 frontend/coverage/
 *.tsbuildinfo
 .claude/
+.playwright-mcp/
+*.png
+onboarding-*.png
+signup-*.png
+landing-*.png
+console-*.log
 
 # Secrets — never commit
 *.pem

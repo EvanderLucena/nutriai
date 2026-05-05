@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { uniqueEmail } from './helpers';
 
 test.describe('Jornada — Auth', () => {
-  test.skip('E2E-J-01: signup UI → onboarding → home', async ({ page }) => {
+  test('E2E-J-01: signup UI → onboarding → home', async ({ page }) => {
     const email = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@test.com`;
     const password = 'SenhaSegura123!';
 
@@ -25,14 +25,12 @@ test.describe('Jornada — Auth', () => {
       await expect(page).toHaveURL(/\/(onboarding|home)/, { timeout: 10_000 });
     });
 
-    await test.step('2. Onboarding (se necessario)', async () => {
+    await test.step('2. Onboarding (pular)', async () => {
       if (page.url().includes('/onboarding')) {
-        for (let i = 0; i < 5; i++) {
-          const nextBtn = page.getByRole('button', { name: /próximo|começar|concluir/i });
-          if (await nextBtn.isVisible().catch(() => false)) {
-            await nextBtn.click();
-            await page.waitForTimeout(300);
-          } else break;
+        // O onboarding tem um botão "PULAR POR ENQUANTO" no topo direito
+        const skipBtn = page.locator('text=/pular/i').first();
+        if (await skipBtn.isVisible().catch(() => false)) {
+          await skipBtn.click();
         }
         await expect(page).toHaveURL(/\/home/, { timeout: 10_000 });
       }

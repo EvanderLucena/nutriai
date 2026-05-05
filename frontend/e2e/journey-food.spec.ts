@@ -38,4 +38,24 @@ test.describe('Jornada — Food Catalog', () => {
     expect(food).toBeDefined();
     expect(food.category).toBe('CARBOIDRATO');
   });
+
+  test('E2E-J-09: Criar alimento sem nome mantém modal aberto e mostra erro', async ({
+    authenticatedPage,
+  }) => {
+    const { page } = authenticatedPage;
+
+    await page.goto('/foods');
+    await page.waitForLoadState('networkidle');
+
+    await page.getByTestId('newfood-btn').click();
+    const modal = page.getByRole('dialog');
+    await expect(modal).toBeVisible({ timeout: 3_000 });
+
+    // Não preenche nome, apenas seleciona categoria
+    await page.getByTestId('newfood-category').selectOption({ label: 'Carboidrato' });
+
+    // Botão deve estar desabilitado (nome é obrigatório)
+    const submitBtn = page.getByTestId('newfood-submit');
+    await expect(submitBtn).toBeDisabled();
+  });
 });
