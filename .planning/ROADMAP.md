@@ -44,7 +44,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 07: WhatsApp Intelligence** - AI conversations via WhatsApp with meal extraction and timeline (completed 2026-05-05)
 - [ ] **Phase 08: Billing & Subscriptions** - Stripe checkout, subscription management, patient limit enforcement
 - [ ] **Phase 09: LGPD Compliance** - Consent collection, terms/privacy pages, data export and deletion
-- [ ] **Phase 10: CI/CD & Deployment** - Automated deployment pipeline to production VPS
+- [ ] **Phase 10: WhatsApp Gateway Admin** - Multi-number pool management, health monitoring, fallback engine, rate limiting, admin dashboard
+- [ ] **Phase 11: CI/CD & Deployment** - Automated deployment pipeline to production VPS
 
 ## Phase Details
 
@@ -225,9 +226,26 @@ Plans:
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 10: CI/CD & Deployment
+### Phase 10: WhatsApp Gateway Admin
+**Goal**: Admin can manage multiple WhatsApp gateway numbers in a pool, with automatic fallback and health monitoring
+**Depends on**: Phase 7
+**Requirements**: GWADM-01, GWADM-02, GWADM-03, GWADM-04, GWADM-05
+**Success Criteria** (what must be TRUE):
+  1. Admin can register multiple physical chip numbers as WhatsApp gateways via a dedicated admin panel
+  2. Patient activation links (`wa.me`) are generated from the gateway pool — each patient is assigned to a gateway automatically
+  3. If a gateway is banned or disconnected, the system reassigns all its patients to another active gateway and generates new activation links
+  4. Admin dashboard shows gateway health (active/banned/disconnected), message volume, and patient distribution per gateway
+  5. Rate limiting prevents bans: responses are delayed 2-5 seconds and the system never initiates conversations (inbound-only model)
+**Tests**:
+  - **Backend (JUnit 5)**: GatewayPoolService, FallbackEngine, HealthMonitor, RateLimiter — gateway CRUD, patient reassignment, ban detection, rate limiting
+  - **Frontend (Vitest)**: Admin panel — gateway list, health indicators, reassignment actions, dashboard widgets
+  - **E2E (Playwright)**: Register gateway, simulate ban, verify patient reassignment, verify new activation link works
+**Plans**: TBD
+**Research**: `.planning/research/whatsapp-gateway-admin.md`
+
+### Phase 11: CI/CD & Deployment
 **Goal**: Application deploys automatically to production VPS on push
-**Depends on**: Phase 8, Phase 9
+**Depends on**: Phase 8, Phase 9, Phase 10
 **Requirements**: INFRA-05
 **Success Criteria** (what must be TRUE):
   1. Push to main branch triggers an automated GitHub Actions pipeline that builds and deploys both frontend and backend
@@ -242,13 +260,14 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10
+Phases execute in numeric order: 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11
 
 Note: Phase 06 depends on both Phase 04 and Phase 05 (history snapshots consume MealPlanService, lifecycle events modify it).
 Phase 07 depends on Phase 05 and Phase 06 (uses EpisodeHistoryEvent infrastructure and dashboard structure).
 Phase 08 depends on Phase 03 and Phase 04 (patient counts for tier enforcement) — can run in parallel with 05-07.
 Phase 09 depends on Phases 04-07 (data export must cover patients, meal plans, biometry, and WhatsApp data).
-Phase 10 depends on both Phase 08 and Phase 09 (deploy complete SaaS with billing and compliance).
+Phase 10 depends on Phase 07 (extends WhatsApp infrastructure with gateway pool management).
+Phase 11 depends on Phases 08, 09, and 10 (deploy complete SaaS with billing, compliance, and gateway admin).
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -261,4 +280,5 @@ Phase 10 depends on both Phase 08 and Phase 09 (deploy complete SaaS with billin
 | 07. WhatsApp Intelligence | 3/3 | Complete    | 2026-05-05 |
 | 08. Billing & Subscriptions | 0/? | Not started | - |
 | 09. LGPD Compliance | 0/? | Not started | - |
-| 10. CI/CD & Deployment | 0/? | Not started | - |
+| 10. WhatsApp Gateway Admin | 0/? | Not started | - |
+| 11. CI/CD & Deployment | 0/? | Not started | - |
