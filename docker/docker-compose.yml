@@ -33,6 +33,11 @@ services:
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-nutriai-redis-dev-password}
       SERVER_PORT: 8080
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
+      NUTRIAI_LLM_API_KEY: ${NUTRIAI_LLM_API_KEY:-}
+      NUTRIAI_LLM_BASE_URL: ${NUTRIAI_LLM_BASE_URL:-https://api.ollama.com/v1}
+      NUTRIAI_LLM_MODEL: ${NUTRIAI_LLM_MODEL:-glm4}
+      NUTRIAI_WEBHOOK_SECRET: ${NUTRIAI_WEBHOOK_SECRET:-}
     ports:
       - "8080:8080"
     depends_on:
