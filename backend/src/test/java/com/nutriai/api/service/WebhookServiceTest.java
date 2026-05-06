@@ -2,6 +2,7 @@ package com.nutriai.api.service;
 
 import com.nutriai.api.dto.whatsapp.WhatsAppWebhookDTO;
 import com.nutriai.api.model.Patient;
+import com.nutriai.api.model.WhatsAppMessage;
 import com.nutriai.api.repository.PatientRepository;
 import com.nutriai.api.repository.WhatsAppMessageRepository;
 

@@ -9,7 +9,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Public webhook endpoint for Evolution Go WhatsApp callbacks.
@@ -20,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/webhooks/whatsapp")
 public class WebhookController {
 
-    private static final Logger log = LoggerFactory.getLogger(WebhookController.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WebhookController.class);
 
     private final WebhookService webhookService;
     private final ObjectMapper objectMapper;
@@ -37,7 +40,7 @@ public class WebhookController {
 
         WhatsAppWebhookDTO payload = parsePayload(rawBody);
         if (payload == null) {
-            log.warn("Invalid webhook payload from {}", request.getRemoteAddr());
+            LOG.warn("Invalid webhook payload from {}", request.getRemoteAddr());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
 
@@ -52,7 +55,7 @@ public class WebhookController {
         try {
             return objectMapper.readValue(rawBody, WhatsAppWebhookDTO.class);
         } catch (JsonProcessingException e) {
-            log.debug("Failed to deserialize WhatsApp webhook payload", e);
+            LOG.debug("Failed to deserialize WhatsApp webhook payload", e);
             return null;
         }
     }

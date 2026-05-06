@@ -384,7 +384,7 @@ class ConversationServiceTest {
 
         // No response saved, no evolution send, message NOT marked processed
         verify(whatsAppResponseRepository, never()).save(any());
-        verify(evolutionApiService, never()).sendMessage(anyString(), anyString(), anyString());
+        verify(evolutionApiService, never()).sendMessage(anyString(), anyString());
         // Message stays unprocessed for retry — not saved with processed=true
         verify(whatsAppMessageRepository, never()).save(argThat(msg -> Boolean.TRUE.equals(msg.getProcessed())));
     }
