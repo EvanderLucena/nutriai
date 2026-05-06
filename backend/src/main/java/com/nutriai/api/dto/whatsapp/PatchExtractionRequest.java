@@ -1,5 +1,8 @@
 package com.nutriai.api.dto.whatsapp;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -17,11 +20,11 @@ public record PatchExtractionRequest(
      * Individual item in a correction request.
      */
     public record PatchExtractionItem(
-        String name,
-        BigDecimal kcal,
-        BigDecimal prot,
-        BigDecimal carb,
-        BigDecimal fat,
-        BigDecimal grams
+        @NotBlank String name,
+        @NotNull @PositiveOrZero BigDecimal kcal,
+        @NotNull @PositiveOrZero BigDecimal prot,
+        @NotNull @PositiveOrZero BigDecimal carb,
+        @NotNull @PositiveOrZero BigDecimal fat,
+        @NotNull @PositiveOrZero BigDecimal grams
     ) {}
 }
