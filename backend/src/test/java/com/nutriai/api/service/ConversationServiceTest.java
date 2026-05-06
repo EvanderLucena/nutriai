@@ -171,7 +171,7 @@ class ConversationServiceTest {
                 patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(extractionService.extractAndSave(eq(messageId), eq(patientId), eq(nutritionistId),
                 eq(episodeId), eq(extraction))).thenReturn(savedExtraction);
-        when(evolutionApiService.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(evolutionApiService.sendMessage(anyString(), anyString())).thenReturn(true);
         when(whatsAppResponseRepository.save(any(WhatsAppResponse.class))).thenAnswer(i -> i.getArgument(0));
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> i.getArgument(0));
         when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId))
@@ -191,7 +191,7 @@ class ConversationServiceTest {
         verify(whatsAppResponseRepository, atLeastOnce()).save(responseCaptor.capture());
 
         // Verify Evolution API was called
-        verify(evolutionApiService).sendMessage(eq("inst-1"), eq("11999998888"), anyString());
+        verify(evolutionApiService).sendMessage(eq("11999998888"), anyString());
 
         // Verify message was marked processed
         verify(whatsAppMessageRepository, atLeastOnce()).save(argThat(msg -> Boolean.TRUE.equals(msg.getProcessed())));
@@ -212,7 +212,7 @@ class ConversationServiceTest {
         when(nutritionistRepository.findById(nutritionistId)).thenReturn(Optional.of(nutritionist));
         when(whatsAppMessageRepository.existsByPatientIdAndProcessedTrue(patientId)).thenReturn(true);
         when(llmService.chat(any(LlmRequest.class))).thenReturn(llmResponse);
-        when(evolutionApiService.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(evolutionApiService.sendMessage(anyString(), anyString())).thenReturn(true);
         when(whatsAppResponseRepository.save(any(WhatsAppResponse.class))).thenAnswer(i -> i.getArgument(0));
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -228,7 +228,7 @@ class ConversationServiceTest {
         verify(extractionService, never()).extractAndSave(any(), any(), any(), any(), any());
 
         // Verify Evolution API was called
-        verify(evolutionApiService).sendMessage(eq("inst-1"), eq("11999998888"), anyString());
+        verify(evolutionApiService).sendMessage(eq("11999998888"), anyString());
     }
 
     @Test
@@ -247,7 +247,7 @@ class ConversationServiceTest {
                 null
         );
         when(llmService.chat(any(LlmRequest.class))).thenReturn(greetingResponse);
-        when(evolutionApiService.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(evolutionApiService.sendMessage(anyString(), anyString())).thenReturn(true);
         when(whatsAppResponseRepository.save(any(WhatsAppResponse.class))).thenAnswer(i -> i.getArgument(0));
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -281,7 +281,7 @@ class ConversationServiceTest {
                 null
         );
         when(llmService.chat(any(LlmRequest.class))).thenReturn(ackResponse);
-        when(evolutionApiService.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(evolutionApiService.sendMessage(anyString(), anyString())).thenReturn(true);
         when(whatsAppResponseRepository.save(any(WhatsAppResponse.class))).thenAnswer(i -> i.getArgument(0));
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -329,7 +329,7 @@ class ConversationServiceTest {
                 patientId, nutritionistId)).thenReturn(Optional.of(activeEpisode));
         when(extractionService.extractAndSave(any(), eq(patientId), eq(nutritionistId),
                 eq(episodeId), any())).thenReturn(MealExtraction.builder().id(UUID.randomUUID()).build());
-        when(evolutionApiService.sendMessage(anyString(), anyString(), anyString())).thenReturn(true);
+        when(evolutionApiService.sendMessage(anyString(), anyString())).thenReturn(true);
         when(whatsAppResponseRepository.save(any(WhatsAppResponse.class))).thenAnswer(i -> i.getArgument(0));
         when(whatsAppMessageRepository.save(any(WhatsAppMessage.class))).thenAnswer(i -> i.getArgument(0));
         when(mealPlanRepository.findByEpisodeIdAndNutritionistId(episodeId, nutritionistId))
@@ -339,7 +339,7 @@ class ConversationServiceTest {
 
         verify(extractionService).extractAndSave(any(), eq(patientId), eq(nutritionistId),
                 eq(episodeId), any());
-        verify(evolutionApiService).sendMessage(anyString(), anyString(), anyString());
+        verify(evolutionApiService).sendMessage(anyString(), anyString());
     }
 
     @Test
@@ -366,7 +366,7 @@ class ConversationServiceTest {
         // No LLM call, no extraction, no evolution send
         verify(llmService, never()).chat(any());
         verify(extractionService, never()).extractAndSave(any(), any(), any(), any(), any());
-        verify(evolutionApiService, never()).sendMessage(anyString(), anyString(), anyString());
+        verify(evolutionApiService, never()).sendMessage(anyString(), anyString());
         verify(whatsAppMessageRepository).save(argThat(msg -> msg.getProcessed()));
     }
 

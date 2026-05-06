@@ -42,17 +42,29 @@ public class WebhookService {
 
     /**
      * Process an incoming webhook payload.
-     * Returns the persisted message ID, or empty if dedup.
+     * Returns the persisted message ID, or empty if dedup or non-processable event.
      */
     @Transactional
     public Optional<WebhookMessageDTO> processIncoming(WhatsAppWebhookDTO payload) {
-        if (payload == null || payload.getData() == null || payload.getData().getKey() == null) {
+        if (payload == null || payload.getData() == null || payload.getData().getInfo() == null) {
             log.warn("Received invalid webhook payload");
             return Optional.empty();
         }
 
-        String rawPhone = extractPhoneFromJid(payload.getData().getKey().getRemoteJid());
-        String evolutionMessageId = payload.getData().getKey().getId();
+        // Only process incoming messages
+        if (!"Message".equals(payload.getEvent())) {
+            log.debug("Ignoring non-Message event: {}", payload.getEvent());
+            return Optional.empty();
+        }
+
+        // Ignore messages sent by our own instance (AI responses)
+        if (payload.getData().getInfo().isFromMe()) {
+            log.debug("Ignoring message sent by our own instance");
+            return Optional.empty();
+        }
+
+        String rawPhone = extractPhoneFromJid(payload.getData().getInfo().getSender());
+        String evolutionMessageId = payload.getData().getInfo().getId();
         String instanceId = payload.getInstanceId();
 
         if (evolutionMessageId == null || rawPhone == null) {
@@ -128,19 +140,22 @@ public class WebhookService {
                 messageContent, messageType));
     }
 
-    private String extractPhoneFromJid(String jid) {
-        if (jid == null) return null;
-        int atIndex = jid.indexOf('@');
+    private String extractPhoneFromJid(String sender) {
+        if (sender == null) return null;
+        int atIndex = sender.indexOf('@');
         if (atIndex > 0) {
-            return jid.substring(0, atIndex);
+            return sender.substring(0, atIndex);
         }
-        return jid;
+        return sender;
     }
 
     private String determineMessageType(WhatsAppWebhookDTO payload) {
-        if (payload.getData().getMessage() == null) return "text";
-        if (payload.getData().getMessage().getAudioMessage() != null) return "audio";
-        if (payload.getData().getMessage().getImageMessage() != null) return "image";
+        if (payload.getData() == null || payload.getData().getInfo() == null) return "text";
+        String mediaType = payload.getData().getInfo().getMediaType();
+        if ("audio".equalsIgnoreCase(mediaType)) return "audio";
+        if ("image".equalsIgnoreCase(mediaType)) return "image";
+        if ("video".equalsIgnoreCase(mediaType)) return "video";
+        if ("document".equalsIgnoreCase(mediaType)) return "document";
         return "text";
     }
 

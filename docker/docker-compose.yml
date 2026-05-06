@@ -18,34 +18,6 @@ services:
     networks:
       - nutriai
 
-  backend:
-    build:
-      context: ../backend
-      dockerfile: Dockerfile.dev
-    container_name: nutriai-backend
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nutriai}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nutriai}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      NUTRIAI_JWT_SECRET: ${NUTRIAI_JWT_SECRET:-ci-dev-secret-minimum-32-chars-ok!}
-      NUTRIAI_SEED_ADMIN_PASSWORD: ${NUTRIAI_SEED_ADMIN_PASSWORD:-admin123}
-      SPRING_DATA_REDIS_HOST: redis
-      SPRING_DATA_REDIS_PORT: 6379
-      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-nutriai-redis-dev-password}
-      SERVER_PORT: 8080
-      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
-      NUTRIAI_LLM_API_KEY: ${NUTRIAI_LLM_API_KEY:-}
-      NUTRIAI_LLM_BASE_URL: ${NUTRIAI_LLM_BASE_URL:-https://api.ollama.com/v1}
-      NUTRIAI_LLM_MODEL: ${NUTRIAI_LLM_MODEL:-glm4}
-      NUTRIAI_WEBHOOK_SECRET: ${NUTRIAI_WEBHOOK_SECRET:-}
-    ports:
-      - "8080:8080"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - nutriai
-
   redis:
     image: redis:7-alpine
     container_name: nutriai-redis
@@ -60,23 +32,52 @@ services:
     networks:
       - nutriai
 
-  evolution-api:
-    image: atendai/evolution-api:latest
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.dev
+    container_name: nutriai-backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nutriai}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-nutriai}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      NUTRIAI_JWT_SECRET: ${NUTRIAI_JWT_SECRET:-ci-dev-secret-minimum-32-chars-ok!}
+      NUTRIAI_SEED_ADMIN_PASSWORD: ${NUTRIAI_SEED_ADMIN_PASSWORD:-admin123}
+      NUTRIAI_LLM_API_KEY: ${NUTRIAI_LLM_API_KEY:-}
+      NUTRIAI_LLM_BASE_URL: ${NUTRIAI_LLM_BASE_URL:-https://api.ollama.com/v1}
+      NUTRIAI_LLM_MODEL: ${NUTRIAI_LLM_MODEL:-glm4}
+      NUTRIAI_LLM_TIMEOUT: ${NUTRIAI_LLM_TIMEOUT:-30}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-http://evolution-go:8080}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-nutriai-redis-dev-password}
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - nutriai
+
+  evolution-go:
+    image: evoapicloud/evolution-go:latest
     container_name: nutriai-evolution
     restart: unless-stopped
     environment:
-      SERVER_TYPE: http
       SERVER_PORT: 8080
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
-      DATABASE_ENABLED: "false"
-      DATABASE_URI: ""
-      DATABASE_DB_NAME: ""
-      CONFIG_SESSION_PHONE_CHECK: "false"
-      QRCODE_AUTO_START: "true"
+      CLIENT_NAME: nutriai
+      GLOBAL_API_KEY: ${EVOLUTION_API_KEY:-changeme}
+      DATABASE_SAVE_MESSAGES: "false"
+      WADEBUG: INFO
+      LOGTYPE: console
+      WEBHOOK_URL: ${EVOLUTION_WEBHOOK_URL:-}
+      WEBHOOK_FILES: "false"
     ports:
       - "${EVOLUTION_PORT:-8081}:8080"
-    depends_on:
-      - postgres
     volumes:
       - nutriai-evolution-data:/evolution-instance
     networks:

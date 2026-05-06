@@ -1,47 +1,74 @@
 package com.nutriai.api.dto.whatsapp;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * DTO for incoming Evolution API webhook payloads.
+ * DTO for incoming Evolution API (Go) webhook payloads.
+ * Schema matches the Evolution Go webhook format:
+ * {"event": "Message", "data": {...}, "instanceId": "...", "instanceToken": "..."}
+ *
  * Uses ignoreUnknown for resilience against field changes.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class WhatsAppWebhookDTO {
-    private String instanceId;
+
     private String event;
     private MessageData data;
+    private String instanceId;
 
-    public String getInstanceId() { return instanceId; }
-    public void setInstanceId(String instanceId) { this.instanceId = instanceId; }
     public String getEvent() { return event; }
     public void setEvent(String event) { this.event = event; }
     public MessageData getData() { return data; }
     public void setData(MessageData data) { this.data = data; }
+    public String getInstanceId() { return instanceId; }
+    public void setInstanceId(String instanceId) { this.instanceId = instanceId; }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MessageData {
-        private MessageKey key;
+        private WhatsAppInfo info;
         private MessageContent message;
-        private String pushName;
 
-        public MessageKey getKey() { return key; }
-        public void setKey(MessageKey key) { this.key = key; }
+        public WhatsAppInfo getInfo() { return info; }
+        public void setInfo(WhatsAppInfo info) { this.info = info; }
         public MessageContent getMessage() { return message; }
         public void setMessage(MessageContent message) { this.message = message; }
-        public String getPushName() { return pushName; }
-        public void setPushName(String pushName) { this.pushName = pushName; }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class MessageKey {
-        private String remoteJid;
+    public static class WhatsAppInfo {
+        private String chat;
+        private String sender;
+        private boolean isFromMe;
+        private boolean isGroup;
         private String id;
+        private String type;
+        private String pushName;
+        private String timestamp;
+        private String mediaType;
 
-        public String getRemoteJid() { return remoteJid; }
-        public void setRemoteJid(String remoteJid) { this.remoteJid = remoteJid; }
+        @JsonProperty("isFromMe")
+        public boolean isFromMe() { return isFromMe; }
+        public void setFromMe(boolean fromMe) { isFromMe = fromMe; }
+
+        @JsonProperty("isGroup")
+        public boolean isGroup() { return isGroup; }
+        public void setGroup(boolean group) { isGroup = group; }
+
+        public String getChat() { return chat; }
+        public void setChat(String chat) { this.chat = chat; }
+        public String getSender() { return sender; }
+        public void setSender(String sender) { this.sender = sender; }
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
+        public String getType() { return type; }
+        public void setType(String type) { this.type = type; }
+        public String getPushName() { return pushName; }
+        public void setPushName(String pushName) { this.pushName = pushName; }
+        public String getTimestamp() { return timestamp; }
+        public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+        public String getMediaType() { return mediaType; }
+        public void setMediaType(String mediaType) { this.mediaType = mediaType; }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
