@@ -214,14 +214,15 @@ public class ConversationService {
      */
     String buildGreetingPrompt(String patientName, String nutritionistName) {
         return """
-            Você é um assistente de nutrição humana. O paciente %s está enviando a primeira mensagem.
-            Nutricionista: %s
+            Você é um assistente de nutrição humana. O paciente {{patientName}} está enviando a primeira mensagem.
+            Nutricionista: {{nutritionistName}}
 
             Gere uma saudação amigável e contextual como:
-            "Oi %s! Sou o assistente virtual da nutri %s. Tô aqui pra te ajudar com as refeições, tirar dúvidas sobre o plano, e acompanhar como você tá se sentindo."
+            "Oi {{patientName}}! Sou o assistente virtual da nutri {{nutritionistName}}. Tô aqui pra te ajudar com as refeições, tirar dúvidas sobre o plano, e acompanhar como você tá se sentindo."
 
             Seja natural e acolhedor. Responda apenas com a mensagem de saudação.
-            """.formatted(patientName, nutritionistName, patientName, nutritionistName);
+            """.replace("{{patientName}}", escape(patientName))
+               .replace("{{nutritionistName}}", escape(nutritionistName));
     }
 
     /**
@@ -232,10 +233,10 @@ public class ConversationService {
             Você é um assistente de nutrição humana, empático e não julgador.
 
             Responda com um acknowledgment amigável. Exemplo:
-            "Recebi sua %s! Vou registrar o que você me contou."
+            "Recebi sua {{tipo}}! Vou registrar o que você me contou."
 
             Seja breve e acolhedor. Responda apenas com a mensagem de acknowledgment.
-            """.formatted(tipo);
+            """.replace("{{tipo}}", escape(tipo));
     }
 
     /**
@@ -255,13 +256,13 @@ public class ConversationService {
             - Responda em português brasileiro
 
             CONTEXTO DO PACIENTE:
-            %s
+            {{patientContext}}
 
             CONTEXTO COMPLETO DO PLANO ALIMENTAR:
-            %s
+            {{planContext}}
 
             Se o paciente está relatando uma refeição (o que comeu), extraia os alimentos mencionados com macros estimados.
-            Responda em formato JSON no campo de extração. Também envie uma resposta empátiva ao paciente.
+            Responda em formato JSON no campo de extração. Também envie uma resposta empática ao paciente.
 
             Formato de resposta JSON (DENTRO de ```json```):
             ```json
@@ -277,7 +278,8 @@ public class ConversationService {
             Se o paciente está perguntando sobre o plano alimentar, responda à dúvida de forma clara e amigável usando o contexto do plano.
 
             Se for uma saudação ou mensagem genérica, responda de forma amigável e breve.
-            """.formatted(patientContext, planContext);
+            """.replace("{{patientContext}}", escape(patientContext))
+               .replace("{{planContext}}", escape(planContext));
     }
 
     /**
@@ -393,12 +395,12 @@ public class ConversationService {
             "Recebi sua foto! Vou registrar o que você me contou."
 
             CONTEXTO DO PACIENTE:
-            %s
+            {{patientContext}}
 
             CONTEXTO COMPLETO DO PLANO ALIMENTAR:
-            %s
+            {{planContext}}
 
-            Agora, extraia os alimentos mencionados na legenda com macros estimados. Responda em formato JSON no campo de extração. Também envie uma resposta empátiva ao paciente.
+            Agora, extraia os alimentos mencionados na legenda com macros estimados. Responda em formato JSON no campo de extração. Também envie uma resposta empática ao paciente.
 
             Formato de resposta JSON (DENTRO de ```json```):
             ```json
@@ -409,7 +411,16 @@ public class ConversationService {
               ]
             }
             ```
-            """.formatted(patientContext, planContext);
+            """.replace("{{patientContext}}", escape(patientContext))
+               .replace("{{planContext}}", escape(planContext));
+    }
+
+    private String escape(String input) {
+        if (input == null) {
+            return "";
+        }
+        // Replace curly braces to prevent accidental placeholder injection
+        return input.replace("{", "\\{").replace("}", "\\}");
     }
 
     private void markProcessed(WhatsAppMessage message) {

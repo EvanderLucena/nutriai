@@ -89,7 +89,7 @@ public class WhatsAppIntelligenceService {
                         "Paciente não encontrado"));
 
         MealExtraction extraction = mealExtractionRepository
-                .findByIdAndPatientId(extractionId, patientId)
+                .findByIdAndPatientIdAndNutritionistId(extractionId, patientId, nutritionistId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Extração não encontrada"));
 

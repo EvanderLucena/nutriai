@@ -27,6 +27,11 @@ public interface MealExtractionRepository extends JpaRepository<MealExtraction, 
     Optional<MealExtraction> findByIdAndPatientId(UUID id, UUID patientId);
 
     /**
+     * Find extraction by ID scoped to patient and nutritionist (defense-in-depth tenant isolation, D-12).
+     */
+    Optional<MealExtraction> findByIdAndPatientIdAndNutritionistId(UUID id, UUID patientId, UUID nutritionistId);
+
+    /**
      * Count extractions for a nutritionist today (for WhatsApp status, D-23).
      */
     long countByNutritionistIdAndExtractedAtBetween(

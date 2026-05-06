@@ -67,6 +67,13 @@ public class WhatsAppMessage {
     @Column(nullable = false)
     private Boolean processed = false;
 
+    @Builder.Default
+    @Column(name = "retry_count", nullable = false)
+    private Integer retryCount = 0;
+
+    @Column(name = "last_retry_at")
+    private LocalDateTime lastRetryAt;
+
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 

@@ -4,6 +4,7 @@ import com.nutriai.api.auth.NutritionistAccess;
 import com.nutriai.api.dto.ApiResponse;
 import com.nutriai.api.dto.whatsapp.*;
 import com.nutriai.api.service.WhatsAppIntelligenceService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -45,7 +46,7 @@ public class WhatsAppIntelligenceController {
     public ResponseEntity<ApiResponse<ExtractionDTO>> correctExtraction(
             @PathVariable UUID patientId,
             @PathVariable UUID extractionId,
-            @RequestBody PatchExtractionRequest request
+            @Valid @RequestBody PatchExtractionRequest request
     ) {
         UUID nutritionistId = NutritionistAccess.getCurrentNutritionistId();
         ExtractionDTO updated = whatsAppIntelligenceService.correctExtraction(
