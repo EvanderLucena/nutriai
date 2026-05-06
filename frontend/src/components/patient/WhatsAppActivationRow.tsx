@@ -17,7 +17,7 @@ export function WhatsAppActivationRow({
 }: WhatsAppActivationRowProps) {
   const [copied, setCopied] = useState(false);
   const hasPhone = patient.whatsapp != null && patient.whatsapp !== '';
-  const { data: activationData, isError } = useActivationLink(hasPhone ? patientId : null);
+  const { data: activationData, isError, error } = useActivationLink(hasPhone ? patientId : null);
   const showSuccess = useToastStore((s) => s.showSuccess);
 
   const isActivated = activationData?.isActivated ?? false;
@@ -117,8 +117,52 @@ export function WhatsAppActivationRow({
   }
 
   // State 3: WhatsApp number exists but not yet activated (gray dot)
-  // If the activation link API fails (400 = no phone), show phone prompt
+  // Distinguish 400 (missing phone) from other errors (network/500)
   if (isError) {
+    const isMissingPhoneError =
+      error != null &&
+      typeof error === 'object' &&
+      'response' in error &&
+      error.response != null &&
+      typeof error.response === 'object' &&
+      'status' in error.response &&
+      error.response.status === 400;
+
+    if (isMissingPhoneError) {
+      return (
+        <div
+          style={{
+            padding: '8px 28px',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            <IconWhatsapp size={16} style={{ color: 'var(--fg-subtle)', flexShrink: 0 }} />
+            <span style={{ color: 'var(--fg-muted)' }}>WhatsApp: Número não cadastrado</span>
+          </div>
+          <button
+            className="btn btn-ghost"
+            style={{ fontSize: 11, padding: '4px 8px' }}
+            onClick={onEditPatient}
+          >
+            <IconEdit size={10} /> Editar paciente
+          </button>
+        </div>
+      );
+    }
+
+    // Generic error (network, 500, timeout)
     return (
       <div
         style={{
@@ -138,8 +182,8 @@ export function WhatsAppActivationRow({
             fontFamily: 'var(--font-ui)',
           }}
         >
-          <IconWhatsapp size={16} style={{ color: 'var(--fg-subtle)', flexShrink: 0 }} />
-          <span style={{ color: 'var(--fg-muted)' }}>WhatsApp: Número não cadastrado</span>
+          <IconWhatsapp size={16} style={{ color: 'var(--coral)', flexShrink: 0 }} />
+          <span style={{ color: 'var(--fg-muted)' }}>Erro ao carregar link. Tente novamente.</span>
         </div>
         <button
           className="btn btn-ghost"
