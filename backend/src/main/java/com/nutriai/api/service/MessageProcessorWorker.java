@@ -55,6 +55,13 @@ public class MessageProcessorWorker {
         }
 
         WhatsAppMessage message = msgOpt.get();
+
+        // Guard against double-processing (requeueFailedMessages may have re-enqueued)
+        if (Boolean.TRUE.equals(message.getProcessed())) {
+            log.debug("Message {} already processed, skipping", messageId);
+            return;
+        }
+
         if (message.getRetryCount() >= MAX_RETRIES) {
             log.warn("Message {} exceeded max retries ({}), skipping", messageId, MAX_RETRIES);
             return;
@@ -63,10 +70,11 @@ public class MessageProcessorWorker {
         try {
             conversationService.processMessage(messageId);
         } catch (Exception e) {
-            // Increment retry count and log
+            // Increment retry count, clear processed flag, update lastRetryAt
             message.setRetryCount(message.getRetryCount() + 1);
             message.setProcessed(false);
             message.setProcessedAt(null);
+            message.setLastRetryAt(LocalDateTime.now());
             whatsAppMessageRepository.save(message);
             log.error("Error processing message {} (retry {}/{}): {}",
                     messageId, message.getRetryCount(), MAX_RETRIES, e.getMessage(), e);
@@ -84,7 +92,9 @@ public class MessageProcessorWorker {
 
         int requeued = 0;
         for (WhatsAppMessage msg : failed) {
-            if (msg.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(1))) {
+            // Use lastRetryAt for backoff; fall back to createdAt for messages never retried
+            LocalDateTime lastAttempt = msg.getLastRetryAt() != null ? msg.getLastRetryAt() : msg.getCreatedAt();
+            if (lastAttempt != null && lastAttempt.isBefore(LocalDateTime.now().minusMinutes(1))) {
                 // Only re-enqueue if at least 1 minute has passed since last attempt
                 messageQueueService.enqueue(msg.getId());
                 requeued++;
