@@ -119,3 +119,18 @@ None — plan executed exactly as written.
 - Backend tests pass (7 WhatsAppIntelligenceControllerTest) ✓
 - Frontend compiles (`npx tsc --noEmit`) ✓
 - Frontend tests pass (165 total, including 6 new whatsappStore tests) ✓
+
+---
+
+## Post-Execution: Wave 4 Identified (Not Executed)
+
+After completing Wave 3, conceptual UAT discussion with founder identified a **missing core capability**: the AI does not yet handle "meal suggestion" scenarios ("I'm hungry, what should I eat?"). This is central to the product differentiator.
+
+**Wave 4 documented:** `07-04-PLAN.md` — "IA Meal Suggestion Refinement"
+- New intent: `MEAL_SUGGESTION`
+- Time-based meal recommendation from plan
+- Harm reduction for out-of-plan requests
+- Timeline UI update for suggestion events
+- 4 tasks, ~8h estimated
+
+**Status:** Documented, not executed. To be implemented in separate branch when prioritized.
