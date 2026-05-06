@@ -4,11 +4,13 @@ import com.nutriai.api.model.WhatsAppMessage;
 import com.nutriai.api.repository.WhatsAppMessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -84,18 +86,23 @@ public class MessageProcessorWorker {
     /**
      * Re-enqueue messages that failed (processed=false) and have retries remaining.
      * Runs every 30 seconds to pick up messages that were not retried via the queue.
+     * Limited to 100 messages per run to prevent memory pressure (MEDIUM fix).
      */
     @Scheduled(fixedDelay = 30000)
     public void requeueFailedMessages() {
-        List<WhatsAppMessage> failed = whatsAppMessageRepository
-                .findByProcessedFalseAndRetryCountLessThanOrderByCreatedAtAsc(MAX_RETRIES);
+        Pageable pageable = PageRequest.of(0, 100);
+        Page<WhatsAppMessage> failedPage = whatsAppMessageRepository
+                .findByProcessedFalseAndRetryCountLessThanOrderByCreatedAtAsc(MAX_RETRIES, pageable);
 
         int requeued = 0;
-        for (WhatsAppMessage msg : failed) {
+        for (WhatsAppMessage msg : failedPage.getContent()) {
             // Use lastRetryAt for backoff; fall back to createdAt for messages never retried
             LocalDateTime lastAttempt = msg.getLastRetryAt() != null ? msg.getLastRetryAt() : msg.getCreatedAt();
             if (lastAttempt != null && lastAttempt.isBefore(LocalDateTime.now().minusMinutes(1))) {
                 // Only re-enqueue if at least 1 minute has passed since last attempt
+                // Update lastRetryAt immediately to prevent duplicate re-enqueue (HIGH fix)
+                msg.setLastRetryAt(LocalDateTime.now());
+                whatsAppMessageRepository.save(msg);
                 messageQueueService.enqueue(msg.getId());
                 requeued++;
             }
