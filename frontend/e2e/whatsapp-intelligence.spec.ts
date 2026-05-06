@@ -44,7 +44,7 @@ test.describe('WhatsApp Intelligence — API Contract & E2E', () => {
     const body = await resp.json();
     expect(body.success).toBe(true);
     expect(body.data).toHaveProperty('link');
-    expect(body.data.link).toMatch(/wa\.me\/551199987766/);
+    expect(body.data.link).toMatch(/wa\.me\/5511999887766/);
     expect(body.data).toHaveProperty('phone');
     expect(body.data).toHaveProperty('isActivated');
     expect(typeof body.data.isActivated).toBe('boolean');
