@@ -55,4 +55,9 @@ public interface WhatsAppMessageRepository extends JpaRepository<WhatsAppMessage
      */
     @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM WhatsAppMessage m WHERE m.nutritionistId = :nutritionistId AND m.createdAt > :since")
     boolean existsByNutritionistIdAndCreatedAtAfter(@Param("nutritionistId") UUID nutritionistId, @Param("since") LocalDateTime since);
+
+    /**
+     * Find failed messages eligible for retry (processed=false, retries < max).
+     */
+    List<WhatsAppMessage> findByProcessedFalseAndRetryCountLessThanOrderByCreatedAtAsc(int maxRetryCount);
 }

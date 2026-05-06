@@ -1,31 +1,39 @@
 package com.nutriai.api.service;
 
+import com.nutriai.api.model.WhatsAppMessage;
+import com.nutriai.api.repository.WhatsAppMessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
  * Async queue worker that processes enqueued messages.
  * Polls Redis every 2 seconds and delegates to ConversationService.
- * Intentionally simple for v1 (D-09 — Redis as queue, no dead-letter).
+ * Retries failed messages up to 3 times (D-09 + WR-05).
  */
 @Component
 public class MessageProcessorWorker {
 
     private static final Logger log = LoggerFactory.getLogger(MessageProcessorWorker.class);
+    private static final int MAX_RETRIES = 3;
 
     private final MessageQueueService messageQueueService;
     private final ConversationService conversationService;
+    private final WhatsAppMessageRepository whatsAppMessageRepository;
 
     public MessageProcessorWorker(
             MessageQueueService messageQueueService,
-            ConversationService conversationService) {
+            ConversationService conversationService,
+            WhatsAppMessageRepository whatsAppMessageRepository) {
         this.messageQueueService = messageQueueService;
         this.conversationService = conversationService;
+        this.whatsAppMessageRepository = whatsAppMessageRepository;
     }
 
     /**
@@ -40,13 +48,51 @@ public class MessageProcessorWorker {
         }
 
         UUID messageId = messageIdOpt.get();
+        Optional<WhatsAppMessage> msgOpt = whatsAppMessageRepository.findById(messageId);
+        if (msgOpt.isEmpty()) {
+            log.warn("Message {} not found in DB, dropping from queue", messageId);
+            return;
+        }
+
+        WhatsAppMessage message = msgOpt.get();
+        if (message.getRetryCount() >= MAX_RETRIES) {
+            log.warn("Message {} exceeded max retries ({}), skipping", messageId, MAX_RETRIES);
+            return;
+        }
+
         try {
             conversationService.processMessage(messageId);
         } catch (Exception e) {
-            // Log error, don't crash the worker
-            // Message stays marked as unprocessed (processed=false)
-            // Can be retried manually or via a dead-letter mechanism (v2)
-            log.error("Error processing message {}: {}", messageId, e.getMessage(), e);
+            // Increment retry count and log
+            message.setRetryCount(message.getRetryCount() + 1);
+            message.setProcessed(false);
+            message.setProcessedAt(null);
+            whatsAppMessageRepository.save(message);
+            log.error("Error processing message {} (retry {}/{}): {}",
+                    messageId, message.getRetryCount(), MAX_RETRIES, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Re-enqueue messages that failed (processed=false) and have retries remaining.
+     * Runs every 30 seconds to pick up messages that were not retried via the queue.
+     */
+    @Scheduled(fixedDelay = 30000)
+    public void requeueFailedMessages() {
+        List<WhatsAppMessage> failed = whatsAppMessageRepository
+                .findByProcessedFalseAndRetryCountLessThanOrderByCreatedAtAsc(MAX_RETRIES);
+
+        int requeued = 0;
+        for (WhatsAppMessage msg : failed) {
+            if (msg.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(1))) {
+                // Only re-enqueue if at least 1 minute has passed since last attempt
+                messageQueueService.enqueue(msg.getId());
+                requeued++;
+            }
+        }
+
+        if (requeued > 0) {
+            log.info("Re-enqueued {} failed messages for retry", requeued);
         }
     }
 }
