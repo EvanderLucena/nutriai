@@ -10,7 +10,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 
 /**
- * Sends WhatsApp messages via Evolution API.
+ * Sends WhatsApp messages via Evolution Go API.
  * Logs failures but doesn't throw — failures in sending should not crash the processing pipeline.
  */
 public class EvolutionApiService {
@@ -19,29 +19,31 @@ public class EvolutionApiService {
 
     private final String apiUrl;
     private final String apiKey;
+    private final String instanceName;
     private final HttpClient httpClient;
 
-    public EvolutionApiService(String apiUrl, String apiKey) {
+    public EvolutionApiService(String apiUrl, String apiKey, String instanceName) {
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
+        this.instanceName = instanceName;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     /**
-     * Send a text message via Evolution API.
+     * Send a text message via Evolution Go API.
      *
-     * @param instanceId the Evolution API instance ID
-     * @param phone      the recipient phone number (normalized)
-     * @param text       the message text to send
+     * @param phone the recipient phone number (normalized, with country code e.g. 5511999999999)
+     * @param text  the message text to send
      * @return true if the message was sent successfully, false otherwise
      */
-    public boolean sendMessage(String instanceId, String phone, String text) {
+    public boolean sendMessage(String phone, String text) {
         try {
-            String endpoint = apiUrl + "/message/sendText/" + instanceId;
+            String endpoint = apiUrl + "/message/sendText/" + instanceName;
+            // Evolution Go payload uses nested textMessage object
             String payload = String.format(
-                    "{\"number\":\"%s\",\"text\":\"%s\"}",
+                    "{\"number\":\"%s\",\"textMessage\":{\"text\":\"%s\"}}",
                     escapeJson(phone),
                     escapeJson(text)
             );
@@ -58,18 +60,18 @@ public class EvolutionApiService {
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 log.info("Message sent via Evolution API: instance={}, phone={}, status={}",
-                        instanceId, maskPhone(phone), response.statusCode());
+                        instanceName, maskPhone(phone), response.statusCode());
                 return true;
             }
 
             // Retry once on server error or timeout
             if (response.statusCode() >= 500) {
                 log.warn("Evolution API server error ({}), retrying...", response.statusCode());
-                Thread.sleep(500); // brief pause before retry
+                Thread.sleep(500);
 
                 HttpResponse<String> retryResponse = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
                 if (retryResponse.statusCode() >= 200 && retryResponse.statusCode() < 300) {
-                    log.info("Message sent on retry: instance={}, phone={}", instanceId, maskPhone(phone));
+                    log.info("Message sent on retry: instance={}, phone={}", instanceName, maskPhone(phone));
                     return true;
                 }
                 log.error("Evolution API retry failed: status={}", retryResponse.statusCode());
@@ -82,23 +84,22 @@ public class EvolutionApiService {
 
         } catch (java.net.http.HttpTimeoutException e) {
             log.error("Evolution API timeout sending message to {}", maskPhone(phone));
-            // Retry once on timeout
-            return retrySendOnce(instanceId, phone, text);
+            return retrySendOnce(phone, text);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Evolution API send interrupted: {}", e.getMessage());
             return false;
         } catch (Exception e) {
             log.error("Evolution API send failed: {}", e.getMessage(), e);
-            return retrySendOnce(instanceId, phone, text);
+            return retrySendOnce(phone, text);
         }
     }
 
-    private boolean retrySendOnce(String instanceId, String phone, String text) {
+    private boolean retrySendOnce(String phone, String text) {
         try {
-            String endpoint = apiUrl + "/message/sendText/" + instanceId;
+            String endpoint = apiUrl + "/message/sendText/" + instanceName;
             String payload = String.format(
-                    "{\"number\":\"%s\",\"text\":\"%s\"}",
+                    "{\"number\":\"%s\",\"textMessage\":{\"text\":\"%s\"}}",
                     escapeJson(phone),
                     escapeJson(text)
             );

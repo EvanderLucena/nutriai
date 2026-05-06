@@ -40,8 +40,11 @@ nutriai:
     timeout-seconds: ${NUTRIAI_LLM_TIMEOUT:30}
 
   evolution:
-    api-url: ${EVOLUTION_API_URL:http://evolution-api:8080}
+    api-url: ${EVOLUTION_API_URL:http://evolution-go:8080}
     api-key: ${EVOLUTION_API_KEY:changeme}
 
   webhook:
+    # Evolution Go does not support HMAC signatures by default.
+    # Security relies on message ID deduplication + phone matching.
+    # Keep property for backward compatibility but it has no effect.
     secret: ${NUTRIAI_WEBHOOK_SECRET:}

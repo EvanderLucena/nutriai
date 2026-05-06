@@ -183,8 +183,8 @@ public class ConversationService {
         whatsAppResponseRepository.save(waResponse);
 
         // 8. Send response via EvolutionApiService
+        // Note: instance name is fixed per deployment and configured in EvolutionApiService
         boolean sent = evolutionApiService.sendMessage(
-                message.getInstanceId(),
                 message.getSenderPhoneNormalized(),
                 responseContent
         );

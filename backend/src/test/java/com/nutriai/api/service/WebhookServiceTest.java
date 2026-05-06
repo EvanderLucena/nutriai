@@ -116,7 +116,7 @@ class WebhookServiceTest {
 
     @Test
     void processIncoming_imageMessageWithCaption_savesContentAndMediaUrl() {
-        WhatsAppWebhookDTO dto = createImageWebhook("55119999887766", "msg-img", "https://media.url/img.jpg", "Almoço: arroz e feijão");
+        WhatsAppWebhookDTO dto = createImageWebhook("55119999887766", "msg-img", "https://media.url/img.jpg", "Almoco: arroz e feijao");
         when(phoneNormalizationService.normalize("55119999887766")).thenReturn(Optional.of("119999887766"));
         when(patientRepository.findDistinctNutritionistIdsByWhatsapp("119999887766")).thenReturn(List.of(nutritionistId));
         when(patientRepository.findByWhatsappAndNutritionistId("119999887766", nutritionistId)).thenReturn(Optional.of(patient));
@@ -158,17 +158,44 @@ class WebhookServiceTest {
         verify(messageQueueService, never()).enqueue(any());
     }
 
+    @Test
+    void processIncoming_fromMeMessage_ignoresOwnMessages() {
+        WhatsAppWebhookDTO dto = createTextWebhook("55119999887766", "msg-own", "Oi");
+        dto.getData().getInfo().setFromMe(true);
+        // Should not reach normalization or repo queries
+
+        Optional<?> result = webhookService.processIncoming(dto);
+
+        assertTrue(result.isEmpty());
+        verify(phoneNormalizationService, never()).normalize(any());
+        verify(whatsAppMessageRepository, never()).save(any());
+        verify(messageQueueService, never()).enqueue(any());
+    }
+
+    @Test
+    void processIncoming_nonMessageEvent_ignores() {
+        WhatsAppWebhookDTO dto = createTextWebhook("55119999887766", "msg-status", "Oi");
+        dto.setEvent("Connected");
+
+        Optional<?> result = webhookService.processIncoming(dto);
+
+        assertTrue(result.isEmpty());
+        verify(phoneNormalizationService, never()).normalize(any());
+    }
+
     // Helpers
 
     private WhatsAppWebhookDTO createTextWebhook(String phone, String msgId, String text) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
         dto.setInstanceId("inst-1");
-        dto.setEvent("MESSAGES_UPSERT");
+        dto.setEvent("Message");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
-        WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
-        key.setRemoteJid(phone + "@s.whatsapp.net");
-        key.setId(msgId);
-        data.setKey(key);
+        WhatsAppWebhookDTO.WhatsAppInfo info = new WhatsAppWebhookDTO.WhatsAppInfo();
+        info.setSender(phone + "@s.whatsapp.net");
+        info.setId(msgId);
+        info.setFromMe(false);
+        info.setType("text");
+        data.setInfo(info);
         WhatsAppWebhookDTO.MessageContent msg = new WhatsAppWebhookDTO.MessageContent();
         msg.setConversation(text);
         data.setMessage(msg);
@@ -179,11 +206,15 @@ class WebhookServiceTest {
     private WhatsAppWebhookDTO createAudioWebhook(String phone, String msgId, String url) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
         dto.setInstanceId("inst-1");
+        dto.setEvent("Message");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
-        WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
-        key.setRemoteJid(phone + "@s.whatsapp.net");
-        key.setId(msgId);
-        data.setKey(key);
+        WhatsAppWebhookDTO.WhatsAppInfo info = new WhatsAppWebhookDTO.WhatsAppInfo();
+        info.setSender(phone + "@s.whatsapp.net");
+        info.setId(msgId);
+        info.setFromMe(false);
+        info.setType("media");
+        info.setMediaType("audio");
+        data.setInfo(info);
         WhatsAppWebhookDTO.MessageContent msg = new WhatsAppWebhookDTO.MessageContent();
         WhatsAppWebhookDTO.AudioMessage audio = new WhatsAppWebhookDTO.AudioMessage();
         audio.setUrl(url);
@@ -196,11 +227,15 @@ class WebhookServiceTest {
     private WhatsAppWebhookDTO createImageWebhook(String phone, String msgId, String url, String caption) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
         dto.setInstanceId("inst-1");
+        dto.setEvent("Message");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
-        WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
-        key.setRemoteJid(phone + "@s.whatsapp.net");
-        key.setId(msgId);
-        data.setKey(key);
+        WhatsAppWebhookDTO.WhatsAppInfo info = new WhatsAppWebhookDTO.WhatsAppInfo();
+        info.setSender(phone + "@s.whatsapp.net");
+        info.setId(msgId);
+        info.setFromMe(false);
+        info.setType("media");
+        info.setMediaType("image");
+        data.setInfo(info);
         WhatsAppWebhookDTO.MessageContent msg = new WhatsAppWebhookDTO.MessageContent();
         WhatsAppWebhookDTO.ImageMessage img = new WhatsAppWebhookDTO.ImageMessage();
         img.setUrl(url);
