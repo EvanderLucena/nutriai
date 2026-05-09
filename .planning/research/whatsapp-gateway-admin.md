@@ -1,8 +1,10 @@
 # WhatsApp Gateway Admin — Arquitetura & Planejamento
 
-> **Contexto:** Decisao do founder de operar com chips fisicos como gateway WhatsApp. Este documento captura a arquitetura de pool de numeros, painel de admin, fallback anti-ban, e estrategias de rate-limiting.
+> **Contexto:** Arquitetura de pool de WhatsApp usando API Oficial da Meta (WhatsApp Business Platform). Registro via CPF (ate 2 numeros). Inbound-only: IA apenas responde, nunca inicia conversa.
 >
-> **Modelo de Interacao:** O NutriAI NUNCA inicia conversa com o paciente. A IA apenas RESPONDE quando o paciente envia mensagem primeiro. Nao ha envio proativo, lembretes, ou broadcast. Isso reduz drasticamente o risco de ban e simplifica o rate limiting.
+> **Gateway:** API Oficial Meta (cloud) — zero custo de mensagens (sessao iniciada pelo usuario), zero risco de ban.
+>
+> **Modelo de Interacao:** O NutriAI NUNCA inicia conversa com o paciente. A IA apenas RESPONDE quando o paciente envia mensagem primeiro. Nao ha envio proativo, lembretes, ou broadcast. Isso simplifica drasticamente rate limiting e elimina risco de ban.
 
 ---
 
@@ -275,12 +277,19 @@ Periodicamente (diario/semanal), o sistema pode rebalancear:
 
 | Item | Custo Inicial | Custo Mensal | Notas |
 |------|---------------|--------------|-------|
-| Chip + Plano basico | R$15-30/chip | R$15-30/chip | Plano pre-pago com dados minimos |
-| Celular/Raspberry | R$0 (usar velho) ou R$300-500 | — | 1 dispositivo por chip |
-| VPS para Evolution Go | — | US$10-20 | Pode rodar na mesma VPS do NutriAI |
-| Painel de Admin | — | — | Codigo proprio, sem custo extra |
-| **Total (1 gateway)** | **R$15-30** | **R$15-30** | Inicio |
-| **Total (5 gateways)** | **R$75-150** | **R$75-150** | Escala regional |
+| Chip físico (para cadastro) | R$15-30 | **ZERO** | Compra única. Não precisa de plano de dados porque a infra é cloud da Meta |
+| API Oficial Meta | ZERO | ZERO | Conversas iniciadas pelo usuário = sessão gratuita |
+| Painel de Admin | — | — | Código próprio, sem custo extra |
+| **Total por gateway** | **R$15-30 (único)** | **ZERO** | Início |
+| **Total (2 gateways — limite CPF)** | **R$30-60 (único)** | **ZERO** | Máximo para CPF |
+
+### Comparativo com modelos anteriores
+
+| Modelo | Custo Inicial | Custo Mensal | Infraestrutura |
+|--------|---------------|--------------|----------------|
+| API Oficial Meta (CPF) | R$15-30/chip | **ZERO** | Cloud |
+| Chip + Evolution Go | R$15-30/chip | R$40/chip | Raspberry/Celular 24/7 |
+| API Oficial Meta (CNPJ) | R$15-30/chip | ZERO | Cloud + mais de 2 números |
 
 ---
 
@@ -401,31 +410,35 @@ public class ResponseRateLimiter {
 - Fila complexa de mensagens
 - Scheduling/cron jobs
 
-### 11.4 Deteccao de Ban Simplificada
+### 11.4 Detecção de Problemas (API Oficial)
 
-Sem envio proativo, os sinais de ban sao mais claros:
+Com API Oficial da Meta, "ban" é praticamente impossível para uso legítimo. Monitorar:
 
-| Sinal | Significado |
-|-------|-------------|
-| Mensagens do paciente chegam, mas IA nao consegue responder (erro 4xx/5xx do Evolution) | Gateway provavelmente banido |
-| Evolution Go retorna `instance disconnected` | Numero desconectado (chip sem sinal, ban, ou QR expirado) |
-| Respostas da IA ficam como `sent` mas paciente diz que nao recebeu | Shadow ban parcial |
+| Sinal | Significado | Ação |
+|-------|-------------|------|
+| Erro 403 do Graph API "não autorizado" | Token expirado ou número removido | Renovar token na Meta Business Manager |
+| Erro 404 "número não encontrado" | Número desconectado da API | Recadastrar chip na plataforma |
+| Webhook para de chegar | Configuração do webhook expirou | Reconfigurar webhook no Business Manager |
+| Resposta da API: "limite de mensagens" | Raríssimo (1.000/dia), mas possível | Verificar volume, escalar para segundo número |
 
-**Nao precisa monitorar:**
-- Taxa de rejeicao de envio (hard bounces) — raro com respostas
-- Volume diario — irrelevante
+**Com API oficial não monitorar:**
+- Rate limit (80/min é impossível de atingir com inbound-only)
+- Volume diário (1.000/dia é impossível de atingir)
+- Banimento (não acontece no modelo inbound legítimo)
 
 ---
 
 ## 12. Referencias
 
-- Evolution Go docs: https://docs.evolutionfoundation.com.br/evolution-go
-- WhatsApp Business API (Meta): nao aplicavel para SaaS pequeno
-- Anotacoes desta conversa: migracao Phase 07, arquitetura pool, modelo inbound-only, custos operacionais
+- API Oficial Meta: https://developers.facebook.com/docs/whatsapp/cloud-api
+- Meta Business Manager: https://business.facebook.com
+- Rate limits API: 80 msg/min por número, 1000 msg/dia por número
+- Anotacoes desta conversa: decisao API Oficial, custo zero inbound, limite 2 números CPF
 
 ---
 
-*Documento criado em: 2026-05-06*
-*Revisado em: 2026-05-06 (adicionado modelo inbound-only)*
-*Por: OpenCode (agente), baseado em discussao com founder*
-*Revisar quando: antes de priorizar a fase de gateway admin no roadmap*
+*Documento revisado em: 2026-05-06*
+*Gateway escolhido: API Oficial Meta (cloud)*
+*Registro: CPF (até 2 números)*
+*Custo operacional: ZERO mensagens (inbound-only)*
+*Por: OpenCode, com base em discussao com founder*
