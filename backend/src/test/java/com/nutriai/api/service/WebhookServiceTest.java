@@ -162,7 +162,7 @@ class WebhookServiceTest {
 
     private WhatsAppWebhookDTO createTextWebhook(String phone, String msgId, String text) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
-        dto.setInstanceId("inst-1");
+        dto.setInstance("nutriai");
         dto.setEvent("MESSAGES_UPSERT");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
         WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
@@ -178,7 +178,7 @@ class WebhookServiceTest {
 
     private WhatsAppWebhookDTO createAudioWebhook(String phone, String msgId, String url) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
-        dto.setInstanceId("inst-1");
+        dto.setInstance("nutriai");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
         WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
         key.setRemoteJid(phone + "@s.whatsapp.net");
@@ -195,7 +195,7 @@ class WebhookServiceTest {
 
     private WhatsAppWebhookDTO createImageWebhook(String phone, String msgId, String url, String caption) {
         WhatsAppWebhookDTO dto = new WhatsAppWebhookDTO();
-        dto.setInstanceId("inst-1");
+        dto.setInstance("nutriai");
         WhatsAppWebhookDTO.MessageData data = new WhatsAppWebhookDTO.MessageData();
         WhatsAppWebhookDTO.MessageKey key = new WhatsAppWebhookDTO.MessageKey();
         key.setRemoteJid(phone + "@s.whatsapp.net");

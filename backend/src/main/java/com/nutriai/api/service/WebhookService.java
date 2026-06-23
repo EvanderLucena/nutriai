@@ -53,7 +53,9 @@ public class WebhookService {
 
         String rawPhone = extractPhoneFromJid(payload.getData().getKey().getRemoteJid());
         String evolutionMessageId = payload.getData().getKey().getId();
-        String instanceId = payload.getInstanceId();
+        // Evolution API v2 sends "instance" (instance name). Older payloads used "instanceId".
+        // Prefer "instance" since that's what v2.3.x emits on MESSAGES_UPSERT.
+        String instanceId = payload.getInstance() != null ? payload.getInstance() : payload.getInstanceId();
 
         if (evolutionMessageId == null || rawPhone == null) {
             log.warn("Webhook missing messageId or sender phone");

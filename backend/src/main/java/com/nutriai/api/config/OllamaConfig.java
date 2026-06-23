@@ -26,11 +26,14 @@ public class OllamaConfig {
     @Value("${nutriai.llm.timeout-seconds:30}")
     private int llmTimeoutSeconds;
 
-    @Value("${nutriai.evolution.api-url:http://evolution-api:8080}")
+    @Value("${nutriai.evolution.api-url:http://localhost:8081}")
     private String evolutionApiUrl;
 
     @Value("${nutriai.evolution.api-key:}")
     private String evolutionApiKey;
+
+    @Value("${nutriai.evolution.send-delay-ms:0}")
+    private int evolutionSendDelayMs;
 
     @Bean
     LlmService ollamaCloudLlmService() {
@@ -39,6 +42,6 @@ public class OllamaConfig {
 
     @Bean
     EvolutionApiService evolutionApiService() {
-        return new EvolutionApiService(evolutionApiUrl, evolutionApiKey);
+        return new EvolutionApiService(evolutionApiUrl, evolutionApiKey, evolutionSendDelayMs);
     }
 }

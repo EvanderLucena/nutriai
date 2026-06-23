@@ -9,11 +9,15 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class WhatsAppWebhookDTO {
     private String instanceId;
+    private String instance;
     private String event;
     private MessageData data;
 
     public String getInstanceId() { return instanceId; }
     public void setInstanceId(String instanceId) { this.instanceId = instanceId; }
+    /** Evolution API v2 sends "instance" (the instance name) rather than "instanceId". */
+    public String getInstance() { return instance; }
+    public void setInstance(String instance) { this.instance = instance; }
     public String getEvent() { return event; }
     public void setEvent(String event) { this.event = event; }
     public MessageData getData() { return data; }

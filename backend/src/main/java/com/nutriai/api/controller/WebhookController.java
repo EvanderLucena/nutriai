@@ -38,11 +38,13 @@ public class WebhookController {
     public ResponseEntity<Void> receiveWebhook(
             @RequestBody String rawBody,
             @RequestHeader(value = "X-Hub-Signature-256", required = false) String signature,
+            @RequestHeader(value = "apikey", required = false) String apikey,
             HttpServletRequest request) {
 
-        // Verify HMAC signature
-        if (!hmacVerificationService.verify(rawBody, signature)) {
-            log.warn("Invalid HMAC signature for webhook from {}", request.getRemoteAddr());
+        // Verify webhook — HMAC if configured, otherwise Evolution API apikey header
+        if (!hmacVerificationService.verify(rawBody, signature, apikey)) {
+            log.warn("Invalid webhook auth from {} (signaturePresent={}, apikeyPresent={})",
+                    request.getRemoteAddr(), signature != null, apikey != null);
             return ResponseEntity.status(403).build();
         }
 

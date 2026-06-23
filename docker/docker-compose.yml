@@ -10,6 +10,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - nutriai-pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nutriai}"]
       interval: 5s
@@ -34,6 +35,8 @@ services:
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-nutriai-redis-dev-password}
       SERVER_PORT: 8080
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
+      EVOLUTION_API_URL: http://evolution-api:8080
+      EVOLUTION_SEND_DELAY_MS: ${EVOLUTION_SEND_DELAY_MS:-0}
       NUTRIAI_LLM_API_KEY: ${NUTRIAI_LLM_API_KEY:-}
       NUTRIAI_LLM_BASE_URL: ${NUTRIAI_LLM_BASE_URL:-https://api.ollama.com/v1}
       NUTRIAI_LLM_MODEL: ${NUTRIAI_LLM_MODEL:-glm4}
@@ -61,24 +64,36 @@ services:
       - nutriai
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: nutriai-evolution
     restart: unless-stopped
     environment:
       SERVER_TYPE: http
       SERVER_PORT: 8080
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8081}
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-changeme}
-      DATABASE_ENABLED: "false"
-      DATABASE_URI: ""
-      DATABASE_DB_NAME: ""
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-nutriai}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${EVOLUTION_DB_NAME:-evolution}
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://:${REDIS_PASSWORD:-nutriai-redis-dev-password}@redis:6379/2
+      CACHE_REDIS_PREFIX_KEY: evolution
       CONFIG_SESSION_PHONE_CHECK: "false"
       QRCODE_AUTO_START: "true"
     ports:
       - "${EVOLUTION_PORT:-8081}:8080"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      - nutriai-evolution-data:/evolution-instance
+      - nutriai-evolution-data:/evolution/instances
     networks:
       - nutriai
 

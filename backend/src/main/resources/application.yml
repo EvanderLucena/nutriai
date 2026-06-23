@@ -40,8 +40,11 @@ nutriai:
     timeout-seconds: ${NUTRIAI_LLM_TIMEOUT:30}
 
   evolution:
-    api-url: ${EVOLUTION_API_URL:http://evolution-api:8080}
+    api-url: ${EVOLUTION_API_URL:http://localhost:8081}
     api-key: ${EVOLUTION_API_KEY:changeme}
+    # Delay (ms) applied to outbound messages for rate-limit compliance (Phase 10 will tune this).
+    # 0 = no delay. Recommended 2000-5000 in production to mimic human pacing.
+    send-delay-ms: ${EVOLUTION_SEND_DELAY_MS:0}
 
   webhook:
     secret: ${NUTRIAI_WEBHOOK_SECRET:}

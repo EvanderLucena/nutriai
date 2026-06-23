@@ -20,10 +20,16 @@ public class EvolutionApiService {
     private final String apiUrl;
     private final String apiKey;
     private final HttpClient httpClient;
+    private final int defaultDelayMs;
 
     public EvolutionApiService(String apiUrl, String apiKey) {
+        this(apiUrl, apiKey, 0);
+    }
+
+    public EvolutionApiService(String apiUrl, String apiKey, int defaultDelayMs) {
         this.apiUrl = apiUrl;
         this.apiKey = apiKey;
+        this.defaultDelayMs = defaultDelayMs;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
@@ -32,18 +38,27 @@ public class EvolutionApiService {
     /**
      * Send a text message via Evolution API.
      *
-     * @param instanceId the Evolution API instance ID
+     * @param instanceId the Evolution API instance name (e.g. "nutriai")
      * @param phone      the recipient phone number (normalized)
      * @param text       the message text to send
      * @return true if the message was sent successfully, false otherwise
      */
     public boolean sendMessage(String instanceId, String phone, String text) {
+        return sendMessage(instanceId, phone, text, defaultDelayMs);
+    }
+
+    /**
+     * Send a text message with an explicit delay (ms) for rate-limit compliance.
+     */
+    public boolean sendMessage(String instanceId, String phone, String text, int delayMs) {
         try {
             String endpoint = apiUrl + "/message/sendText/" + instanceId;
+            String delayFragment = delayMs > 0 ? ",\"delay\":" + delayMs : "";
             String payload = String.format(
-                    "{\"number\":\"%s\",\"text\":\"%s\"}",
+                    "{\"number\":\"%s\",\"textMessage\":{\"text\":\"%s\"}%s}",
                     escapeJson(phone),
-                    escapeJson(text)
+                    escapeJson(text),
+                    delayFragment
             );
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -97,10 +112,12 @@ public class EvolutionApiService {
     private boolean retrySendOnce(String instanceId, String phone, String text) {
         try {
             String endpoint = apiUrl + "/message/sendText/" + instanceId;
+            String delayFragment = defaultDelayMs > 0 ? ",\"delay\":" + defaultDelayMs : "";
             String payload = String.format(
-                    "{\"number\":\"%s\",\"text\":\"%s\"}",
+                    "{\"number\":\"%s\",\"textMessage\":{\"text\":\"%s\"}%s}",
                     escapeJson(phone),
-                    escapeJson(text)
+                    escapeJson(text),
+                    delayFragment
             );
 
             HttpRequest request = HttpRequest.newBuilder()

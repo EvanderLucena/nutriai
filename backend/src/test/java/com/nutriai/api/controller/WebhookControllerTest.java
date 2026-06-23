@@ -30,10 +30,10 @@ class WebhookControllerTest {
         WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
         String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(hmacVerificationService.verify(rawBody, "valid-sig")).thenReturn(true);
+        when(hmacVerificationService.verify(rawBody, "valid-sig", null)).thenReturn(true);
         when(webhookService.processIncoming(any(WhatsAppWebhookDTO.class))).thenReturn(Optional.of(mock()));
 
-        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "valid-sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "valid-sig", null, request);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -43,9 +43,9 @@ class WebhookControllerTest {
         WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
         String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(hmacVerificationService.verify(rawBody, "bad-sig")).thenReturn(false);
+        when(hmacVerificationService.verify(rawBody, "bad-sig", null)).thenReturn(false);
 
-        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "bad-sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "bad-sig", null, request);
 
         assertEquals(403, response.getStatusCode().value());
     }
@@ -55,10 +55,10 @@ class WebhookControllerTest {
         WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
         String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(hmacVerificationService.verify(rawBody, "sig")).thenReturn(true);
+        when(hmacVerificationService.verify(rawBody, "sig", null)).thenReturn(true);
         when(webhookService.processIncoming(any(WhatsAppWebhookDTO.class))).thenReturn(Optional.empty());
 
-        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", null, request);
 
         assertEquals(200, response.getStatusCode().value());
     }
@@ -68,11 +68,37 @@ class WebhookControllerTest {
         WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
         String rawBody = "{invalid-json";
         HttpServletRequest request = mock(HttpServletRequest.class);
-        when(hmacVerificationService.verify(rawBody, "sig")).thenReturn(true);
+        when(hmacVerificationService.verify(rawBody, "sig", null)).thenReturn(true);
 
-        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", request);
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, "sig", null, request);
 
         assertEquals(400, response.getStatusCode().value());
         verify(webhookService, never()).processIncoming(any());
+    }
+
+    @Test
+    void receiveWebhook_validApikey_returns200_whenHmacNotUsed() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        // Evolution API v2 default auth: apikey header, no signature
+        when(hmacVerificationService.verify(rawBody, null, "evolution-key")).thenReturn(true);
+        when(webhookService.processIncoming(any(WhatsAppWebhookDTO.class))).thenReturn(Optional.of(mock()));
+
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, null, "evolution-key", request);
+
+        assertEquals(200, response.getStatusCode().value());
+    }
+
+    @Test
+    void receiveWebhook_missingBothAuthHeaders_returns403() {
+        WebhookController controller = new WebhookController(webhookService, hmacVerificationService, objectMapper);
+        String rawBody = "{\"event\":\"MESSAGES_UPSERT\"}";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(hmacVerificationService.verify(rawBody, null, null)).thenReturn(false);
+
+        ResponseEntity<Void> response = controller.receiveWebhook(rawBody, null, null, request);
+
+        assertEquals(403, response.getStatusCode().value());
     }
 }
