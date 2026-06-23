@@ -5,7 +5,7 @@ milestone_name: milestone
 status: executing
 stopped_at: Phase 07 complete
 last_updated: "2026-05-05T22:56:33.754Z"
-last_activity: 2026-05-05 -- Phase 07 completed
+last_activity: 2026-06-23 -- WhatsApp gateway decision reverted to Evolution API (Meta approval denied)
 progress:
   total_phases: 10
   completed_phases: 7
@@ -241,10 +241,11 @@ Todas as tarefas pendentes concluídas. Última: [2026-04-29-melhorar-suite-e2e-
 
 ### Blockers/Concerns
 
-- **Payment gateway decision:** Stripe vs Pagar.me — needs resolution before Phase 8 planning
-- **AI provider selection:** No specific LLM chosen yet — affects Phase 7 cost model and response latency
-- **Evolution API scaling limits:** Single shared instance architecture validated for ~10-20 nutris; needs validation during Phase 7
+- ~~**Payment gateway decision:** Stripe vs Pagar.me — needs resolution before Phase 8 planning~~ → ainda pendente
+- ~~**AI provider selection:** No specific LLM chosen yet~~ → resolvido na Fase 7 (Ollama Cloud, glm-5.1)
+- ~~**Evolution API scaling limits: Single shared instance architecture validated for ~10-20 nutris~~ → mantido como decisão final; Fase 10 vai endereçar com pool de instances
 - **LGPD legal text:** Privacy policy and terms need Brazilian lawyer review before Phase 9 ships
+- **[RESOLVIDO 2026-06-23] WhatsApp gateway decision:** Aprovação da API Oficial Meta não obtida após múltiplas tentativas. **Decisão revertida para Evolution API (open-source, self-hosted)** — decisão original do projeto, já operacional na Fase 7. Documento `.planning/research/whatsapp-gateway-decision.md` atualizado. Isso desbloqueia Fases 8-11.
 
 ## Session Continuity
 
